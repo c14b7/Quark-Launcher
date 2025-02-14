@@ -1,0 +1,21 @@
+{
+  "name": "quark-launcher",
+  "version": "1.0.0",
+  "description": "Launcher gier oparty o Electron z integracją z xbox app, steam oraz w przyszłości epic, oraz możliwością ręcznego dodawania gier (za pomocą skrótów).",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "react-scripts build"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  },
+  "devDependencies": {
+    "electron": "^34.2.0",
+    "react-scripts": "4.0.3"
+  },
+  "keywords": []
+}
