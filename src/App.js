@@ -6,7 +6,7 @@ import BottomLeftButtons from './components/BottomLeftButtons';
 
 function App() {
   return (
-    <div id="root">
+    <div id="app-root">
       <LeftSidebar />
       <MainContent />
       <RightSidebar />
