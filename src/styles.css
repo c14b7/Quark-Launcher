@@ -1,0 +1,100 @@
+#root {
+  display: flex;
+  height: 100vh;
+  background-color: #1e1e1e;
+  color: #ffffff;
+}
+
+#left-sidebar {
+  width: 20%;
+  background-color: #2e2e2e;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+#search-bar {
+  padding: 10px;
+  background-color: #3e3e3e;
+  margin-bottom: 10px;
+  color: #ffffff;
+}
+
+#menu-items {
+  flex-grow: 1;
+}
+#menu-items div {
+  padding: 10px;
+  margin-bottom: 5px;
+  background-color: #3e3e3e;
+}
+
+#game-list {
+  margin-top: 10px;
+}
+
+#main-content {
+  width: 60%;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.large-section {
+  height: 100px;
+  background-color: #3e3e3e;
+  margin-bottom: 10px;
+}
+
+.small-section-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.small-section {
+  width: 15%;
+  height: 50px;
+  background-color: #3e3e3e;
+}
+
+#right-sidebar {
+  width: 20%;
+  background-color: #2e2e2e;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+#user-profile {
+  padding: 10px;
+  background-color: #3e3e3e;
+  margin-bottom: 10px;
+}
+
+#additional-content {
+  flex-grow: 1;
+  background-color: #3e3e3e;
+  margin-bottom: 10px;
+}
+
+#friends-list {
+  margin-top: 10px;
+}
+
+#bottom-left-buttons {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+#bottom-left-buttons button {
+  margin-bottom: 5px;
+  padding: 10px;
+  background-color: #3e3e3e;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+}
