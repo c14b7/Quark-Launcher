@@ -98,3 +98,9 @@
   color: #ffffff;
   cursor: pointer;
 }
+
+#app-root {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+}
