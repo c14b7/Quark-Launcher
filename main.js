@@ -15,7 +15,7 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadURL('http://localhost:3000');
+  mainWindow.loadURL(`file://${path.join(__dirname, 'app/html/index.html')}`);
 }
 
 app.on('ready', createWindow);

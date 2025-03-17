@@ -1,0 +1,143 @@
+body {
+    background-color: #1e1e1e;
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+.left-sidebar, .right-sidebar {
+    background-color: #2e2e2e;
+    padding: 20px;
+    width: 250px;
+    display: flex;
+    flex-direction: column;
+}
+
+.left-sidebar {
+    border-right: 1px solid #444;
+}
+
+.right-sidebar {
+    border-left: 1px solid #444;
+}
+
+.main-content {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.placeholder {
+    background-color: #3e3e3e;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.placeholder.large {
+    height: 150px;
+}
+
+.placeholder.medium {
+    height: 100px;
+}
+
+.placeholder.small {
+    height: 50px;
+    width: 50px;
+}
+
+.grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.grid .placeholder {
+    flex: 1 1 calc(25% - 20px);
+}
+
+input[type="text"] {
+    background-color: #3e3e3e;
+    border: none;
+    border-radius: 5px;
+    color: #ffffff;
+    padding: 10px;
+    margin-bottom: 20px;
+}
+
+.menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.menu li {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    cursor: pointer;
+}
+
+.menu li i {
+    margin-right: 10px;
+}
+
+.coming-soon {
+    background-color: #ff0000;
+    border-radius: 5px;
+    color: #ffffff;
+    font-size: 10px;
+    margin-left: 10px;
+    padding: 2px 5px;
+}
+
+.games-section, .friends-section {
+    margin-top: 20px;
+}
+
+.games-list, .friends-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.games-list li, .friends-list li {
+    padding: 5px 0;
+}
+
+.user-profile {
+    margin-bottom: 20px;
+}
+
+.username, .user-id {
+    margin-bottom: 5px;
+}
+
+.bottom-left-corner {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    display: flex;
+    align-items: center;
+}
+
+.pro-button {
+    background-color: #ff0000;
+    border: none;
+    border-radius: 5px;
+    color: #ffffff;
+    padding: 10px;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.icon-settings {
+    cursor: pointer;
+}
