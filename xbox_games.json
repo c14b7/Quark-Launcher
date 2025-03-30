@@ -1,0 +1,26 @@
+[
+    {
+        "name": "Microsoft.Lovika",
+        "install_location": "C:\\Program Files\\WindowsApps\\Microsoft.Lovika_1.17.0.0_x64__8wekyb3d8bbwe"
+    },
+    {
+        "name": "Finji.TUNIC",
+        "install_location": "C:\\Program Files\\WindowsApps\\Finji.TUNIC_1.1.6.0_x64__tys0ffscxatjj"
+    },
+    {
+        "name": "5901F20F.CarMechanicSimulator2021",
+        "install_location": "C:\\Program Files\\WindowsApps\\5901F20F.CarMechanicSimulator2021_1.60.23.0_x64__t06nbjdc8fw86"
+    },
+    {
+        "name": "Microsoft.4297127D64EC6",
+        "install_location": "C:\\Program Files\\WindowsApps\\Microsoft.4297127D64EC6_2.2.2.0_x64__8wekyb3d8bbwe"
+    },
+    {
+        "name": "GSCGameWorld.S.T.A.L.K.E.R.2HeartofChernobyl",
+        "install_location": "C:\\Program Files\\WindowsApps\\GSCGameWorld.S.T.A.L.K.E.R.2HeartofChernobyl_1.7.1014.0_x64__6fr1t1rwfarwt"
+    },
+    {
+        "name": "BethesdaSoftworks.ProjectGold",
+        "install_location": "C:\\Program Files\\WindowsApps\\BethesdaSoftworks.ProjectGold_1.14.74.0_x64__3275kfvn8vcwc"
+    }
+]
