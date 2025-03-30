@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quark Launcher</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">Quark Launcher</div>
+        <div class="search-bar">
+            <input type="text" placeholder="Search...">
+        </div>
+        <ul class="menu">
+            <li><i class="fas fa-home"></i> Home</li>
+            <li><i class="fas fa-video"></i> Clips</li>
+            <li><i class="fas fa-comments"></i> Cheats <span class="coming-soon">Coming soon</span></li>
+            <li><i class="fas fa-user-friends"></i> Connected accounts</li>
+            <li><i class="fas fa-store"></i> Store</li>
+        </ul>
+        <div class="rounded-divider"></div> <!-- Dodanie zaokrąglonego div -->
+        <div class="games-section">
+            <h3>Your games:</h3>
+            <ul class="games-list">
+                <li><img src="l/logo/256x256.png" alt="CS2 Icon"> Counter-Strike 2</li>
+                <li><img src="l/logo/need-for-speed-unbound2801.logowik.com.webp" alt="NFSU Icon"> Need For Speed Unbound</li>
+                <li><img src="l/logo/81a4e680815973.5cec6bcf6aa1a.jpg" alt="Cyberpunk Icon"> Cyberpunk 2077</li>
+                <li><img src="l/logo/starfieldlogo.webp" alt="Starfield Icon"> Starfield</li>
+                <li><img src="l/logo/eeda516778aee8b34289e88cae1bc9d1.png" alt="Sons Icon"> Sons of the Forest</li>
+                <li><img src="l/logo/valorant-logo-valorant-icon-transparent-free-png.webp" alt="Valorant Icon"> Valorant</li>
+                <li><img src="" alt="Game Icon"> Game title</li>
+            </ul>
+        </div>
+        <div class="banner-section">
+            <img src="l/baner/banner-placeholder.jpg" alt="Banner">
+        </div>
+        <div class="empty-section"></div>
+        <div class="pro-section">
+            <button class="pro-button">PRO</button>
+            <button class="settings-button"><i class="fas fa-cog"></i></button>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="banners-container">
+            <!--             <div class="game-banner large"><img src="l/baner/sons.webp" alt=""></div>
+            <div class="game-banner large"><img src="l/baner/star.jpg" alt=""></div>
+            <div class="game-banner large"><img src="l/baner/val.jpg" alt=""></div> -->
+        </div>
+        <div class="game-thumbnails">
+            <!--             <div class="game-thumbnail"><img src="l/baner/cisy.jpg" alt="Cities"></div>
+            <div class="game-thumbnail"><img src="l/baner/cyber.jpg" alt="Cyberpunk"></div>
+            <div class="game-thumbnail"><img src="l/baner/sons.webp" alt="Sons of the Forest"></div>
+            <div class="game-thumbnail"><img src="l/baner/star.jpg" alt="Starfield"></div>
+            <div class="game-thumbnail"><img src="l/baner/val.jpg" alt="Valorant"></div>
+            <div class="game-thumbnail"><img src="l/baner/rr.jpg" alt="Rail Route"></div>
+            <div class="game-thumbnail"><img src="l/baner/cs2.jpg" alt="Counter-Strike"></div>
+            <div class="game-thumbnail"><img src="l/baner/nfsu.jpg" alt="Unbound"></div>
+            <div class="game-thumbnail"><img src="l/baner/metro.jpg" alt="Metro"></div>
+            <div class="game-thumbnail"><img src="l/baner/pcbs.webp" alt="pcbs"></div> -->
+        </div>
+    </div>
+    <script src="scripts.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const steamApiKey = '5FAF3AEC4951E85E8F93FDC2C6FFA0A4'; // Wstaw swój klucz API Steam
+            const steamUserId = '1124194227'; // Wstaw swój Steam User ID
+            const proxyUrl = 'https://api.allorigins.win/get?url='; // Serwer proxy obsługujący CORS
+
+            fetch('steam_games.json')
+                .then(response => response.json())
+                .then(games => {
+                    const gameThumbnailsContainer = document.querySelector('.game-thumbnails');
+                    const bannersContainer = document.querySelector('.banners-container');
+                    games.forEach((game, index) => {
+                        const gameThumbnail = document.createElement('div');
+                        gameThumbnail.classList.add('game-thumbnail');
+                        gameThumbnail.innerHTML = `
+                            <img src="http://cdn.akamai.steamstatic.com/steam/apps/${game.appid}/header.jpg" alt="${game.name}">
+                            <div class="options">⋮</div>
+                        `;
+                        gameThumbnail.addEventListener('click', () => {
+                            window.location.href = `steam://run/${game.appid}`;
+                        });
+                        gameThumbnailsContainer.appendChild(gameThumbnail);
+                        console.log(game.appid);
+
+                        // Dodaj banery tylko dla pierwszych trzech gier
+                        if (index < 3) {
+                            const gameBanner = document.createElement('div');
+                            gameBanner.classList.add('game-banner', 'large');
+                            gameBanner.innerHTML = `
+                                <img src="http://cdn.akamai.steamstatic.com/steam/apps/${game.appid}/header.jpg" alt="${game.name}">
+                                <div class="options">⋮</div>
+                            `;
+                            gameBanner.addEventListener('click', () => {
+                                window.location.href = `steam://run/${game.appid}`;
+                            });
+                            bannersContainer.appendChild(gameBanner);
+                        }
+                    });
+                })
+                .catch(error => console.error('Error loading games:', error));
+        });
+    </script>
+    <script>
+        // Aby uruchomić serwer lokalny, użyj poniższych instrukcji:
+        // 1. Zainstaluj `http-server` globalnie za pomocą npm: `npm install -g http-server`
+        // 2. Przejdź do katalogu projektu w terminalu.
+        // 3. Uruchom serwer za pomocą polecenia: `http-server`
+        // 4. Otwórz przeglądarkę i przejdź do `http://localhost:8080`.
+    </script>
+</body>
+</html>
