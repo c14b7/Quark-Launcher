@@ -9,6 +9,7 @@ app.whenReady().then(() => {
         height: 600,
         webPreferences: {
             nodeIntegration: true,  // Pozwala używać Node.js w renderowanym HTML
+            contextIsolation: false, // Umożliwia dostęp do require w renderer
         }
     });
 

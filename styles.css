@@ -239,3 +239,90 @@ html {
     border-radius: 5px;
     margin: 20px 0;
 }
+
+/* Xbox Game Launcher Styles */
+.xbox-game {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 5px 0;
+    border-radius: 5px;
+    transition: background-color 0.2s;
+}
+
+.xbox-game:hover {
+    background-color: #2a2a2a;
+}
+
+.xbox-game .game-name {
+    flex-grow: 1;
+    margin-left: 10px;
+}
+
+.launch-btn {
+    background-color: #107C41;
+    border: none;
+    border-radius: 50%;
+    color: white;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    margin-left: 10px;
+}
+
+.launch-btn:hover {
+    background-color: #0d6635;
+    transform: scale(1.1);
+}
+
+.launch-btn:active {
+    transform: scale(0.95);
+}
+
+.launch-btn i {
+    font-size: 12px;
+}
+
+.xbox-launch {
+    background-color: #107C41;
+}
+
+.xbox-launch:hover {
+    background-color: #0d6635;
+}
+
+/* Launch notification styles */
+.launch-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 5px;
+    color: white;
+    font-weight: bold;
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out;
+}
+
+.launch-notification.success {
+    background-color: #107C41;
+}
+
+.launch-notification.error {
+    background-color: #d32f2f;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
