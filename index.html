@@ -11,7 +11,7 @@
     <div class="sidebar">
         <div class="logo">Quark Launcher</div>
         <div class="search-bar">
-            <input type="text" placeholder="Search...">
+            <input type="text" placeholder="Search..." id="search-input">
         </div>
         <ul class="menu">
             <li data-page="home" class="menu-item active"><i class="fas fa-home"></i> Home</li>
@@ -39,7 +39,7 @@
         <div class="empty-section"></div>
         <div class="pro-section">
             <button class="pro-button">PRO</button>
-            <button class="settings-button"><i class="fas fa-cog"></i></button>
+            <button class="settings-button" id="settings-btn"><i class="fas fa-cog"></i></button>
         </div>
     </div>
     <div class="main-content">
@@ -260,12 +260,92 @@
             </div>
         </div>
     </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-cog"></i> Settings</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h3>Appearance</h3>
+                    <div class="setting-item">
+                        <label for="theme-select">Theme</label>
+                        <select id="theme-select">
+                            <option value="dark">Dark</option>
+                            <option value="light">Light</option>
+                            <option value="auto">Auto</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="language-select">Language</label>
+                        <select id="language-select">
+                            <option value="en">English</option>
+                            <option value="pl">Polski</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>Gaming</h3>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="auto-launch" checked>
+                            Auto-launch with Windows
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="minimize-to-tray">
+                            Minimize to system tray
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="show-notifications" checked>
+                            Show game notifications
+                        </label>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>Performance</h3>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="hardware-acceleration" checked>
+                            Hardware acceleration
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label for="refresh-rate">Game library refresh rate</label>
+                        <select id="refresh-rate">
+                            <option value="5">5 minutes</option>
+                            <option value="15" selected>15 minutes</option>
+                            <option value="30">30 minutes</option>
+                            <option value="60">1 hour</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="cancel-settings">Cancel</button>
+                <button class="btn-primary" id="save-settings">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
     <script src="scripts.js"></script>
     <script>
         // Navigation System
         document.addEventListener('DOMContentLoaded', () => {
             const menuItems = document.querySelectorAll('.menu-item');
             const pages = document.querySelectorAll('.page');
+            const searchInput = document.getElementById('search-input');
+            const settingsBtn = document.getElementById('settings-btn');
+            const settingsModal = document.getElementById('settings-modal');
+            const closeModal = document.querySelector('.close-modal');
+            const cancelSettings = document.getElementById('cancel-settings');
+            const saveSettings = document.getElementById('save-settings');
 
             // Navigation function
             function navigateToPage(pageId) {
@@ -302,6 +382,85 @@
                     }
                 });
             });
+
+            // Search functionality
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const gameItems = document.querySelectorAll('.games-list li, .game-thumbnail, .store-item, .clip-card');
+                    
+                    gameItems.forEach(item => {
+                        const text = item.textContent.toLowerCase();
+                        const altText = item.querySelector('img')?.alt?.toLowerCase() || '';
+                        
+                        if (text.includes(searchTerm) || altText.includes(searchTerm)) {
+                            item.style.display = '';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                });
+            }
+
+            // Settings Modal functionality
+            if (settingsBtn && settingsModal) {
+                settingsBtn.addEventListener('click', () => {
+                    settingsModal.style.display = 'block';
+                });
+
+                const closeModalFn = () => {
+                    settingsModal.style.display = 'none';
+                };
+
+                if (closeModal) closeModal.addEventListener('click', closeModalFn);
+                if (cancelSettings) cancelSettings.addEventListener('click', closeModalFn);
+
+                // Close modal when clicking outside
+                window.addEventListener('click', (e) => {
+                    if (e.target === settingsModal) {
+                        closeModalFn();
+                    }
+                });
+
+                // Save settings
+                if (saveSettings) {
+                    saveSettings.addEventListener('click', () => {
+                        // Here you would typically save settings to localStorage or send to backend
+                        const settings = {
+                            theme: document.getElementById('theme-select')?.value,
+                            language: document.getElementById('language-select')?.value,
+                            autoLaunch: document.getElementById('auto-launch')?.checked,
+                            minimizeToTray: document.getElementById('minimize-to-tray')?.checked,
+                            showNotifications: document.getElementById('show-notifications')?.checked,
+                            hardwareAcceleration: document.getElementById('hardware-acceleration')?.checked,
+                            refreshRate: document.getElementById('refresh-rate')?.value
+                        };
+                        
+                        localStorage.setItem('quarkLauncherSettings', JSON.stringify(settings));
+                        closeModalFn();
+                        
+                        // Show a success message (you could implement a toast notification)
+                        console.log('Settings saved successfully');
+                    });
+                }
+            }
+
+            // Load saved settings
+            const savedSettings = localStorage.getItem('quarkLauncherSettings');
+            if (savedSettings) {
+                try {
+                    const settings = JSON.parse(savedSettings);
+                    document.getElementById('theme-select').value = settings.theme || 'dark';
+                    document.getElementById('language-select').value = settings.language || 'en';
+                    document.getElementById('auto-launch').checked = settings.autoLaunch !== false;
+                    document.getElementById('minimize-to-tray').checked = settings.minimizeToTray || false;
+                    document.getElementById('show-notifications').checked = settings.showNotifications !== false;
+                    document.getElementById('hardware-acceleration').checked = settings.hardwareAcceleration !== false;
+                    document.getElementById('refresh-rate').value = settings.refreshRate || '15';
+                } catch (e) {
+                    console.error('Error loading settings:', e);
+                }
+            }
 
             // Steam games integration (existing functionality)
             const steamApiKey = '5FAF3AEC4951E85E8F93FDC2C6FFA0A4';
