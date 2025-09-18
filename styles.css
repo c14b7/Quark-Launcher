@@ -65,7 +65,11 @@ html {
     padding: 10px;
     border-radius: 5px;
     position: relative;
-    /* Usunięcie koloru tła */
+}
+
+.menu li.active {
+    background-color: #444;
+    transform: translateX(5px);
 }
 
 .menu li:hover {
@@ -238,4 +242,385 @@ html {
     background-color: #2a2a2a;
     border-radius: 5px;
     margin: 20px 0;
+}
+
+/* Page System */
+.page {
+    display: none;
+    width: 100%;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.page.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.page-header {
+    margin-bottom: 30px;
+}
+
+.page-header h1 {
+    font-size: 32px;
+    margin: 0 0 10px 0;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.page-header p {
+    color: #ccc;
+    font-size: 18px;
+    margin: 0;
+}
+
+/* Clips Page */
+.clips-container {
+    width: 100%;
+}
+
+.clips-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.clip-card {
+    background-color: #2a2a2a;
+    border-radius: 10px;
+    overflow: hidden;
+    transition: transform 0.3s, box-shadow 0.3s;
+    cursor: pointer;
+}
+
+.clip-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+}
+
+.clip-thumbnail {
+    height: 150px;
+    background: linear-gradient(45deg, #444, #555);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 48px;
+}
+
+.clip-info {
+    padding: 15px;
+}
+
+.clip-info h3 {
+    margin: 0 0 5px 0;
+    color: #fff;
+    font-size: 16px;
+}
+
+.clip-info p {
+    margin: 0 0 10px 0;
+    color: #ccc;
+    font-size: 14px;
+}
+
+.clip-date {
+    color: #888;
+    font-size: 12px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+}
+
+.empty-state i {
+    font-size: 64px;
+    margin-bottom: 20px;
+    color: #555;
+}
+
+.empty-state h3 {
+    font-size: 24px;
+    margin: 0 0 10px 0;
+    color: #888;
+}
+
+/* Connected Accounts Page */
+.accounts-container {
+    display: grid;
+    gap: 20px;
+    max-width: 800px;
+}
+
+.account-card {
+    background-color: #2a2a2a;
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.account-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.account-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: #fff;
+}
+
+.account-icon.steam { background: linear-gradient(45deg, #1e3c72, #2a5298); }
+.account-icon.epic { background: linear-gradient(45deg, #0078d4, #106ebe); }
+.account-icon.xbox { background: linear-gradient(45deg, #107c10, #0e7a0e); }
+.account-icon.discord { background: linear-gradient(45deg, #7289da, #5865f2); }
+
+.account-info {
+    flex: 1;
+}
+
+.account-info h3 {
+    margin: 0 0 5px 0;
+    color: #fff;
+    font-size: 20px;
+}
+
+.account-info .status {
+    margin: 0 0 5px 0;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.account-info .status.connected {
+    color: #4caf50;
+}
+
+.account-info .status:not(.connected) {
+    color: #888;
+}
+
+.account-info .username,
+.account-info .description {
+    color: #ccc;
+    font-size: 14px;
+    margin: 0;
+}
+
+.account-action {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.account-action.connect {
+    background-color: #4caf50;
+    color: #fff;
+}
+
+.account-action.connect:hover {
+    background-color: #45a049;
+}
+
+.account-action.disconnect {
+    background-color: #f44336;
+    color: #fff;
+}
+
+.account-action.disconnect:hover {
+    background-color: #da190b;
+}
+
+/* Store Page */
+.store-categories {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.category-btn {
+    padding: 10px 20px;
+    background-color: #3a3a3a;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.category-btn.active,
+.category-btn:hover {
+    background-color: #4caf50;
+}
+
+.store-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.store-item {
+    background-color: #2a2a2a;
+    border-radius: 10px;
+    overflow: hidden;
+    transition: transform 0.3s, box-shadow 0.3s;
+    cursor: pointer;
+}
+
+.store-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+}
+
+.store-thumbnail {
+    height: 120px;
+    position: relative;
+    overflow: hidden;
+}
+
+.store-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.placeholder-thumbnail {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, #444, #555);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 48px;
+}
+
+.store-info {
+    padding: 15px;
+}
+
+.store-info h3 {
+    margin: 0 0 10px 0;
+    color: #fff;
+    font-size: 16px;
+}
+
+.store-info .price {
+    font-size: 18px;
+    font-weight: bold;
+    color: #4caf50;
+    margin: 0 0 10px 0;
+}
+
+.original-price {
+    text-decoration: line-through;
+    color: #888;
+    font-size: 14px;
+    margin-left: 10px;
+}
+
+.rating {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: #ffc107;
+}
+
+/* Coming Soon Page */
+.coming-soon-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+}
+
+.coming-soon-content {
+    text-align: center;
+    max-width: 500px;
+}
+
+.coming-soon-content i {
+    font-size: 64px;
+    color: #555;
+    margin-bottom: 20px;
+}
+
+.coming-soon-content h2 {
+    font-size: 36px;
+    margin: 0 0 15px 0;
+    color: #fff;
+}
+
+.coming-soon-content p {
+    font-size: 18px;
+    color: #ccc;
+    margin: 0 0 30px 0;
+}
+
+.feature-list {
+    text-align: left;
+}
+
+.feature-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+    color: #ccc;
+    font-size: 16px;
+}
+
+.feature-item i {
+    color: #4caf50;
+    font-size: 20px;
+    width: 20px;
+}
+
+/* Game placeholder improvements */
+.game-thumbnail.placeholder-game {
+    background: linear-gradient(45deg, #444, #555);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #888;
+    font-size: 24px;
+}
+
+.game-thumbnail.placeholder-game::before {
+    content: "🎮";
+    font-size: 48px;
+}
+
+.game-banner.placeholder-banner {
+    background: linear-gradient(45deg, #444, #555);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #888;
+    font-size: 36px;
+}
+
+.game-banner.placeholder-banner::before {
+    content: "🎮";
+    font-size: 72px;
 }

@@ -14,11 +14,11 @@
             <input type="text" placeholder="Search...">
         </div>
         <ul class="menu">
-            <li><i class="fas fa-home"></i> Home</li>
-            <li><i class="fas fa-video"></i> Clips</li>
-            <li><i class="fas fa-comments"></i> Cheats <span class="coming-soon">Coming soon</span></li>
-            <li><i class="fas fa-user-friends"></i> Connected accounts</li>
-            <li><i class="fas fa-store"></i> Store</li>
+            <li data-page="home" class="menu-item active"><i class="fas fa-home"></i> Home</li>
+            <li data-page="clips" class="menu-item"><i class="fas fa-video"></i> Clips</li>
+            <li data-page="cheats" class="menu-item"><i class="fas fa-comments"></i> Cheats <span class="coming-soon">Coming soon</span></li>
+            <li data-page="accounts" class="menu-item"><i class="fas fa-user-friends"></i> Connected accounts</li>
+            <li data-page="store" class="menu-item"><i class="fas fa-store"></i> Store</li>
         </ul>
         <div class="rounded-divider"></div> <!-- Dodanie zaokrąglonego div -->
         <div class="games-section">
@@ -43,55 +43,296 @@
         </div>
     </div>
     <div class="main-content">
-        <div class="banners-container">
-            <!--             <div class="game-banner large"><img src="l/baner/sons.webp" alt=""></div>
-            <div class="game-banner large"><img src="l/baner/star.jpg" alt=""></div>
-            <div class="game-banner large"><img src="l/baner/val.jpg" alt=""></div> -->
+        <!-- Home Page -->
+        <div id="home-page" class="page active">
+            <div class="banners-container">
+                <!--             <div class="game-banner large"><img src="l/baner/sons.webp" alt=""></div>
+                <div class="game-banner large"><img src="l/baner/star.jpg" alt=""></div>
+                <div class="game-banner large"><img src="l/baner/val.jpg" alt=""></div> -->
+            </div>
+            <div class="game-thumbnails">
+                <!--             <div class="game-thumbnail"><img src="l/baner/cisy.jpg" alt="Cities"></div>
+                <div class="game-thumbnail"><img src="l/baner/cyber.jpg" alt="Cyberpunk"></div>
+                <div class="game-thumbnail"><img src="l/baner/sons.webp" alt="Sons of the Forest"></div>
+                <div class="game-thumbnail"><img src="l/baner/star.jpg" alt="Starfield"></div>
+                <div class="game-thumbnail"><img src="l/baner/val.jpg" alt="Valorant"></div>
+                <div class="game-thumbnail"><img src="l/baner/rr.jpg" alt="Rail Route"></div>
+                <div class="game-thumbnail"><img src="l/baner/cs2.jpg" alt="Counter-Strike"></div>
+                <div class="game-thumbnail"><img src="l/baner/nfsu.jpg" alt="Unbound"></div>
+                <div class="game-thumbnail"><img src="l/baner/metro.jpg" alt="Metro"></div>
+                <div class="game-thumbnail"><img src="l/baner/pcbs.webp" alt="pcbs"></div> -->
+            </div>
         </div>
-        <div class="game-thumbnails">
-            <!--             <div class="game-thumbnail"><img src="l/baner/cisy.jpg" alt="Cities"></div>
-            <div class="game-thumbnail"><img src="l/baner/cyber.jpg" alt="Cyberpunk"></div>
-            <div class="game-thumbnail"><img src="l/baner/sons.webp" alt="Sons of the Forest"></div>
-            <div class="game-thumbnail"><img src="l/baner/star.jpg" alt="Starfield"></div>
-            <div class="game-thumbnail"><img src="l/baner/val.jpg" alt="Valorant"></div>
-            <div class="game-thumbnail"><img src="l/baner/rr.jpg" alt="Rail Route"></div>
-            <div class="game-thumbnail"><img src="l/baner/cs2.jpg" alt="Counter-Strike"></div>
-            <div class="game-thumbnail"><img src="l/baner/nfsu.jpg" alt="Unbound"></div>
-            <div class="game-thumbnail"><img src="l/baner/metro.jpg" alt="Metro"></div>
-            <div class="game-thumbnail"><img src="l/baner/pcbs.webp" alt="pcbs"></div> -->
+
+        <!-- Clips Page -->
+        <div id="clips-page" class="page">
+            <div class="page-header">
+                <h1><i class="fas fa-video"></i> Clips</h1>
+                <p>Manage and view your game clips and recordings</p>
+            </div>
+            <div class="clips-container">
+                <div class="clips-grid">
+                    <div class="clip-card">
+                        <div class="clip-thumbnail">
+                            <i class="fas fa-play-circle"></i>
+                        </div>
+                        <div class="clip-info">
+                            <h3>Epic Headshot Montage</h3>
+                            <p>Counter-Strike 2 • 2:34</p>
+                            <span class="clip-date">2 hours ago</span>
+                        </div>
+                    </div>
+                    <div class="clip-card">
+                        <div class="clip-thumbnail">
+                            <i class="fas fa-play-circle"></i>
+                        </div>
+                        <div class="clip-info">
+                            <h3>Best Racing Moments</h3>
+                            <p>Need For Speed Unbound • 1:47</p>
+                            <span class="clip-date">1 day ago</span>
+                        </div>
+                    </div>
+                    <div class="clip-card">
+                        <div class="clip-thumbnail">
+                            <i class="fas fa-play-circle"></i>
+                        </div>
+                        <div class="clip-info">
+                            <h3>Cyberpunk Adventure</h3>
+                            <p>Cyberpunk 2077 • 3:21</p>
+                            <span class="clip-date">3 days ago</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="empty-state">
+                    <i class="fas fa-video"></i>
+                    <h3>No clips found</h3>
+                    <p>Start recording your best gaming moments to see them here</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Connected Accounts Page -->
+        <div id="accounts-page" class="page">
+            <div class="page-header">
+                <h1><i class="fas fa-user-friends"></i> Connected Accounts</h1>
+                <p>Link your gaming platforms and social accounts</p>
+            </div>
+            <div class="accounts-container">
+                <div class="account-card connected">
+                    <div class="account-icon steam">
+                        <i class="fab fa-steam"></i>
+                    </div>
+                    <div class="account-info">
+                        <h3>Steam</h3>
+                        <p class="status connected">Connected</p>
+                        <span class="username">YourSteamName</span>
+                    </div>
+                    <button class="account-action disconnect">Disconnect</button>
+                </div>
+                <div class="account-card">
+                    <div class="account-icon epic">
+                        <i class="fas fa-gamepad"></i>
+                    </div>
+                    <div class="account-info">
+                        <h3>Epic Games</h3>
+                        <p class="status">Not connected</p>
+                        <span class="description">Connect to import Epic Games library</span>
+                    </div>
+                    <button class="account-action connect">Connect</button>
+                </div>
+                <div class="account-card">
+                    <div class="account-icon xbox">
+                        <i class="fab fa-xbox"></i>
+                    </div>
+                    <div class="account-info">
+                        <h3>Xbox Live</h3>
+                        <p class="status">Not connected</p>
+                        <span class="description">Sync Xbox Game Pass games</span>
+                    </div>
+                    <button class="account-action connect">Connect</button>
+                </div>
+                <div class="account-card">
+                    <div class="account-icon discord">
+                        <i class="fab fa-discord"></i>
+                    </div>
+                    <div class="account-info">
+                        <h3>Discord</h3>
+                        <p class="status">Not connected</p>
+                        <span class="description">Show current game activity</span>
+                    </div>
+                    <button class="account-action connect">Connect</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Store Page -->
+        <div id="store-page" class="page">
+            <div class="page-header">
+                <h1><i class="fas fa-store"></i> Store</h1>
+                <p>Discover and manage game deals across platforms</p>
+            </div>
+            <div class="store-container">
+                <div class="store-categories">
+                    <button class="category-btn active">Featured</button>
+                    <button class="category-btn">New Releases</button>
+                    <button class="category-btn">On Sale</button>
+                    <button class="category-btn">Top Rated</button>
+                </div>
+                <div class="store-grid">
+                    <div class="store-item">
+                        <div class="store-thumbnail">
+                            <img src="l/baner/cyber.jpg" alt="Cyberpunk 2077" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="placeholder-thumbnail" style="display: none;">
+                                <i class="fas fa-gamepad"></i>
+                            </div>
+                        </div>
+                        <div class="store-info">
+                            <h3>Cyberpunk 2077</h3>
+                            <p class="price">$29.99 <span class="original-price">$59.99</span></p>
+                            <div class="rating">
+                                <i class="fas fa-star"></i>
+                                <span>4.2</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="store-item">
+                        <div class="store-thumbnail">
+                            <img src="l/baner/star.jpg" alt="Starfield" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="placeholder-thumbnail" style="display: none;">
+                                <i class="fas fa-gamepad"></i>
+                            </div>
+                        </div>
+                        <div class="store-info">
+                            <h3>Starfield</h3>
+                            <p class="price">$69.99</p>
+                            <div class="rating">
+                                <i class="fas fa-star"></i>
+                                <span>4.5</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="store-item">
+                        <div class="store-thumbnail">
+                            <img src="l/baner/sons.webp" alt="Sons of the Forest" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="placeholder-thumbnail" style="display: none;">
+                                <i class="fas fa-gamepad"></i>
+                            </div>
+                        </div>
+                        <div class="store-info">
+                            <h3>Sons of the Forest</h3>
+                            <p class="price">$24.99</p>
+                            <div class="rating">
+                                <i class="fas fa-star"></i>
+                                <span>4.1</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cheats Page -->
+        <div id="cheats-page" class="page">
+            <div class="page-header">
+                <h1><i class="fas fa-comments"></i> Cheats</h1>
+                <p>Enhanced gaming tools and utilities</p>
+            </div>
+            <div class="coming-soon-container">
+                <div class="coming-soon-content">
+                    <i class="fas fa-tools"></i>
+                    <h2>Coming Soon</h2>
+                    <p>We're working hard to bring you advanced gaming tools and utilities.</p>
+                    <div class="feature-list">
+                        <div class="feature-item">
+                            <i class="fas fa-crosshairs"></i>
+                            <span>Game overlays and HUD enhancements</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Performance monitoring tools</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-gamepad"></i>
+                            <span>Custom game configurations</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     <script src="scripts.js"></script>
     <script>
+        // Navigation System
         document.addEventListener('DOMContentLoaded', () => {
-            const steamApiKey = '5FAF3AEC4951E85E8F93FDC2C6FFA0A4'; // Wstaw swój klucz API Steam
-            const steamUserId = '1124194227'; // Wstaw swój Steam User ID
-            const proxyUrl = 'https://api.allorigins.win/get?url='; // Serwer proxy obsługujący CORS
+            const menuItems = document.querySelectorAll('.menu-item');
+            const pages = document.querySelectorAll('.page');
+
+            // Navigation function
+            function navigateToPage(pageId) {
+                // Hide all pages
+                pages.forEach(page => {
+                    page.classList.remove('active');
+                });
+                
+                // Remove active from all menu items
+                menuItems.forEach(item => {
+                    item.classList.remove('active');
+                });
+                
+                // Show selected page
+                const selectedPage = document.getElementById(pageId + '-page');
+                if (selectedPage) {
+                    selectedPage.classList.add('active');
+                }
+                
+                // Add active to selected menu item
+                const selectedMenuItem = document.querySelector(`[data-page="${pageId}"]`);
+                if (selectedMenuItem) {
+                    selectedMenuItem.classList.add('active');
+                }
+            }
+
+            // Add click handlers to menu items
+            menuItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const pageId = item.getAttribute('data-page');
+                    if (pageId) {
+                        navigateToPage(pageId);
+                    }
+                });
+            });
+
+            // Steam games integration (existing functionality)
+            const steamApiKey = '5FAF3AEC4951E85E8F93FDC2C6FFA0A4';
+            const steamUserId = '1124194227';
 
             fetch('steam_games.json')
                 .then(response => response.json())
                 .then(games => {
                     const gameThumbnailsContainer = document.querySelector('.game-thumbnails');
                     const bannersContainer = document.querySelector('.banners-container');
+                    
+                    if (!gameThumbnailsContainer || !bannersContainer) return;
+                    
                     games.forEach((game, index) => {
                         const gameThumbnail = document.createElement('div');
                         gameThumbnail.classList.add('game-thumbnail');
                         gameThumbnail.innerHTML = `
-                            <img src="http://cdn.akamai.steamstatic.com/steam/apps/${game.appid}/header.jpg" alt="${game.name}">
+                            <img src="http://cdn.akamai.steamstatic.com/steam/apps/${game.appid}/header.jpg" alt="${game.name}" onerror="this.style.display='none'; this.parentElement.classList.add('placeholder-game');">
                             <div class="options">⋮</div>
                         `;
                         gameThumbnail.addEventListener('click', () => {
                             window.location.href = `steam://run/${game.appid}`;
                         });
                         gameThumbnailsContainer.appendChild(gameThumbnail);
-                        console.log(game.appid);
 
-                        // Dodaj banery tylko dla pierwszych trzech gier
+                        // Add banners for first three games
                         if (index < 3) {
                             const gameBanner = document.createElement('div');
                             gameBanner.classList.add('game-banner', 'large');
                             gameBanner.innerHTML = `
-                                <img src="http://cdn.akamai.steamstatic.com/steam/apps/${game.appid}/header.jpg" alt="${game.name}">
+                                <img src="http://cdn.akamai.steamstatic.com/steam/apps/${game.appid}/header.jpg" alt="${game.name}" onerror="this.style.display='none'; this.parentElement.classList.add('placeholder-banner');">
                                 <div class="options">⋮</div>
                             `;
                             gameBanner.addEventListener('click', () => {
