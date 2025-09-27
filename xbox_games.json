@@ -1,26 +1,38 @@
 [
     {
         "name": "Microsoft.Lovika",
-        "install_location": "C:\\Program Files\\WindowsApps\\Microsoft.Lovika_1.17.0.0_x64__8wekyb3d8bbwe"
+        "install_location": "C:\\Program Files\\WindowsApps\\Microsoft.Lovika_1.17.0.0_x64__8wekyb3d8bbwe",
+        "package_family_name": "Microsoft.Lovika_8wekyb3d8bbwe",
+        "game_uri": "ms-xbox-store://game/?id=9WZDNCRFJ3TJ"
     },
     {
         "name": "Finji.TUNIC",
-        "install_location": "C:\\Program Files\\WindowsApps\\Finji.TUNIC_1.1.6.0_x64__tys0ffscxatjj"
+        "install_location": "C:\\Program Files\\WindowsApps\\Finji.TUNIC_1.1.6.0_x64__tys0ffscxatjj",
+        "package_family_name": "Finji.TUNIC_tys0ffscxatjj",
+        "game_uri": "ms-xbox-store://game/?id=9NMGXBQ69CQ8"
     },
     {
         "name": "5901F20F.CarMechanicSimulator2021",
-        "install_location": "C:\\Program Files\\WindowsApps\\5901F20F.CarMechanicSimulator2021_1.60.23.0_x64__t06nbjdc8fw86"
+        "install_location": "C:\\Program Files\\WindowsApps\\5901F20F.CarMechanicSimulator2021_1.60.23.0_x64__t06nbjdc8fw86",
+        "package_family_name": "5901F20F.CarMechanicSimulator2021_t06nbjdc8fw86",
+        "game_uri": "ms-xbox-store://game/?id=9P4L3VJKVD7C"
     },
     {
         "name": "Microsoft.4297127D64EC6",
-        "install_location": "C:\\Program Files\\WindowsApps\\Microsoft.4297127D64EC6_2.2.2.0_x64__8wekyb3d8bbwe"
+        "install_location": "C:\\Program Files\\WindowsApps\\Microsoft.4297127D64EC6_2.2.2.0_x64__8wekyb3d8bbwe",
+        "package_family_name": "Microsoft.4297127D64EC6_8wekyb3d8bbwe",
+        "game_uri": "ms-xbox-store://game/?id=9NBLGGH2JHXJ"
     },
     {
         "name": "GSCGameWorld.S.T.A.L.K.E.R.2HeartofChernobyl",
-        "install_location": "C:\\Program Files\\WindowsApps\\GSCGameWorld.S.T.A.L.K.E.R.2HeartofChernobyl_1.7.1014.0_x64__6fr1t1rwfarwt"
+        "install_location": "C:\\Program Files\\WindowsApps\\GSCGameWorld.S.T.A.L.K.E.R.2HeartofChernobyl_1.7.1014.0_x64__6fr1t1rwfarwt",
+        "package_family_name": "GSCGameWorld.S.T.A.L.K.E.R.2HeartofChernobyl_6fr1t1rwfarwt",
+        "game_uri": "ms-xbox-store://game/?id=9NV7GX3ZZTVP"
     },
     {
         "name": "BethesdaSoftworks.ProjectGold",
-        "install_location": "C:\\Program Files\\WindowsApps\\BethesdaSoftworks.ProjectGold_1.14.74.0_x64__3275kfvn8vcwc"
+        "install_location": "C:\\Program Files\\WindowsApps\\BethesdaSoftworks.ProjectGold_1.14.74.0_x64__3275kfvn8vcwc",
+        "package_family_name": "BethesdaSoftworks.ProjectGold_3275kfvn8vcwc",
+        "game_uri": "ms-xbox-store://game/?id=9NL1NKX70D92"
     }
 ]

@@ -8,17 +8,26 @@ def get_installed_xbox_games():
         result = subprocess.run([
             "powershell", "-Command",
             "Get-AppxPackage | Where-Object { $_.SignatureKind -eq 'Store' -and $_.IsFramework -eq $false -and $_.NonRemovable -eq $false } | "
-            "Select-Object Name, InstallLocation"
+            "Select-Object Name, InstallLocation, PackageFamilyName"
         ], capture_output=True, text=True, check=True)
         
         lines = result.stdout.splitlines()
         for line in lines[3:]:  # Pomijamy nagłówek
-            parts = line.strip().split(None, 1)
-            if len(parts) == 2:
-                name, install_location = parts
+            parts = line.strip().split()
+            if len(parts) >= 3:
+                name = parts[0]
+                install_location = parts[1]
+                package_family_name = parts[2]
                 game_path = os.path.join(install_location, "MicrosoftGame.config")
                 if os.path.exists(game_path):
-                    games.append({"name": name, "install_location": install_location})
+                    # Generowanie URI na podstawie PackageFamilyName
+                    game_uri = f"ms-xbl-{package_family_name.split('_')[0]}://launch/"
+                    games.append({
+                        "name": name, 
+                        "install_location": install_location,
+                        "package_family_name": package_family_name,
+                        "game_uri": game_uri
+                    })
     except subprocess.CalledProcessError as e:
         print("Błąd podczas pobierania listy gier:", e)
     return games
