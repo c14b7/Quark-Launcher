@@ -20,6 +20,17 @@
 
 ### 🛠️ Advanced Features  
 - **Game Library Management** - Organize, filter, and search games
+- **Achievement Tracking** - View your Steam achievements with progress bars
+- **Playtime Statistics** - Track how many hours you've played each game
+- **"Nowy" Badges** - Visual indicators for new games:
+  - 🔵 Blue badge for never-played games
+  - 🟡 Yellow badge for games with less than 3 hours playtime
+- **Game Details Modal** - Comprehensive view with:
+  - Playtime statistics
+  - Achievement progress
+  - Game description and metadata
+  - Genres, developers, and publishers
+  - Release date information
 - **Recently Played** - Quick access to your favorite games
 - **Platform Statistics** - Track gaming habits across platforms
 - **Settings Panel** - Customize appearance and behavior
@@ -179,8 +190,9 @@ The app auto-detects platform installations, but you can manually configure:
 
 ## 🔮 Roadmap
 
+- [x] **Game Time Tracking** - ✅ Detailed playtime statistics implemented
+- [x] **Achievement System** - ✅ Steam achievement tracking with progress bars
 - [ ] **Cloud Saves Sync** - Sync saves across devices
-- [ ] **Game Time Tracking** - Detailed gaming statistics  
 - [ ] **Friends Integration** - See what friends are playing
 - [ ] **Download Manager** - Manage game downloads/updates
 - [ ] **Mod Support** - Integration with mod platforms
