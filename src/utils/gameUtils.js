@@ -57,9 +57,18 @@ export const formatLastPlayed = (dateString) => {
   
   if (diffDays === 1) return 'Wczoraj';
   if (diffDays < 7) return `${diffDays} dni temu`;
-  if (diffDays < 30) return `${Math.ceil(diffDays / 7)} tygodnie temu`;
   
-  return `${Math.ceil(diffDays / 30)} miesiące temu`;
+  const weeks = Math.ceil(diffDays / 7);
+  if (diffDays < 30) {
+    if (weeks === 1) return '1 tydzień temu';
+    if (weeks < 5) return `${weeks} tygodnie temu`;
+    return `${weeks} tygodni temu`;
+  }
+  
+  const months = Math.ceil(diffDays / 30);
+  if (months === 1) return '1 miesiąc temu';
+  if (months < 5) return `${months} miesiące temu`;
+  return `${months} miesięcy temu`;
 };
 
 /**

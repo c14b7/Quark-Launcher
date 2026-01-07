@@ -47,7 +47,8 @@ class SteamService {
   setCredentials(apiKey, userId) {
     this.apiKey = apiKey;
     this.userId = userId;
-    // Save to localStorage
+    // Note: localStorage is used for user convenience. Users should only store their own API keys.
+    // For production apps, consider more secure storage mechanisms.
     localStorage.setItem('steam_api_key', apiKey);
     localStorage.setItem('steam_user_id', userId);
     this.initialized = true;

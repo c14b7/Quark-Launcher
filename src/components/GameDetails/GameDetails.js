@@ -13,7 +13,7 @@ import {
   Info
 } from 'lucide-react';
 import PlatformManager from '../../services/PlatformManager';
-import { getNewBadgeType, formatPlaytime, hasValidAchievements } from '../../utils/gameUtils';
+import { getNewBadgeType, formatPlaytime, formatLastPlayed, hasValidAchievements } from '../../utils/gameUtils';
 import './GameDetails.css';
 
 const GameDetails = ({ game, isOpen, onClose, onPlay }) => {
@@ -38,14 +38,18 @@ const GameDetails = ({ game, isOpen, onClose, onPlay }) => {
     }
   };
 
-  const formatLastPlayed = (dateString) => {
-    if (!dateString) return 'Nigdy';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pl-PL', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
+  const formatReleaseDate = (dateString) => {
+    if (!dateString) return 'Nieznana';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('pl-PL', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    } catch {
+      return dateString;
+    }
   };
 
   const badgeType = getNewBadgeType(game);
@@ -220,7 +224,7 @@ const GameDetails = ({ game, isOpen, onClose, onPlay }) => {
                       <Calendar size={20} />
                       Data wydania
                     </h2>
-                    <p className="detail-text">{gameDetails.releaseDate}</p>
+                    <p className="detail-text">{formatReleaseDate(gameDetails.releaseDate)}</p>
                   </div>
                 )}
               </>
