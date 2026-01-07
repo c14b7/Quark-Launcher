@@ -18,6 +18,7 @@ import {
   Settings,
   Info
 } from 'lucide-react';
+import GameDetails from '../GameDetails/GameDetails';
 import './GameGrid.css';
 
 const GameGrid = ({ games = [], onGameClick, title = "Gry", showFilters = false, filter }) => {
@@ -28,6 +29,8 @@ const GameGrid = ({ games = [], onGameClick, title = "Gry", showFilters = false,
   const [selectedPlatform, setSelectedPlatform] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all'); // 'all' | 'installed' | 'not-installed'
   const [showContextMenu, setShowContextMenu] = useState(null);
+  const [selectedGame, setSelectedGame] = useState(null);
+  const [showGameDetails, setShowGameDetails] = useState(false);
 
   // Apply filters and search
   const filteredGames = useMemo(() => {
@@ -88,9 +91,26 @@ const GameGrid = ({ games = [], onGameClick, title = "Gry", showFilters = false,
   }, [games]);
 
   const formatPlaytime = (minutes) => {
+    if (!minutes || minutes === 0) return '0h';
     if (minutes < 60) return `${minutes}m`;
     const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (remainingMinutes > 0) {
+      return `${hours}h ${remainingMinutes}m`;
+    }
     return `${hours}h`;
+  };
+
+  const getNewBadgeType = (game) => {
+    // Blue badge if never played (no playtime and no lastPlayed)
+    if ((!game.playtime || game.playtime === 0) && !game.lastPlayed) {
+      return 'blue';
+    }
+    // Yellow badge if played less than 3 hours (180 minutes)
+    if (game.playtime && game.playtime < 180) {
+      return 'yellow';
+    }
+    return null;
   };
 
   const formatLastPlayed = (dateString) => {
@@ -113,6 +133,10 @@ const GameGrid = ({ games = [], onGameClick, title = "Gry", showFilters = false,
       case 'play':
         if (onGameClick) onGameClick(game);
         break;
+      case 'details':
+        setSelectedGame(game);
+        setShowGameDetails(true);
+        break;
       case 'favorite':
         // Implement favorite logic
         console.log('Toggle favorite:', game.name);
@@ -122,8 +146,9 @@ const GameGrid = ({ games = [], onGameClick, title = "Gry", showFilters = false,
         console.log('Remove game:', game.name);
         break;
       case 'properties':
-        // Implement properties dialog
-        console.log('Show properties:', game.name);
+        // Show game details modal
+        setSelectedGame(game);
+        setShowGameDetails(true);
         break;
     }
   };
@@ -256,6 +281,8 @@ const GameGrid = ({ games = [], onGameClick, title = "Gry", showFilters = false,
               exit={{ opacity: 0, scale: 0.8 }}
               whileHover={{ y: -4 }}
               transition={{ duration: 0.2 }}
+              onClick={() => handleGameAction(game, 'details')}
+              style={{ cursor: 'pointer' }}
             >
               {viewMode === 'grid' ? (
                 <GameCard 
@@ -337,109 +364,96 @@ const GameGrid = ({ games = [], onGameClick, title = "Gry", showFilters = false,
           <p>Spróbuj zmienić filtry wyszukiwania</p>
         </div>
       )}
+
+      {/* Game Details Modal */}
+      <GameDetails
+        game={selectedGame}
+        isOpen={showGameDetails}
+        onClose={() => setShowGameDetails(false)}
+        onPlay={onGameClick}
+      />
     </div>
   );
 };
 
 // Game Card Component
-const GameCard = ({ game, onPlay, onContextMenu, formatPlaytime, formatLastPlayed }) => (
-  <div className="game-card glass" onContextMenu={onContextMenu}>
-    <div className="game-image-container">
-      <img 
-        src={game.image} 
-        alt={game.name}
-        className="game-image"
-        loading="lazy"
-      />
-      <div className="game-overlay">
-        <motion.button
-          className="play-button"
-          onClick={() => onPlay && onPlay(game)}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          {game.installed ? <Play size={20} fill="currentColor" /> : <Download size={20} />}
-        </motion.button>
-      </div>
-      
-      {!game.installed && (
-        <div className="install-badge">
-          <Download size={12} />
-          Pobierz
-        </div>
-      )}
-    </div>
+const GameCard = ({ game, onPlay, onContextMenu, formatPlaytime, formatLastPlayed }) => {
+  // Determine badge type based on playtime
+  const getNewBadgeType = () => {
+    if ((!game.playtime || game.playtime === 0) && !game.lastPlayed) {
+      return 'blue';
+    }
+    if (game.playtime && game.playtime < 180) {
+      return 'yellow';
+    }
+    return null;
+  };
 
-    <div className="game-info">
-      <h3 className="game-title">{game.name}</h3>
-      
-      <div className="game-meta">
-        <span className="platform-badge">{game.platform}</span>
-        {game.rating && (
-          <div className="rating">
-            <Star size={12} fill="currentColor" />
-            <span>{game.rating}</span>
+  const badgeType = getNewBadgeType();
+
+  return (
+    <div className="game-card glass" onContextMenu={onContextMenu}>
+      <div className="game-image-container">
+        <img 
+          src={game.image} 
+          alt={game.name}
+          className="game-image"
+          loading="lazy"
+        />
+        <div className="game-overlay">
+          <motion.button
+            className="play-button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onPlay) onPlay(game);
+            }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            {game.installed ? <Play size={20} fill="currentColor" /> : <Download size={20} />}
+          </motion.button>
+        </div>
+        
+        {!game.installed && (
+          <div className="install-badge">
+            <Download size={12} />
+            Pobierz
+          </div>
+        )}
+        
+        {badgeType && (
+          <div className={`new-badge new-badge-${badgeType}`}>
+            Nowy
           </div>
         )}
       </div>
 
-      <div className="game-stats">
-        <div className="stat">
-          <Clock size={12} />
-          <span>{formatPlaytime(game.playtime || 0)}</span>
-        </div>
-        {game.achievements && (
-          <div className="stat">
-            <Trophy size={12} />
-            <span>{game.achievements}</span>
-          </div>
-        )}
-      </div>
-
-      {game.lastPlayed && (
-        <div className="last-played">
-          Ostatnio: {formatLastPlayed(game.lastPlayed)}
-        </div>
-      )}
-    </div>
-  </div>
-);
-
-// Game List Item Component
-const GameListItem = ({ game, onPlay, onContextMenu, formatPlaytime, formatLastPlayed }) => (
-  <div className="game-list-item" onContextMenu={onContextMenu}>
-    <div className="game-thumbnail">
-      <img src={game.image} alt={game.name} />
-    </div>
-
-    <div className="game-details">
-      <div className="game-main-info">
+      <div className="game-info">
         <h3 className="game-title">{game.name}</h3>
+        
         <div className="game-meta">
-          <span className="platform">{game.platform.toUpperCase()}</span>
+          <span className="platform-badge">{game.platform}</span>
           {game.rating && (
             <div className="rating">
-              <Star size={14} fill="currentColor" />
+              <Star size={12} fill="currentColor" />
               <span>{game.rating}</span>
             </div>
           )}
         </div>
-      </div>
 
-      <div className="game-stats">
-        <div className="stat-group">
+        <div className="game-stats">
           <div className="stat">
-            <Clock size={14} />
+            <Clock size={12} />
             <span>{formatPlaytime(game.playtime || 0)}</span>
           </div>
           {game.achievements && (
             <div className="stat">
-              <Trophy size={14} />
-              <span>{game.achievements}</span>
+              <Trophy size={12} />
+              <span>{game.achievements.unlocked}/{game.achievements.total}</span>
             </div>
           )}
         </div>
-        
+
         {game.lastPlayed && (
           <div className="last-played">
             Ostatnio: {formatLastPlayed(game.lastPlayed)}
@@ -447,27 +461,96 @@ const GameListItem = ({ game, onPlay, onContextMenu, formatPlaytime, formatLastP
         )}
       </div>
     </div>
+  );
+};
 
-    <div className="game-actions">
-      <motion.button
-        className={`action-btn ${game.installed ? 'play' : 'download'}`}
-        onClick={() => onPlay && onPlay(game)}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        {game.installed ? <Play size={16} /> : <Download size={16} />}
-        <span>{game.installed ? 'Graj' : 'Pobierz'}</span>
-      </motion.button>
+// Game List Item Component
+const GameListItem = ({ game, onPlay, onContextMenu, formatPlaytime, formatLastPlayed }) => {
+  // Determine badge type based on playtime
+  const getNewBadgeType = () => {
+    if ((!game.playtime || game.playtime === 0) && !game.lastPlayed) {
+      return 'blue';
+    }
+    if (game.playtime && game.playtime < 180) {
+      return 'yellow';
+    }
+    return null;
+  };
 
-      <motion.button
-        className="more-btn"
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        <MoreVertical size={16} />
-      </motion.button>
+  const badgeType = getNewBadgeType();
+
+  return (
+    <div className="game-list-item" onContextMenu={onContextMenu}>
+      <div className="game-thumbnail">
+        <img src={game.image} alt={game.name} />
+        {badgeType && (
+          <div className={`new-badge new-badge-${badgeType} new-badge-small`}>
+            Nowy
+          </div>
+        )}
+      </div>
+
+      <div className="game-details">
+        <div className="game-main-info">
+          <h3 className="game-title">{game.name}</h3>
+          <div className="game-meta">
+            <span className="platform">{game.platform.toUpperCase()}</span>
+            {game.rating && (
+              <div className="rating">
+                <Star size={14} fill="currentColor" />
+                <span>{game.rating}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="game-stats">
+          <div className="stat-group">
+            <div className="stat">
+              <Clock size={14} />
+              <span>{formatPlaytime(game.playtime || 0)}</span>
+            </div>
+            {game.achievements && (
+              <div className="stat">
+                <Trophy size={14} />
+                <span>{game.achievements.unlocked}/{game.achievements.total}</span>
+              </div>
+            )}
+          </div>
+          
+          {game.lastPlayed && (
+            <div className="last-played">
+              Ostatnio: {formatLastPlayed(game.lastPlayed)}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="game-actions">
+        <motion.button
+          className={`action-btn ${game.installed ? 'play' : 'download'}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onPlay) onPlay(game);
+          }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          {game.installed ? <Play size={16} /> : <Download size={16} />}
+          <span>{game.installed ? 'Graj' : 'Pobierz'}</span>
+        </motion.button>
+
+        <motion.button
+          className="more-btn"
+          onClick={(e) => e.stopPropagation()}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <MoreVertical size={16} />
+        </motion.button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default GameGrid;

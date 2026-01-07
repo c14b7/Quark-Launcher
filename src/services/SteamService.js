@@ -5,14 +5,50 @@ class SteamService {
     this.userId = null;
     this.baseUrl = 'https://api.steampowered.com';
     this.storeUrl = 'https://store.steampowered.com/api';
+    this.initialized = false;
+  }
+
+  async initialize() {
+    try {
+      // Try to load credentials from localStorage or settings
+      const savedApiKey = localStorage.getItem('steam_api_key');
+      const savedUserId = localStorage.getItem('steam_user_id');
+      
+      if (savedApiKey && savedUserId) {
+        this.apiKey = savedApiKey;
+        this.userId = savedUserId;
+        this.initialized = true;
+        console.log('Steam Service initialized with saved credentials');
+        return true;
+      }
+      
+      // Default credentials from the index.html
+      this.apiKey = '5FAF3AEC4951E85E8F93FDC2C6FFA0A4';
+      this.userId = '1124194227';
+      this.initialized = true;
+      console.log('Steam Service initialized with default credentials');
+      return true;
+    } catch (error) {
+      console.error('Error initializing Steam Service:', error);
+      this.initialized = false;
+      return false;
+    }
   }
 
   setCredentials(apiKey, userId) {
     this.apiKey = apiKey;
     this.userId = userId;
+    // Save to localStorage
+    localStorage.setItem('steam_api_key', apiKey);
+    localStorage.setItem('steam_user_id', userId);
+    this.initialized = true;
   }
 
   async getOwnedGames() {
+    if (!this.initialized) {
+      await this.initialize();
+    }
+
     if (!this.apiKey || !this.userId) {
       throw new Error('Steam credentials not set');
     }
@@ -31,7 +67,7 @@ class SteamService {
       const data = await response.json();
       const steamData = JSON.parse(data.contents);
       
-      return steamData.response.games?.map(game => ({
+      const games = steamData.response.games?.map(game => ({
         id: game.appid.toString(),
         name: game.name,
         platform: 'steam',
@@ -42,9 +78,36 @@ class SteamService {
         installed: true, // Assume installed for owned games
         achievements: null // Will be fetched separately
       })) || [];
+
+      // Fetch achievements for each game (do it in parallel with limit to avoid rate limits)
+      await this.enrichGamesWithAchievements(games);
+      
+      return games;
     } catch (error) {
       console.error('Error fetching Steam games:', error);
       return [];
+    }
+  }
+
+  async enrichGamesWithAchievements(games) {
+    // Fetch achievements for games in batches to avoid overwhelming the API
+    const batchSize = 5;
+    for (let i = 0; i < games.length; i += batchSize) {
+      const batch = games.slice(i, i + batchSize);
+      await Promise.all(
+        batch.map(async (game) => {
+          try {
+            const achievements = await this.getPlayerAchievements(game.id);
+            game.achievements = achievements;
+          } catch (error) {
+            console.warn(`Failed to fetch achievements for ${game.name}:`, error);
+          }
+        })
+      );
+      // Add a small delay between batches
+      if (i + batchSize < games.length) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
     }
   }
 
