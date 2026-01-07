@@ -1,0 +1,36 @@
+{
+  "name": "quark-launcher",
+  "version": "2.0.0",
+  "description": "Ultra-modern game launcher for Windows",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "concurrently \"npm run next:dev\" \"wait-on http://localhost:30211 && electron .\"",
+    "next:dev": "cd ../web/act-l && npm run dev -- -p 30211",
+    "build": "electron-builder",
+    "pack": "electron-builder --dir"
+  },
+  "author": "Quark",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.quark.launcher",
+    "productName": "Quark Launcher",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    }
+  }
+}
