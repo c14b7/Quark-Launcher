@@ -19,6 +19,7 @@ import {
   Info
 } from 'lucide-react';
 import GameDetails from '../GameDetails/GameDetails';
+import { getNewBadgeType, formatPlaytime, formatLastPlayed, hasValidAchievements } from '../../utils/gameUtils';
 import './GameGrid.css';
 
 const GameGrid = ({ games = [], onGameClick, title = "Gry", showFilters = false, filter }) => {
@@ -89,42 +90,6 @@ const GameGrid = ({ games = [], onGameClick, title = "Gry", showFilters = false,
     const platformSet = new Set(games.map(game => game.platform));
     return Array.from(platformSet);
   }, [games]);
-
-  const formatPlaytime = (minutes) => {
-    if (!minutes || minutes === 0) return '0h';
-    if (minutes < 60) return `${minutes}m`;
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    if (remainingMinutes > 0) {
-      return `${hours}h ${remainingMinutes}m`;
-    }
-    return `${hours}h`;
-  };
-
-  const getNewBadgeType = (game) => {
-    // Blue badge if never played (no playtime and no lastPlayed)
-    if ((!game.playtime || game.playtime === 0) && !game.lastPlayed) {
-      return 'blue';
-    }
-    // Yellow badge if played less than 3 hours (180 minutes)
-    if (game.playtime && game.playtime < 180) {
-      return 'yellow';
-    }
-    return null;
-  };
-
-  const formatLastPlayed = (dateString) => {
-    if (!dateString) return 'Nigdy';
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now - date);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 1) return 'Wczoraj';
-    if (diffDays < 7) return `${diffDays} dni temu`;
-    if (diffDays < 30) return `${Math.ceil(diffDays / 7)} tygodnie temu`;
-    return `${Math.ceil(diffDays / 30)} miesiące temu`;
-  };
 
   const handleGameAction = (game, action) => {
     setShowContextMenu(null);
@@ -378,18 +343,7 @@ const GameGrid = ({ games = [], onGameClick, title = "Gry", showFilters = false,
 
 // Game Card Component
 const GameCard = ({ game, onPlay, onContextMenu, formatPlaytime, formatLastPlayed }) => {
-  // Determine badge type based on playtime
-  const getNewBadgeType = () => {
-    if ((!game.playtime || game.playtime === 0) && !game.lastPlayed) {
-      return 'blue';
-    }
-    if (game.playtime && game.playtime < 180) {
-      return 'yellow';
-    }
-    return null;
-  };
-
-  const badgeType = getNewBadgeType();
+  const badgeType = getNewBadgeType(game);
 
   return (
     <div className="game-card glass" onContextMenu={onContextMenu}>
@@ -446,7 +400,7 @@ const GameCard = ({ game, onPlay, onContextMenu, formatPlaytime, formatLastPlaye
             <Clock size={12} />
             <span>{formatPlaytime(game.playtime || 0)}</span>
           </div>
-          {game.achievements && (
+          {hasValidAchievements(game.achievements) && (
             <div className="stat">
               <Trophy size={12} />
               <span>{game.achievements.unlocked}/{game.achievements.total}</span>
@@ -466,18 +420,7 @@ const GameCard = ({ game, onPlay, onContextMenu, formatPlaytime, formatLastPlaye
 
 // Game List Item Component
 const GameListItem = ({ game, onPlay, onContextMenu, formatPlaytime, formatLastPlayed }) => {
-  // Determine badge type based on playtime
-  const getNewBadgeType = () => {
-    if ((!game.playtime || game.playtime === 0) && !game.lastPlayed) {
-      return 'blue';
-    }
-    if (game.playtime && game.playtime < 180) {
-      return 'yellow';
-    }
-    return null;
-  };
-
-  const badgeType = getNewBadgeType();
+  const badgeType = getNewBadgeType(game);
 
   return (
     <div className="game-list-item" onContextMenu={onContextMenu}>
@@ -510,7 +453,7 @@ const GameListItem = ({ game, onPlay, onContextMenu, formatPlaytime, formatLastP
               <Clock size={14} />
               <span>{formatPlaytime(game.playtime || 0)}</span>
             </div>
-            {game.achievements && (
+            {hasValidAchievements(game.achievements) && (
               <div className="stat">
                 <Trophy size={14} />
                 <span>{game.achievements.unlocked}/{game.achievements.total}</span>

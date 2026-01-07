@@ -13,6 +13,7 @@ import {
   Info
 } from 'lucide-react';
 import PlatformManager from '../../services/PlatformManager';
+import { getNewBadgeType, formatPlaytime, hasValidAchievements } from '../../utils/gameUtils';
 import './GameDetails.css';
 
 const GameDetails = ({ game, isOpen, onClose, onPlay }) => {
@@ -37,17 +38,6 @@ const GameDetails = ({ game, isOpen, onClose, onPlay }) => {
     }
   };
 
-  const formatPlaytime = (minutes) => {
-    if (!minutes || minutes === 0) return '0 godzin';
-    if (minutes < 60) return `${minutes} minut`;
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    if (remainingMinutes > 0) {
-      return `${hours} godz. ${remainingMinutes} min`;
-    }
-    return `${hours} godzin`;
-  };
-
   const formatLastPlayed = (dateString) => {
     if (!dateString) return 'Nigdy';
     const date = new Date(dateString);
@@ -58,17 +48,7 @@ const GameDetails = ({ game, isOpen, onClose, onPlay }) => {
     });
   };
 
-  const getNewBadgeType = () => {
-    if ((!game.playtime || game.playtime === 0) && !game.lastPlayed) {
-      return 'blue';
-    }
-    if (game.playtime && game.playtime < 180) {
-      return 'yellow';
-    }
-    return null;
-  };
-
-  const badgeType = getNewBadgeType();
+  const badgeType = getNewBadgeType(game);
 
   if (!isOpen) return null;
 
@@ -150,7 +130,7 @@ const GameDetails = ({ game, isOpen, onClose, onPlay }) => {
                     </div>
                   </div>
 
-                  {game.achievements && (
+                  {hasValidAchievements(game.achievements) && (
                     <div className="stat-card">
                       <div className="stat-icon">
                         <Trophy size={24} />

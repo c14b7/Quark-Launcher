@@ -22,12 +22,21 @@ class SteamService {
         return true;
       }
       
-      // Default credentials from the index.html
-      this.apiKey = '5FAF3AEC4951E85E8F93FDC2C6FFA0A4';
-      this.userId = '1124194227';
-      this.initialized = true;
-      console.log('Steam Service initialized with default credentials');
-      return true;
+      // Check if running in Electron and try to get credentials from main process
+      if (window.electronAPI && window.electronAPI.getSteamCredentials) {
+        const credentials = await window.electronAPI.getSteamCredentials();
+        if (credentials && credentials.apiKey && credentials.userId) {
+          this.apiKey = credentials.apiKey;
+          this.userId = credentials.userId;
+          this.initialized = true;
+          console.log('Steam Service initialized with Electron credentials');
+          return true;
+        }
+      }
+      
+      console.warn('Steam Service: No credentials available. Please set Steam API key and User ID in settings.');
+      this.initialized = false;
+      return false;
     } catch (error) {
       console.error('Error initializing Steam Service:', error);
       this.initialized = false;

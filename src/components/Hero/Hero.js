@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Info, Heart, Share, Star, Clock, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
+import { getNewBadgeType, formatPlaytime } from '../../utils/gameUtils';
 import './Hero.css';
 
 const Hero = ({ game, onPlay }) => {
@@ -81,30 +82,6 @@ const Hero = ({ game, onPlay }) => {
     if (onPlay && currentGame) {
       onPlay(currentGame);
     }
-  };
-
-  const formatPlaytime = (minutes) => {
-    if (!minutes || minutes === 0) return '0h';
-    if (minutes < 60) return `${minutes}m`;
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    if (remainingMinutes > 0) {
-      return `${hours}h ${remainingMinutes}m`;
-    }
-    return `${hours}h`;
-  };
-
-  const getNewBadgeType = (game) => {
-    if (!game) return null;
-    // Blue badge if never played (no playtime and no lastPlayed)
-    if ((!game.playtime || game.playtime === 0) && !game.lastPlayed) {
-      return 'blue';
-    }
-    // Yellow badge if played less than 3 hours (180 minutes)
-    if (game.playtime && game.playtime < 180) {
-      return 'yellow';
-    }
-    return null;
   };
 
   if (!currentGame) {
