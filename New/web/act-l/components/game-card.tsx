@@ -1,6 +1,6 @@
 'use client';
 
-import { Play, Star, MoreHorizontal, HardDrive, EyeOff } from 'lucide-react';
+import { Play, Star, HardDrive, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   ContextMenu,
@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { Game } from '@/lib/types';
 import { useGames } from '@/lib/games-context';
 import { useSettings } from '@/lib/settings-context';
+import { PlaytimeBadge } from '@/components/steam-profile';
 import { useState } from 'react';
 
 interface GameCardProps {
@@ -87,12 +88,17 @@ export function GameCard({ game, variant = 'medium', onClick }: GameCardProps) {
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
           </div>
 
-          {/* Favorite Star */}
-          {game.isFavorite && (
-            <div className="absolute top-2 right-2 z-10">
+          {/* Favorite Star + Playtime Badge */}
+          <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
+            {game.isFavorite && (
               <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 drop-shadow-lg" />
-            </div>
-          )}
+            )}
+          </div>
+
+          {/* Playtime Badge - top left */}
+          <div className="absolute top-2 left-2 z-10">
+            <PlaytimeBadge playtime={game.playtime} />
+          </div>
 
           {/* Content - zawsze nazwa gry, nie logo */}
           <div className="absolute inset-0 p-3 flex flex-col justify-end">

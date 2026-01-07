@@ -37,7 +37,7 @@ interface LibraryViewProps {
 }
 
 export function LibraryView({ onGameSelect }: LibraryViewProps) {
-  const { games, favoriteGames } = useGames();
+  const { games } = useGames();
   const { settings } = useSettings();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<SortOption>('name');

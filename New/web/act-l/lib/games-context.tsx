@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { Game, UserSettings } from '@/lib/types';
+import { Game } from '@/lib/types';
 
 interface GamesContextType {
   games: Game[];
@@ -153,6 +153,7 @@ function getMockGames(): Game[] {
       name: 'Elden Ring',
       platform: 'steam',
       installed: true,
+      playtime: 7200, // 120 hours - experienced
       image: 'https://cdn.akamai.steamstatic.com/steam/apps/1245620/header.jpg',
       hero: 'https://cdn.akamai.steamstatic.com/steam/apps/1245620/library_hero.jpg',
       logo: 'https://cdn.akamai.steamstatic.com/steam/apps/1245620/logo.png',
@@ -164,6 +165,7 @@ function getMockGames(): Game[] {
       name: 'Cyberpunk 2077',
       platform: 'steam',
       installed: true,
+      playtime: 90, // 1.5 hours - yellow "Nowy" badge
       image: 'https://cdn.akamai.steamstatic.com/steam/apps/1091500/header.jpg',
       hero: 'https://cdn.akamai.steamstatic.com/steam/apps/1091500/library_hero.jpg',
       logo: 'https://cdn.akamai.steamstatic.com/steam/apps/1091500/logo.png',
@@ -175,6 +177,7 @@ function getMockGames(): Game[] {
       name: 'Starfield',
       platform: 'steam',
       installed: true,
+      playtime: undefined, // Never played - blue "Nowy" badge
       image: 'https://cdn.akamai.steamstatic.com/steam/apps/1716740/header.jpg',
       hero: 'https://cdn.akamai.steamstatic.com/steam/apps/1716740/library_hero.jpg',
       logo: 'https://cdn.akamai.steamstatic.com/steam/apps/1716740/logo.png',
@@ -186,6 +189,7 @@ function getMockGames(): Game[] {
       name: 'Counter-Strike 2',
       platform: 'steam',
       installed: true,
+      playtime: 18000, // 300 hours - experienced
       image: 'https://cdn.akamai.steamstatic.com/steam/apps/730/header.jpg',
       hero: 'https://cdn.akamai.steamstatic.com/steam/apps/730/library_hero.jpg',
       logo: 'https://cdn.akamai.steamstatic.com/steam/apps/730/logo.png',
@@ -197,6 +201,7 @@ function getMockGames(): Game[] {
       name: "Apex Legends",
       platform: 'steam',
       installed: true,
+      playtime: 60, // 1 hour - yellow "Nowy" badge
       image: 'https://cdn.akamai.steamstatic.com/steam/apps/1172470/header.jpg',
       hero: 'https://cdn.akamai.steamstatic.com/steam/apps/1172470/library_hero.jpg',
       logo: 'https://cdn.akamai.steamstatic.com/steam/apps/1172470/logo.png',
@@ -208,6 +213,7 @@ function getMockGames(): Game[] {
       name: 'Grand Theft Auto V',
       platform: 'steam',
       installed: true,
+      playtime: 4800, // 80 hours - experienced
       image: 'https://cdn.akamai.steamstatic.com/steam/apps/271590/header.jpg',
       hero: 'https://cdn.akamai.steamstatic.com/steam/apps/271590/library_hero.jpg',
       logo: 'https://cdn.akamai.steamstatic.com/steam/apps/271590/logo.png',
@@ -219,6 +225,7 @@ function getMockGames(): Game[] {
       name: 'Red Dead Redemption 2',
       platform: 'steam',
       installed: true,
+      playtime: undefined, // Never played - blue "Nowy" badge
       image: 'https://cdn.akamai.steamstatic.com/steam/apps/1174180/header.jpg',
       hero: 'https://cdn.akamai.steamstatic.com/steam/apps/1174180/library_hero.jpg',
       logo: 'https://cdn.akamai.steamstatic.com/steam/apps/1174180/logo.png',
@@ -230,6 +237,7 @@ function getMockGames(): Game[] {
       name: 'Resident Evil 4',
       platform: 'steam',
       installed: true,
+      playtime: 900, // 15 hours - experienced
       image: 'https://cdn.akamai.steamstatic.com/steam/apps/2050650/header.jpg',
       hero: 'https://cdn.akamai.steamstatic.com/steam/apps/2050650/library_hero.jpg',
       logo: 'https://cdn.akamai.steamstatic.com/steam/apps/2050650/logo.png',
@@ -241,6 +249,7 @@ function getMockGames(): Game[] {
       name: 'Valheim',
       platform: 'steam',
       installed: true,
+      playtime: 120, // 2 hours - yellow "Nowy" badge
       image: 'https://cdn.akamai.steamstatic.com/steam/apps/892970/header.jpg',
       hero: 'https://cdn.akamai.steamstatic.com/steam/apps/892970/library_hero.jpg',
       logo: 'https://cdn.akamai.steamstatic.com/steam/apps/892970/logo.png',
@@ -252,6 +261,7 @@ function getMockGames(): Game[] {
       name: 'Dota 2',
       platform: 'steam',
       installed: true,
+      playtime: 36000, // 600 hours - experienced
       image: 'https://cdn.akamai.steamstatic.com/steam/apps/570/header.jpg',
       hero: 'https://cdn.akamai.steamstatic.com/steam/apps/570/library_hero.jpg',
       logo: 'https://cdn.akamai.steamstatic.com/steam/apps/570/logo.png',

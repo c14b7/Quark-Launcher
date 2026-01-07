@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Moon, Sun, Monitor, Scale, EyeOff, FolderPlus, Trash2, Palette } from 'lucide-react';
+import { X, Moon, Monitor, EyeOff, FolderPlus, Trash2, Bot, Server, Key } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { useSettings, Category } from '@/lib/settings-context';
+import { useSettings } from '@/lib/settings-context';
 import { useGames } from '@/lib/games-context';
 import { cn } from '@/lib/utils';
 
@@ -20,7 +20,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { settings, updateSettings, unhideGame, addCategory, removeCategory } = useSettings();
   const { games } = useGames();
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [activeTab, setActiveTab] = useState<'general' | 'hidden' | 'categories'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'hidden' | 'categories' | 'ai'>('general');
 
   if (!isOpen) return null;
 
@@ -66,9 +66,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 p-4 border-b border-white/5">
+        <div className="flex gap-1 p-4 border-b border-white/5 overflow-x-auto">
           {[
             { id: 'general', label: 'Ogólne' },
+            { id: 'ai', label: 'Asystent AI' },
             { id: 'hidden', label: 'Ukryte gry' },
             { id: 'categories', label: 'Kategorie' }
           ].map(tab => (
@@ -77,7 +78,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               variant="ghost"
               size="sm"
               className={cn(
-                'rounded-xl px-4',
+                'rounded-xl px-4 whitespace-nowrap',
                 activeTab === tab.id && 'bg-white/10'
               )}
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
@@ -174,13 +175,96 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               </>
             )}
 
+            {activeTab === 'ai' && (
+              <div className="space-y-6">
+                {/* AI Info */}
+                <div className="p-4 rounded-xl bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Bot className="h-5 w-5 text-violet-400" />
+                    <h3 className="font-semibold text-white">Quark AI Assistant</h3>
+                  </div>
+                  <p className="text-xs text-zinc-400">
+                    Połącz z Open WebUI API, aby korzystać z asystenta AI. 
+                    Obsługiwany model: gpt-oss:21b lub dowolny kompatybilny model.
+                  </p>
+                </div>
+
+                {/* Server URL */}
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+                    <Server className="h-4 w-4" />
+                    Adres serwera API
+                  </label>
+                  <Input
+                    placeholder="https://your-openwebui-server.com"
+                    value={settings.aiServerUrl || ''}
+                    onChange={(e) => updateSettings({ aiServerUrl: e.target.value })}
+                    className="rounded-xl bg-zinc-800/50 border-white/5"
+                  />
+                  <p className="text-xs text-zinc-500">
+                    Wprowadź pełny adres URL serwera Open WebUI
+                  </p>
+                </div>
+
+                {/* API Token */}
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+                    <Key className="h-4 w-4" />
+                    Token API
+                  </label>
+                  <Input
+                    type="password"
+                    placeholder="sk-..."
+                    value={settings.aiApiToken || ''}
+                    onChange={(e) => updateSettings({ aiApiToken: e.target.value })}
+                    className="rounded-xl bg-zinc-800/50 border-white/5"
+                  />
+                  <p className="text-xs text-zinc-500">
+                    Token autoryzacji do API
+                  </p>
+                </div>
+
+                {/* Model */}
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-zinc-400">Model AI</label>
+                  <Input
+                    placeholder="gpt-oss:21b"
+                    value={settings.aiModel || ''}
+                    onChange={(e) => updateSettings({ aiModel: e.target.value })}
+                    className="rounded-xl bg-zinc-800/50 border-white/5"
+                  />
+                  <p className="text-xs text-zinc-500">
+                    Nazwa modelu do użycia (domyślnie: gpt-oss:21b)
+                  </p>
+                </div>
+
+                {/* Connection Status */}
+                <div className="p-3 rounded-xl bg-zinc-800/50 border border-white/5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-zinc-400">Status połączenia:</span>
+                    {settings.aiServerUrl && settings.aiApiToken ? (
+                      <span className="text-xs text-green-400 flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-green-500" />
+                        Skonfigurowano
+                      </span>
+                    ) : (
+                      <span className="text-xs text-yellow-400 flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                        Tryb demo
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {activeTab === 'hidden' && (
               <div className="space-y-4">
                 {hiddenGamesData.length === 0 ? (
                   <div className="text-center py-8 text-zinc-500">
                     <EyeOff className="h-12 w-12 mx-auto mb-3 opacity-50" />
                     <p>Brak ukrytych gier</p>
-                    <p className="text-xs mt-1">Kliknij PPM na kafelek gry i wybierz "Ukryj"</p>
+                    <p className="text-xs mt-1">Kliknij PPM na kafelek gry i wybierz &quot;Ukryj&quot;</p>
                   </div>
                 ) : (
                   <div className="space-y-2">

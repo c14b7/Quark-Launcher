@@ -7,29 +7,48 @@ import {
   Clock, 
   Calendar, 
   HardDrive, 
-  X, 
   ChevronLeft,
-  Download,
   Settings,
   Share2,
-  ExternalLink
+  ExternalLink,
+  Trophy,
+  Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { Game } from '@/lib/types';
 import { useGames } from '@/lib/games-context';
+import { useSettings } from '@/lib/settings-context';
+import { PlaytimeBadge } from '@/components/steam-profile';
 
 interface GameDetailsProps {
   game: Game;
   onClose: () => void;
 }
 
+// Mock achievements for demo
+const mockAchievements = [
+  { id: '1', name: 'Pierwszy krok', description: 'Ukończ samouczek', achieved: true, iconUrl: '' },
+  { id: '2', name: 'Odkrywca', description: 'Odwiedź wszystkie lokacje', achieved: true, iconUrl: '' },
+  { id: '3', name: 'Mistro walki', description: 'Pokonaj 100 wrogów', achieved: false, iconUrl: '' },
+  { id: '4', name: 'Kolekcjoner', description: 'Zbierz wszystkie przedmioty', achieved: false, iconUrl: '' },
+];
+
+// Mock friends playing
+const mockFriendsPlaying = [
+  { name: 'ProGamer2024', playtime: 45 },
+  { name: 'NightOwl', playtime: 120 },
+];
+
 export function GameDetails({ game, onClose }: GameDetailsProps) {
   const { launchGame, toggleFavorite } = useGames();
+  const { isLoggedIn } = useSettings();
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'achievements' | 'friends'>('overview');
 
   const handlePlay = () => {
     launchGame(game);
@@ -49,6 +68,9 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
       day: 'numeric'
     });
   };
+
+  const achievedCount = mockAchievements.filter(a => a.achieved).length;
+  const achievementProgress = (achievedCount / mockAchievements.length) * 100;
 
   return (
     <div className="fixed inset-0 z-50 flex">
@@ -125,7 +147,10 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
               {/* Game Info */}
               <div className="flex-1 space-y-4">
                 <div>
-                  <h1 className="text-4xl font-bold text-white mb-2">{game.name}</h1>
+                  <div className="flex items-center gap-3 mb-2">
+                    <h1 className="text-4xl font-bold text-white">{game.name}</h1>
+                    <PlaytimeBadge playtime={game.playtime} />
+                  </div>
                   <div className="flex items-center gap-3">
                     <Badge 
                       variant="secondary" 
@@ -189,37 +214,170 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
 
             <Separator className="bg-white/5" />
 
-            {/* Description */}
-            {game.description && (
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-white">O grze</h2>
-                <p className="text-zinc-400 leading-relaxed max-w-3xl">
-                  {game.description}
-                </p>
-              </div>
+            {/* Tabs for Overview / Achievements / Friends */}
+            {isLoggedIn && game.platform === 'steam' && (
+              <>
+                <div className="flex gap-2">
+                  {[
+                    { id: 'overview', label: 'Przegląd', icon: null },
+                    { id: 'achievements', label: 'Osiągnięcia', icon: Trophy },
+                    { id: 'friends', label: 'Znajomi', icon: Users },
+                  ].map(tab => (
+                    <Button
+                      key={tab.id}
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        'rounded-xl px-4 gap-2',
+                        activeTab === tab.id && 'bg-white/10'
+                      )}
+                      onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                    >
+                      {tab.icon && <tab.icon className="h-4 w-4" />}
+                      {tab.label}
+                    </Button>
+                  ))}
+                </div>
+
+                {activeTab === 'achievements' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-lg font-semibold text-white">Osiągnięcia</h2>
+                      <span className="text-sm text-zinc-400">{achievedCount} / {mockAchievements.length}</span>
+                    </div>
+                    <Progress value={achievementProgress} className="h-2" />
+                    <div className="grid grid-cols-2 gap-3">
+                      {mockAchievements.map(achievement => (
+                        <div
+                          key={achievement.id}
+                          className={cn(
+                            'p-3 rounded-xl border transition-all',
+                            achievement.achieved
+                              ? 'bg-yellow-500/10 border-yellow-500/30'
+                              : 'bg-zinc-800/50 border-white/5 opacity-60'
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              'w-10 h-10 rounded-lg flex items-center justify-center',
+                              achievement.achieved ? 'bg-yellow-500/20' : 'bg-zinc-700'
+                            )}>
+                              <Trophy className={cn(
+                                'h-5 w-5',
+                                achievement.achieved ? 'text-yellow-400' : 'text-zinc-500'
+                              )} />
+                            </div>
+                            <div>
+                              <p className="font-medium text-white text-sm">{achievement.name}</p>
+                              <p className="text-xs text-zinc-500">{achievement.description}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'friends' && (
+                  <div className="space-y-4">
+                    <h2 className="text-lg font-semibold text-white">Znajomi grający w tę grę</h2>
+                    {mockFriendsPlaying.length > 0 ? (
+                      <div className="space-y-2">
+                        {mockFriendsPlaying.map(friend => (
+                          <div
+                            key={friend.name}
+                            className="flex items-center gap-3 p-3 rounded-xl bg-zinc-800/50 border border-white/5"
+                          >
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
+                              <span className="text-white font-bold">{friend.name[0]}</span>
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium text-white">{friend.name}</p>
+                              <p className="text-xs text-zinc-500">{friend.playtime} godzin gry</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-zinc-500 text-sm">Żaden z twoich znajomych nie gra w tę grę.</p>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'overview' && (
+                  <>
+                    {/* Description */}
+                    {game.description && (
+                      <div className="space-y-4">
+                        <h2 className="text-lg font-semibold text-white">O grze</h2>
+                        <p className="text-zinc-400 leading-relaxed max-w-3xl">
+                          {game.description}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Additional Info */}
+                    <div className="grid grid-cols-2 gap-8">
+                      {game.developers && game.developers.length > 0 && (
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">Deweloper</h3>
+                          <p className="text-white">{game.developers.join(', ')}</p>
+                        </div>
+                      )}
+                      {game.publishers && game.publishers.length > 0 && (
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">Wydawca</h3>
+                          <p className="text-white">{game.publishers.join(', ')}</p>
+                        </div>
+                      )}
+                      {game.releaseDate && (
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">Data wydania</h3>
+                          <p className="text-white">{game.releaseDate}</p>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </>
             )}
 
-            {/* Additional Info */}
-            <div className="grid grid-cols-2 gap-8">
-              {game.developers && game.developers.length > 0 && (
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">Deweloper</h3>
-                  <p className="text-white">{game.developers.join(', ')}</p>
+            {/* Show overview for non-steam or not logged in */}
+            {(!isLoggedIn || game.platform !== 'steam') && (
+              <>
+                {/* Description */}
+                {game.description && (
+                  <div className="space-y-4">
+                    <h2 className="text-lg font-semibold text-white">O grze</h2>
+                    <p className="text-zinc-400 leading-relaxed max-w-3xl">
+                      {game.description}
+                    </p>
+                  </div>
+                )}
+
+                {/* Additional Info */}
+                <div className="grid grid-cols-2 gap-8">
+                  {game.developers && game.developers.length > 0 && (
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">Deweloper</h3>
+                      <p className="text-white">{game.developers.join(', ')}</p>
+                    </div>
+                  )}
+                  {game.publishers && game.publishers.length > 0 && (
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">Wydawca</h3>
+                      <p className="text-white">{game.publishers.join(', ')}</p>
+                    </div>
+                  )}
+                  {game.releaseDate && (
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">Data wydania</h3>
+                      <p className="text-white">{game.releaseDate}</p>
+                    </div>
+                  )}
                 </div>
-              )}
-              {game.publishers && game.publishers.length > 0 && (
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">Wydawca</h3>
-                  <p className="text-white">{game.publishers.join(', ')}</p>
-                </div>
-              )}
-              {game.releaseDate && (
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">Data wydania</h3>
-                  <p className="text-white">{game.releaseDate}</p>
-                </div>
-              )}
-            </div>
+              </>
+            )}
           </div>
         </ScrollArea>
       </div>

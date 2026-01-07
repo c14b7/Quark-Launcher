@@ -9,7 +9,7 @@ export interface Game {
   sizeOnDisk?: number;
   lastUpdated?: number;
   lastPlayed?: string;
-  playtime?: number;
+  playtime?: number; // in minutes
   
   // Images
   image: string;        // Header (460x215)
@@ -29,7 +29,56 @@ export interface Game {
   isFavorite?: boolean;
   isHidden?: boolean;
   customCategories?: string[];
+  
+  // Steam-specific data
+  achievements?: GameAchievement[];
+  achievementProgress?: number; // percentage 0-100
 }
+
+// Steam User Profile
+export interface SteamUser {
+  steamId: string;
+  personaName: string;
+  avatarUrl: string;
+  avatarMediumUrl: string;
+  avatarFullUrl: string;
+  profileUrl: string;
+  isOnline: boolean;
+  lastLogoff?: number;
+  countryCode?: string;
+}
+
+// Steam Friend
+export interface SteamFriend {
+  steamId: string;
+  personaName: string;
+  avatarUrl: string;
+  isOnline: boolean;
+  currentGame?: string;
+  friendSince?: number;
+}
+
+// Game Achievement
+export interface GameAchievement {
+  id: string;
+  name: string;
+  description: string;
+  iconUrl: string;
+  iconGrayUrl: string;
+  achieved: boolean;
+  unlockTime?: number;
+}
+
+// AI Chat Message
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: number;
+}
+
+// Playtime badge type
+export type PlaytimeBadge = 'new-never' | 'new-beginner' | 'played' | null;
 
 export interface UserSettings {
   theme: 'dark' | 'light' | 'system';

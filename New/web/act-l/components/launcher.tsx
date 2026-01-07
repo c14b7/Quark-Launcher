@@ -7,6 +7,10 @@ import { HomeView } from '@/components/home-view';
 import { LibraryView } from '@/components/library-view';
 import { GameDetails } from '@/components/game-details';
 import { SettingsModal } from '@/components/settings-modal';
+import { AIChatPanel } from '@/components/ai-chat';
+import { DownloadsView } from '@/components/downloads-view';
+import { NewsView } from '@/components/news-view';
+import { AccountsView } from '@/components/accounts-view';
 import { GamesProvider, useGames } from '@/lib/games-context';
 import { SettingsProvider, useSettings } from '@/lib/settings-context';
 import { Game } from '@/lib/types';
@@ -16,6 +20,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 function LauncherContent() {
   const [currentView, setCurrentView] = useState('home');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const { selectedGame, setSelectedGame } = useGames();
   const { settings } = useSettings();
 
@@ -51,14 +56,16 @@ function LauncherContent() {
           onNavigate={setCurrentView}
           onGameSelect={handleGameSelect}
           onOpenSettings={() => setIsSettingsOpen(true)}
+          onOpenChat={() => setIsChatOpen(true)}
         />
 
         {/* Main View */}
         <main className={cn(
-          "flex-1 flex flex-col overflow-hidden",
+          "flex-1 flex flex-col overflow-hidden transition-all duration-300",
           settings.theme === 'oled' 
             ? 'bg-black' 
-            : 'bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950'
+            : 'bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950',
+          isChatOpen && 'mr-[400px]'
         )}>
           {currentView === 'home' && (
             <HomeView onGameSelect={handleGameSelect} />
@@ -66,23 +73,28 @@ function LauncherContent() {
           {currentView === 'library' && (
             <LibraryView onGameSelect={handleGameSelect} />
           )}
-          {currentView === 'console' && (
-            <div className="flex-1 flex items-center justify-center text-zinc-500">
-              <p>Konsola - wkrótce</p>
-            </div>
+          {currentView === 'downloads' && (
+            <DownloadsView />
+          )}
+          {currentView === 'news' && (
+            <NewsView />
           )}
           {currentView === 'accounts' && (
-            <div className="flex-1 flex items-center justify-center text-zinc-500">
-              <p>Połączone konta - wkrótce</p>
-            </div>
+            <AccountsView />
           )}
           {currentView === 'store' && (
             <div className="flex-1 flex items-center justify-center text-zinc-500">
-              <p>Sklep - wkrótce</p>
+              <div className="text-center">
+                <p className="text-lg font-medium mb-2">Sklep</p>
+                <p className="text-sm">Wkrótce dostępny</p>
+              </div>
             </div>
           )}
         </main>
       </div>
+
+      {/* AI Chat Panel */}
+      <AIChatPanel isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
 
       {/* Game Details Modal */}
       {selectedGame && (
