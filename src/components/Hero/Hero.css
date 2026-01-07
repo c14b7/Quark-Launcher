@@ -107,6 +107,27 @@
   font-weight: 600;
 }
 
+.hero-meta .new-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.hero-meta .new-badge-blue {
+  background: rgba(33, 150, 243, 0.9);
+  color: white;
+}
+
+.hero-meta .new-badge-yellow {
+  background: rgba(255, 193, 7, 0.9);
+  color: #1a1a1a;
+}
+
 .hero-title {
   font-size: 3rem;
   font-weight: 900;

@@ -84,9 +84,27 @@ const Hero = ({ game, onPlay }) => {
   };
 
   const formatPlaytime = (minutes) => {
+    if (!minutes || minutes === 0) return '0h';
     if (minutes < 60) return `${minutes}m`;
     const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (remainingMinutes > 0) {
+      return `${hours}h ${remainingMinutes}m`;
+    }
     return `${hours}h`;
+  };
+
+  const getNewBadgeType = (game) => {
+    if (!game) return null;
+    // Blue badge if never played (no playtime and no lastPlayed)
+    if ((!game.playtime || game.playtime === 0) && !game.lastPlayed) {
+      return 'blue';
+    }
+    // Yellow badge if played less than 3 hours (180 minutes)
+    if (game.playtime && game.playtime < 180) {
+      return 'yellow';
+    }
+    return null;
   };
 
   if (!currentGame) {
@@ -137,6 +155,11 @@ const Hero = ({ game, onPlay }) => {
                     <Star size={16} fill="currentColor" />
                     <span>{currentGame.rating}</span>
                   </div>
+                  {getNewBadgeType(currentGame) && (
+                    <div className={`new-badge new-badge-${getNewBadgeType(currentGame)}`}>
+                      Nowy
+                    </div>
+                  )}
                 </div>
 
                 <h1 className="hero-title">{currentGame.name}</h1>
