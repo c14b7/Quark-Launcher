@@ -16,6 +16,7 @@
     "concurrently": "^8.2.2",
     "electron": "^33.0.0",
     "electron-builder": "^25.0.0",
+    "electron-packager": "^17.1.2",
     "wait-on": "^7.2.0"
   },
   "build": {
