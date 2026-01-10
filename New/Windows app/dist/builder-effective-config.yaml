@@ -7,6 +7,11 @@ files:
   - filter:
       - main.js
       - preload.js
+extraResources:
+  - from: ../web/act-l/out
+    to: app
+    filter:
+      - '**/*'
 win:
   target: nsis
   icon: assets/icon.ico

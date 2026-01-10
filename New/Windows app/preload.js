@@ -12,6 +12,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   steamDetectInstallation: () => ipcRenderer.invoke('steam-detect-installation'),
   steamGetInstalledGames: () => ipcRenderer.invoke('steam-get-installed-games'),
 
+  // Epic Games
+  epicGetInstalledGames: () => ipcRenderer.invoke('epic-get-installed-games'),
+
   // Game launching
   launchGame: (gameData) => ipcRenderer.invoke('launch-game', gameData),
 
@@ -22,6 +25,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // File operations
   selectGameExecutable: () => ipcRenderer.invoke('select-game-executable'),
   checkFileExists: (filePath) => ipcRenderer.invoke('check-file-exists', filePath),
+  openFolder: (folderPath) => ipcRenderer.invoke('open-folder', folderPath),
 
   // System info
   getSystemInfo: () => ipcRenderer.invoke('get-system-info'),

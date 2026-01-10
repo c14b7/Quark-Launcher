@@ -114,9 +114,9 @@ export function LibraryView({ onGameSelect }: LibraryViewProps) {
   };
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-white/5 flex items-center justify-between gap-4">
+      <div className="p-4 border-b border-white/5 flex items-center justify-between gap-4 flex-shrink-0">
         <div className="flex items-center gap-4">
           <h1 className="text-xl font-bold text-white">Biblioteka</h1>
           <Badge variant="secondary" className="bg-white/10 text-zinc-300 rounded-lg">
@@ -224,8 +224,8 @@ export function LibraryView({ onGameSelect }: LibraryViewProps) {
       </div>
 
       {/* Content */}
-      <ScrollArea className="flex-1">
-        <div className="p-4">
+      <ScrollArea className="flex-1 h-full">
+        <div className="p-4 pb-20">
           {viewMode === 'grid' ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
               {filteredAndSortedGames.map((game) => (

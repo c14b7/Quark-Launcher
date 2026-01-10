@@ -53,8 +53,15 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
     try {
       if (typeof window !== 'undefined' && window.electronAPI) {
-        const steamGames = await window.electronAPI.steamGetInstalledGames();
-        setGames(steamGames);
+        // Pobierz gry ze wszystkich platform
+        const [steamGames, epicGames] = await Promise.all([
+          window.electronAPI.steamGetInstalledGames(),
+          window.electronAPI.epicGetInstalledGames()
+        ]);
+        
+        // Połącz gry z różnych platform
+        const allGames = [...steamGames, ...epicGames];
+        setGames(allGames);
       } else {
         // Mock data for development without Electron
         setGames(getMockGames());
@@ -267,6 +274,43 @@ function getMockGames(): Game[] {
       logo: 'https://cdn.akamai.steamstatic.com/steam/apps/570/logo.png',
       capsule: 'https://cdn.akamai.steamstatic.com/steam/apps/570/library_600x900.jpg',
       background: 'https://cdn.akamai.steamstatic.com/steam/apps/570/page_bg_generated_v6b.jpg'
+    },
+    // Epic Games examples
+    {
+      id: 'fn:Fortnite:fn',
+      name: 'Fortnite',
+      platform: 'epic',
+      installed: true,
+      playtime: 340,
+      image: 'https://cdn2.unrealengine.com/17br-evergreen-egs-launcher-blade-2560x1440-2560x1440-2c9534797672.jpg',
+      hero: 'https://cdn2.unrealengine.com/17br-evergreen-egs-launcher-blade-2560x1440-2560x1440-2c9534797672.jpg',
+      logo: 'https://cdn2.unrealengine.com/17br-evergreen-egs-launcher-blade-2560x1440-2560x1440-2c9534797672.jpg',
+      capsule: 'https://cdn2.unrealengine.com/17br-evergreen-egs-launcher-blade-2560x1440-2560x1440-2c9534797672.jpg',
+      background: 'https://cdn2.unrealengine.com/17br-evergreen-egs-launcher-blade-2560x1440-2560x1440-2c9534797672.jpg'
+    },
+    {
+      id: 'sugarysnowchance:Sugar:rocket-league',
+      name: 'Rocket League',
+      platform: 'epic',
+      installed: true,
+      playtime: 180,
+      image: 'https://cdn1.epicgames.com/offer/9773aa1aa54f4f7b80e44bef04986cea/EGS_RocketLeague_PsyonixLLC_S2_1200x1600-96652da6f9a48c2e4b36b5fcb414fc15',
+      hero: 'https://cdn1.epicgames.com/offer/9773aa1aa54f4f7b80e44bef04986cea/EGS_RocketLeague_PsyonixLLC_S2_1200x1600-96652da6f9a48c2e4b36b5fcb414fc15',
+      logo: 'https://cdn1.epicgames.com/offer/9773aa1aa54f4f7b80e44bef04986cea/EGS_RocketLeague_PsyonixLLC_S2_1200x1600-96652da6f9a48c2e4b36b5fcb414fc15',
+      capsule: 'https://cdn1.epicgames.com/offer/9773aa1aa54f4f7b80e44bef04986cea/EGS_RocketLeague_PsyonixLLC_S2_1200x1600-96652da6f9a48c2e4b36b5fcb414fc15',
+      background: 'https://cdn1.epicgames.com/offer/9773aa1aa54f4f7b80e44bef04986cea/EGS_RocketLeague_PsyonixLLC_S2_1200x1600-96652da6f9a48c2e4b36b5fcb414fc15'
+    },
+    {
+      id: '0584d2013f0149a791e7b9bad0eec102:9d2d0eb64d5c44529cece33fe2a46482:gta-5',
+      name: 'Grand Theft Auto V',
+      platform: 'epic',
+      installed: true,
+      playtime: 450,
+      image: 'https://cdn1.epicgames.com/0584d2013f0149a791e7b9bad0eec102/offer/GTAV_EGS_Artwork_1200x1600_Portrait%20Store%20Banner-1200x1600-382243057711adf80322ed2aeea42191.jpg',
+      hero: 'https://cdn1.epicgames.com/0584d2013f0149a791e7b9bad0eec102/offer/GTAV_EGS_Artwork_1200x1600_Portrait%20Store%20Banner-1200x1600-382243057711adf80322ed2aeea42191.jpg',
+      logo: 'https://cdn1.epicgames.com/0584d2013f0149a791e7b9bad0eec102/offer/GTAV_EGS_Artwork_1200x1600_Portrait%20Store%20Banner-1200x1600-382243057711adf80322ed2aeea42191.jpg',
+      capsule: 'https://cdn1.epicgames.com/0584d2013f0149a791e7b9bad0eec102/offer/GTAV_EGS_Artwork_1200x1600_Portrait%20Store%20Banner-1200x1600-382243057711adf80322ed2aeea42191.jpg',
+      background: 'https://cdn1.epicgames.com/0584d2013f0149a791e7b9bad0eec102/offer/GTAV_EGS_Artwork_1200x1600_Portrait%20Store%20Banner-1200x1600-382243057711adf80322ed2aeea42191.jpg'
     }
   ];
 }

@@ -54,6 +54,16 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
     launchGame(game);
   };
 
+  const handleShowInStore = () => {
+    if (game.platform === 'steam') {
+      window.open(`https://store.steampowered.com/app/${game.id}`, '_blank');
+    } else if (game.platform === 'epic') {
+      window.open('https://store.epicgames.com/browse', '_blank');
+    } else if (game.platform === 'xbox') {
+      window.open(`https://www.xbox.com/games/store/${game.id}`, '_blank');
+    }
+  };
+
   const formatBytes = (bytes?: number) => {
     if (!bytes) return 'Nieznany';
     const gb = bytes / (1024 * 1024 * 1024);
@@ -182,7 +192,7 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
                     Uruchom grę
                   </Button>
 
-                  <Button variant="outline" className="gap-2 border-white/10 hover:bg-white/5">
+                  <Button variant="outline" className="gap-2 border-white/10 hover:bg-white/5" onClick={handleShowInStore}>
                     <ExternalLink className="h-4 w-4" />
                     Strona w sklepie
                   </Button>
@@ -306,18 +316,68 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
 
                 {activeTab === 'overview' && (
                   <>
-                    {/* Description */}
-                    {game.description && (
-                      <div className="space-y-4">
-                        <h2 className="text-lg font-semibold text-white">O grze</h2>
-                        <p className="text-zinc-400 leading-relaxed max-w-3xl">
-                          {game.description}
+                    {/* Quick Stats Cards */}
+                    <div className="grid grid-cols-4 gap-4">
+                      <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5">
+                        <div className="flex items-center gap-2 text-zinc-400 mb-2">
+                          <Clock className="h-4 w-4" />
+                          <span className="text-xs uppercase">Czas gry</span>
+                        </div>
+                        <p className="text-xl font-bold text-white">
+                          {game.playtime ? `${Math.floor(game.playtime / 60)}h` : '0h'}
                         </p>
                       </div>
-                    )}
+                      <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5">
+                        <div className="flex items-center gap-2 text-zinc-400 mb-2">
+                          <Trophy className="h-4 w-4" />
+                          <span className="text-xs uppercase">Osiągnięcia</span>
+                        </div>
+                        <p className="text-xl font-bold text-white">
+                          {achievedCount}/{mockAchievements.length}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5">
+                        <div className="flex items-center gap-2 text-zinc-400 mb-2">
+                          <HardDrive className="h-4 w-4" />
+                          <span className="text-xs uppercase">Rozmiar</span>
+                        </div>
+                        <p className="text-xl font-bold text-white">
+                          {formatBytes(game.sizeOnDisk)}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5">
+                        <div className="flex items-center gap-2 text-zinc-400 mb-2">
+                          <Calendar className="h-4 w-4" />
+                          <span className="text-xs uppercase">Ostatnia aktualizacja</span>
+                        </div>
+                        <p className="text-xl font-bold text-white">
+                          {game.lastUpdated ? formatDate(game.lastUpdated) : 'Nieznana'}
+                        </p>
+                      </div>
+                    </div>
 
-                    {/* Additional Info */}
-                    <div className="grid grid-cols-2 gap-8">
+                    {/* Description */}
+                    <div className="space-y-4">
+                      <h2 className="text-lg font-semibold text-white">O grze</h2>
+                      <p className="text-zinc-400 leading-relaxed max-w-3xl">
+                        {game.description || `${game.name} to gra dostępna na platformie ${game.platform.toUpperCase()}. Uruchom grę, aby rozpocząć przygodę!`}
+                      </p>
+                    </div>
+
+                    {/* Game Info Grid */}
+                    <div className="grid grid-cols-3 gap-6">
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">Platforma</h3>
+                        <p className="text-white">{game.platform.toUpperCase()}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">Status</h3>
+                        <p className="text-green-400">{game.installed ? 'Zainstalowana' : 'Niezainstalowana'}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">ID gry</h3>
+                        <p className="text-white font-mono text-sm">{game.id.length > 20 ? game.id.substring(0, 20) + '...' : game.id}</p>
+                      </div>
                       {game.developers && game.developers.length > 0 && (
                         <div className="space-y-2">
                           <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">Deweloper</h3>
@@ -336,7 +396,27 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
                           <p className="text-white">{game.releaseDate}</p>
                         </div>
                       )}
+                      {game.installDir && (
+                        <div className="space-y-2 col-span-3">
+                          <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">Folder instalacji</h3>
+                          <p className="text-white font-mono text-sm truncate">{game.installDir}</p>
+                        </div>
+                      )}
                     </div>
+
+                    {/* Genres */}
+                    {game.genres && game.genres.length > 0 && (
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">Gatunki</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {game.genres.map((genre) => (
+                            <Badge key={genre} className="bg-violet-500/20 text-violet-300 border-violet-500/30">
+                              {genre}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
               </>

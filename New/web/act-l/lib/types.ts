@@ -109,7 +109,7 @@ export interface SteamInstallation {
 // Electron API types
 declare global {
   interface Window {
-    electronAPI: {
+    electronAPI?: {
       // Window controls
       windowMinimize: () => Promise<void>;
       windowMaximize: () => Promise<boolean>;
@@ -119,6 +119,9 @@ declare global {
       // Steam
       steamDetectInstallation: () => Promise<SteamInstallation>;
       steamGetInstalledGames: () => Promise<Game[]>;
+      
+      // Epic Games
+      epicGetInstalledGames: () => Promise<Game[]>;
       
       // Game launching
       launchGame: (gameData: { platform: string; gameId: string; gamePath?: string }) => Promise<LaunchResult>;
@@ -130,6 +133,7 @@ declare global {
       // File operations
       selectGameExecutable: () => Promise<string | null>;
       checkFileExists: (filePath: string) => Promise<boolean>;
+      openFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
       
       // System info
       getSystemInfo: () => Promise<{

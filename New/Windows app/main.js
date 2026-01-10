@@ -81,7 +81,7 @@ class QuarkLauncher {
     // Ładowanie aplikacji Next.js
     const startUrl = isDev
       ? 'http://localhost:30211'
-      : `file://${path.join(__dirname, '../web/act-l/out/index.html')}`;
+      : `file://${path.join(process.resourcesPath, 'app', 'index.html')}`;
 
     this.mainWindow.loadURL(startUrl);
 
@@ -154,6 +154,23 @@ class QuarkLauncher {
       }
     });
 
+    // ===== EPIC GAMES DETECTION =====
+    ipcMain.handle('epic-get-installed-games', async () => {
+      try {
+        const manifestPath = 'C:\\ProgramData\\Epic\\EpicGamesLauncher\\Data\\Manifests';
+        if (!await this.fileExists(manifestPath)) {
+          console.log('Epic manifests folder not found');
+          return [];
+        }
+
+        const games = await this.scanEpicManifests(manifestPath);
+        return games;
+      } catch (error) {
+        console.error('Error getting Epic games:', error);
+        return [];
+      }
+    });
+
     // ===== GAME LAUNCHING =====
     ipcMain.handle('launch-game', async (event, { platform, gameId, gamePath }) => {
       try {
@@ -167,7 +184,49 @@ class QuarkLauncher {
             shell.openExternal(`ms-xbl-${gameId}://`);
             break;
           case 'epic':
-            shell.openExternal(`com.epicgames.launcher://apps/${gameId}?action=launch`);
+            // Epic Games - try multiple launch methods
+            try {
+              let epicAppName = gameId;
+              
+              if (gameId.includes(':')) {
+                // Extract AppName from namespace:appName:catalogItemId
+                const parts = gameId.split(':');
+                epicAppName = parts[1];
+              }
+              
+              console.log(`Launching Epic game with AppName: ${epicAppName}`);
+              
+              // Method 1: Try direct launcher execution with -com.epicgames.launcher
+              const epicLauncherPaths = [
+                'C:\\Program Files (x86)\\Epic Games\\Launcher\\Portal\\Binaries\\Win32\\EpicGamesLauncher.exe',
+                'C:\\\\Program Files (x86)\\\\Epic Games\\\\Launcher\\\\Portal\\\\Binaries\\\\Win64\\\\EpicGamesLauncher.exe',
+                'C:\\\\Program Files\\\\Epic Games\\\\Launcher\\\\Portal\\\\Binaries\\\\Win32\\\\EpicGamesLauncher.exe',
+                'C:\\\\Program Files\\\\Epic Games\\\\Launcher\\\\Portal\\\\Binaries\\\\Win64\\\\EpicGamesLauncher.exe'
+              ];
+              
+              let launched = false;
+              for (const launcherPath of epicLauncherPaths) {
+                if (await this.fileExists(launcherPath)) {
+                  // Use Epic's command line format
+                  const proc = spawn(launcherPath, [`-com.epicgames.launcher://apps/${epicAppName}?action=launch&silent=true`], {
+                    detached: true,
+                    stdio: 'ignore'
+                  });
+                  proc.unref();
+                  launched = true;
+                  console.log(`Launched via ${launcherPath}`);
+                  break;
+                }
+              }
+              
+              // Method 2: Fallback to protocol handler
+              if (!launched) {
+                shell.openExternal(`com.epicgames.launcher://apps/${epicAppName}?action=launch&silent=true`);
+              }
+            } catch (err) {
+              console.error('Epic launch error:', err);
+              throw err;
+            }
             break;
           case 'custom':
             if (gamePath && await this.fileExists(gamePath)) {
@@ -222,6 +281,19 @@ class QuarkLauncher {
 
     ipcMain.handle('check-file-exists', async (event, filePath) => {
       return await this.fileExists(filePath);
+    });
+
+    // Open folder in explorer
+    ipcMain.handle('open-folder', async (event, folderPath) => {
+      try {
+        if (await this.fileExists(folderPath)) {
+          shell.openPath(folderPath);
+          return { success: true };
+        }
+        return { success: false, error: 'Folder not found' };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
     });
 
     // ===== SYSTEM INFO =====
@@ -333,6 +405,118 @@ class QuarkLauncher {
     }
 
     return result;
+  }
+
+  async scanEpicManifests(manifestPath) {
+    const games = [];
+
+    try {
+      const files = await fs.readdir(manifestPath);
+      const itemFiles = files.filter(f => f.endsWith('.item'));
+
+      for (const itemFile of itemFiles) {
+        try {
+          const content = await fs.readFile(path.join(manifestPath, itemFile), 'utf-8');
+          const manifest = JSON.parse(content);
+
+          // Filtrowanie niepotrzebnych aplikacji
+          if (manifest.AppName && manifest.DisplayName && 
+              !manifest.DisplayName.includes('Launcher') &&
+              !manifest.DisplayName.includes('Prerequisite') &&
+              manifest.bIsApplication) {
+            
+            console.log(`Found Epic game: ${manifest.DisplayName} (${manifest.AppName})`);
+            
+            // Tworzenie ID w formacie namespace:appName:artifactId
+            const launchId = `${manifest.CatalogNamespace}:${manifest.AppName}:${manifest.CatalogItemId}`;
+            
+            // Try to get images from multiple Epic CDN patterns
+            const catalogNs = manifest.CatalogNamespace;
+            const catalogId = manifest.CatalogItemId;
+            const appName = manifest.AppName;
+            
+            // Try to find local images in multiple locations
+            let gameImage = '';
+            
+            if (manifest.InstallLocation) {
+              // Try multiple common icon locations
+              const iconLocations = [
+                // Check ContentCache first - most reliable
+                path.join('C:\\ProgramData\\Epic\\EpicGamesLauncher\\Data\\ContentCache', `${catalogId}_*.*`),
+                path.join('C:\\ProgramData\\Epic\\EpicGamesLauncher\\Data\\ContentCache', `${appName}_*.*`),
+                // Then check game install directory
+                path.join(manifest.InstallLocation, '.egstore', `${catalogId}.png`),
+                path.join(manifest.InstallLocation, '.egstore', `${appName}.png`),
+                path.join(manifest.InstallLocation, '.egstore', 'icon.png'),
+                path.join(manifest.InstallLocation, 'icon.png'),
+                path.join(manifest.InstallLocation, 'Icon.png'),
+                path.join(manifest.InstallLocation, `${manifest.DisplayName}.png`)
+              ];
+              
+              for (const iconPattern of iconLocations) {
+                try {
+                  // Check if pattern has wildcard
+                  if (iconPattern.includes('*')) {
+                    const dir = path.dirname(iconPattern);
+                    const pattern = path.basename(iconPattern);
+                    const files = await fs.readdir(dir);
+                    const matching = files.find(f => {
+                      const base = pattern.split('_')[0];
+                      return f.startsWith(base) && (f.endsWith('.png') || f.endsWith('.jpg'));
+                    });
+                    if (matching) {
+                      gameImage = `game-asset://${path.join(dir, matching)}`;
+                      console.log(`Found icon for ${manifest.DisplayName}: ${path.join(dir, matching)}`);
+                      break;
+                    }
+                  } else if (await this.fileExists(iconPattern)) {
+                    gameImage = `game-asset://${iconPattern}`;
+                    console.log(`Found icon for ${manifest.DisplayName}: ${iconPattern}`);
+                    break;
+                  }
+                } catch (err) {
+                  // Continue to next location
+                }
+              }
+            }
+            
+            // If no local image, try using a generic Epic Games placeholder URL
+            // Using a pattern that might work for some games
+            const epicImageUrl = gameImage || `https://cdn2.unrealengine.com/epic-${appName.toLowerCase()}-1920x1080.jpg`;
+            
+            games.push({
+              id: launchId,
+              name: manifest.DisplayName,
+              platform: 'epic',
+              installDir: manifest.InstallLocation,
+              sizeOnDisk: parseInt(manifest.InstallSize) || 0,
+              lastUpdated: new Date(manifest.InstallDate).getTime() || 0,
+              installed: true,
+              appName: appName,
+              namespace: catalogNs,
+              catalogItemId: catalogId,
+              launchExecutable: manifest.LaunchExecutable,
+              // Store full game path if LaunchExecutable exists
+              gamePath: manifest.LaunchExecutable && manifest.InstallLocation 
+                ? path.join(manifest.InstallLocation, manifest.LaunchExecutable)
+                : null,
+              // Use local icon if available, otherwise use Epic CDN attempt
+              image: epicImageUrl,
+              hero: epicImageUrl,
+              logo: epicImageUrl,
+              capsule: epicImageUrl,
+              background: epicImageUrl
+            });
+          }
+        } catch (err) {
+          console.log('Error parsing Epic manifest:', itemFile, err);
+        }
+      }
+    } catch (error) {
+      console.log('Error scanning Epic manifests:', error);
+    }
+
+    return games;
   }
 }
 

@@ -7,8 +7,9 @@
     "start": "electron .",
     "dev": "concurrently \"npm run next:dev\" \"wait-on http://localhost:30211 && electron .\"",
     "next:dev": "cd ../web/act-l && npm run dev -- -p 30211",
-    "build": "electron-builder",
-    "pack": "electron-builder --dir"
+    "next:build": "cd ../web/act-l && npm run build",
+    "build": "npm run next:build && electron-builder",
+    "pack": "npm run next:build && electron-builder --dir"
   },
   "author": "Quark",
   "license": "MIT",
@@ -28,6 +29,13 @@
     "files": [
       "main.js",
       "preload.js"
+    ],
+    "extraResources": [
+      {
+        "from": "../web/act-l/out",
+        "to": "app",
+        "filter": ["**/*"]
+      }
     ],
     "win": {
       "target": "nsis",
