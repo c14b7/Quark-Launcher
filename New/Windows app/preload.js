@@ -2,6 +2,9 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 // Bezpieczne API dla renderer procesu
 contextBridge.exposeInMainWorld('electronAPI', {
+  // Steam API Proxy (fix CORS)
+  steamApiFetch: (endpoint, params) => ipcRenderer.invoke('steam-api-fetch', { endpoint, params }),
+
   // Window controls
   windowMinimize: () => ipcRenderer.invoke('window-minimize'),
   windowMaximize: () => ipcRenderer.invoke('window-maximize'),

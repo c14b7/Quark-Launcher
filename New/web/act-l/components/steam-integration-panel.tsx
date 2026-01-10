@@ -214,6 +214,28 @@ export function SteamIntegrationPanel() {
         )}
       </div>
 
+      {/* Warning if no API key */}
+      {!settings.steamApiKey && connectionStep !== 'connected' && (
+        <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 space-y-2">
+              <p className="text-sm text-yellow-400 font-medium">
+                Brak klucza Steam API
+              </p>
+              <p className="text-xs text-yellow-400/80">
+                Aby połączyć konto Steam i synchronizować dane, musisz dodać klucz API Steam. 
+                Pobierz go na <a href="https://steamcommunity.com/dev/apikey" target="_blank" rel="noopener noreferrer" className="underline hover:text-yellow-300">steamcommunity.com/dev/apikey</a> 
+                i wklej w <strong>Ustawienia → Ogólne → Steam API Key</strong>.
+              </p>
+              <p className="text-xs text-yellow-400/60">
+                📖 Szczegółowa instrukcja: <code className="text-yellow-300">STEAM-SETUP.md</code>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <AnimatePresence mode="wait">
         {/* Idle / Not Connected */}
         {connectionStep === 'idle' && (

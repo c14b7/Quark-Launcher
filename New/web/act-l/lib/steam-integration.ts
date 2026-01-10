@@ -91,6 +91,25 @@ export function getPersonaStateText(state: number): string {
   return states[state] || 'Nieznany';
 }
 
+// Helper function to fetch Steam API with Electron proxy or direct
+async function fetchSteamAPI(endpoint: string, params: Record<string, string>): Promise<any> {
+  // Check if running in Electron with proxy available
+  if (typeof window !== 'undefined' && (window as any).electronAPI?.steamApiFetch) {
+    const result = await (window as any).electronAPI.steamApiFetch(endpoint, params);
+    if (result.success) {
+      return result.data;
+    }
+    throw new Error(result.error || 'Steam API fetch failed');
+  }
+  
+  // Fallback to direct fetch (will fail with CORS in browser)
+  const url = new URL(`https://api.steampowered.com${endpoint}`);
+  Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+  
+  const response = await fetch(url.toString());
+  return await response.json();
+}
+
 // Steam Integration Service
 export const steamIntegration = {
   /**
@@ -98,17 +117,14 @@ export const steamIntegration = {
    */
   async getPlayerSummary(steamApiKey: string, steamId: string): Promise<SteamPlayer | null> {
     try {
-      // Use CORS proxy or Electron IPC
-      if (typeof window !== 'undefined' && window.electronAPI) {
-        const response = await fetch(
-          `${STEAM_API_BASE}/ISteamUser/GetPlayerSummaries/v2/?key=${steamApiKey}&steamids=${steamId}`
-        );
-        const data = await response.json();
-        return data.response?.players?.[0] || null;
-      }
-      return null;
+      const data = await fetchSteamAPI('/ISteamUser/GetPlayerSummaries/v2/', {
+        key: steamApiKey,
+        steamids: steamId
+      });
+      return data.response?.players?.[0] || null;
     } catch (error) {
       console.error('Error fetching player summary:', error);
+      console.warn('⚠️ CORS Error: Steam API nie może być wywołany bezpośrednio z przeglądarki. Uruchom w Electronie lub użyj proxy.');
       return null;
     }
   },
@@ -119,10 +135,11 @@ export const steamIntegration = {
   async getFriendsWithSummaries(steamApiKey: string, steamId: string): Promise<SteamFriend[]> {
     try {
       // Get friends list
-      const friendsResponse = await fetch(
-        `${STEAM_API_BASE}/ISteamUser/GetFriendList/v1/?key=${steamApiKey}&steamid=${steamId}&relationship=friend`
-      );
-      const friendsData = await friendsResponse.json();
+      const friendsData = await fetchSteamAPI('/ISteamUser/GetFriendList/v1/', {
+        key: steamApiKey,
+        steamid: steamId,
+        relationship: 'friend'
+      });
       const friends = friendsData.friendslist?.friends || [];
 
       if (friends.length === 0) {
@@ -131,10 +148,10 @@ export const steamIntegration = {
 
       // Get summaries for all friends
       const steamIds = friends.map((f: { steamid: string }) => f.steamid).join(',');
-      const summariesResponse = await fetch(
-        `${STEAM_API_BASE}/ISteamUser/GetPlayerSummaries/v2/?key=${steamApiKey}&steamids=${steamIds}`
-      );
-      const summariesData = await summariesResponse.json();
+      const summariesData = await fetchSteamAPI('/ISteamUser/GetPlayerSummaries/v2/', {
+        key: steamApiKey,
+        steamids: steamIds
+      });
       const players = summariesData.response?.players || [];
 
       // Merge friend since data
@@ -160,10 +177,12 @@ export const steamIntegration = {
    */
   async getOwnedGames(steamApiKey: string, steamId: string): Promise<SteamGame[]> {
     try {
-      const response = await fetch(
-        `${STEAM_API_BASE}/IPlayerService/GetOwnedGames/v1/?key=${steamApiKey}&steamid=${steamId}&include_appinfo=1&include_played_free_games=1`
-      );
-      const data = await response.json();
+      const data = await fetchSteamAPI('/IPlayerService/GetOwnedGames/v1/', {
+        key: steamApiKey,
+        steamid: steamId,
+        include_appinfo: '1',
+        include_played_free_games: '1'
+      });
       return data.response?.games || [];
     } catch (error) {
       console.error('Error fetching owned games:', error);
@@ -176,10 +195,11 @@ export const steamIntegration = {
    */
   async getRecentlyPlayedGames(steamApiKey: string, steamId: string, count: number = 10): Promise<SteamGame[]> {
     try {
-      const response = await fetch(
-        `${STEAM_API_BASE}/IPlayerService/GetRecentlyPlayedGames/v1/?key=${steamApiKey}&steamid=${steamId}&count=${count}`
-      );
-      const data = await response.json();
+      const data = await fetchSteamAPI('/IPlayerService/GetRecentlyPlayedGames/v1/', {
+        key: steamApiKey,
+        steamid: steamId,
+        count: count.toString()
+      });
       return data.response?.games || [];
     } catch (error) {
       console.error('Error fetching recently played games:', error);
@@ -235,10 +255,10 @@ export const steamIntegration = {
    */
   async getSteamLevel(steamApiKey: string, steamId: string): Promise<number> {
     try {
-      const response = await fetch(
-        `${STEAM_API_BASE}/IPlayerService/GetSteamLevel/v1/?key=${steamApiKey}&steamid=${steamId}`
-      );
-      const data = await response.json();
+      const data = await fetchSteamAPI('/IPlayerService/GetSteamLevel/v1/', {
+        key: steamApiKey,
+        steamid: steamId
+      });
       return data.response?.player_level || 0;
     } catch (error) {
       console.error('Error fetching Steam level:', error);
@@ -284,10 +304,10 @@ export const steamIntegration = {
    */
   async resolveVanityUrl(steamApiKey: string, vanityUrl: string): Promise<string | null> {
     try {
-      const response = await fetch(
-        `${STEAM_API_BASE}/ISteamUser/ResolveVanityURL/v1/?key=${steamApiKey}&vanityurl=${vanityUrl}`
-      );
-      const data = await response.json();
+      const data = await fetchSteamAPI('/ISteamUser/ResolveVanityURL/v1/', {
+        key: steamApiKey,
+        vanityurl: vanityUrl
+      });
       
       if (data.response?.success === 1) {
         return data.response.steamid;
@@ -295,6 +315,7 @@ export const steamIntegration = {
       return null;
     } catch (error) {
       console.error('Error resolving vanity URL:', error);
+      console.warn('⚠️ CORS Error: Steam API nie może być wywołany bezpośrednio z przeglądarki. Uruchom w Electronie.');
       return null;
     }
   },

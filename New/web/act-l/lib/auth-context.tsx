@@ -73,6 +73,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const profileResult = await authService.getUserProfile(result.user.$id);
         if (profileResult.success && profileResult.profile) {
           setProfile(profileResult.profile as unknown as UserProfile);
+        } else {
+          // Profile doesn't exist, create it
+          console.log('Profile not found, creating...');
+          const createResult = await authService.createUserProfile(
+            result.user.$id,
+            result.user.email,
+            result.user.name
+          );
+          if (createResult.success) {
+            // Reload profile after creation
+            const newProfileResult = await authService.getUserProfile(result.user.$id);
+            if (newProfileResult.success && newProfileResult.profile) {
+              setProfile(newProfileResult.profile as unknown as UserProfile);
+            }
+          }
         }
         
         // Load Steam integration

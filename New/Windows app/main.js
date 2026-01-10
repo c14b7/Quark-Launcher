@@ -100,6 +100,39 @@ class QuarkLauncher {
   }
 
   setupIpcHandlers() {
+    // ===== STEAM API PROXY (fix CORS) =====
+    ipcMain.handle('steam-api-fetch', async (event, { endpoint, params }) => {
+      try {
+        const https = require('https');
+        const url = new URL(`https://api.steampowered.com${endpoint}`);
+        
+        // Add params to URL
+        if (params) {
+          Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+        }
+
+        return new Promise((resolve, reject) => {
+          https.get(url.toString(), (res) => {
+            let data = '';
+            
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+              try {
+                resolve({ success: true, data: JSON.parse(data) });
+              } catch (err) {
+                resolve({ success: false, error: 'Failed to parse JSON' });
+              }
+            });
+          }).on('error', (err) => {
+            reject({ success: false, error: err.message });
+          });
+        });
+      } catch (error) {
+        console.error('Steam API proxy error:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
     // ===== WINDOW CONTROLS =====
     ipcMain.handle('window-minimize', () => this.mainWindow.minimize());
     

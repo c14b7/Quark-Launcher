@@ -228,9 +228,9 @@ export function LibraryView({ onGameSelect }: LibraryViewProps) {
         <div className="p-4 pb-20">
           {viewMode === 'grid' ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-              {filteredAndSortedGames.map((game) => (
+              {filteredAndSortedGames.map((game, index) => (
                 <GameCard
-                  key={game.id}
+                  key={`library-grid-${game.id}-${index}`}
                   game={game}
                   variant="medium"
                   onClick={() => onGameSelect(game)}
@@ -239,9 +239,9 @@ export function LibraryView({ onGameSelect }: LibraryViewProps) {
             </div>
           ) : (
             <div className="space-y-2">
-              {filteredAndSortedGames.map((game) => (
+              {filteredAndSortedGames.map((game, index) => (
                 <GameListItem
-                  key={game.id}
+                  key={`library-list-${game.id}-${index}`}
                   game={game}
                   onClick={() => onGameSelect(game)}
                 />
