@@ -1,6 +1,6 @@
 'use client';
 
-import { Play, Star, MoreHorizontal, HardDrive, EyeOff } from 'lucide-react';
+import { Play, Star, HardDrive, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   ContextMenu,

@@ -7,9 +7,7 @@ import {
   Clock, 
   Calendar, 
   HardDrive, 
-  X, 
   ChevronLeft,
-  Download,
   Settings,
   Share2,
   ExternalLink

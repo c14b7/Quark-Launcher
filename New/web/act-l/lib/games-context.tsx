@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { Game, UserSettings } from '@/lib/types';
+import { Game } from '@/lib/types';
 
 interface GamesContextType {
   games: Game[];
@@ -32,6 +32,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     refreshGames();
     loadUserSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadUserSettings = async () => {

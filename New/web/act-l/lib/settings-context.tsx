@@ -49,60 +49,56 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   // Load settings on mount
   useEffect(() => {
-    loadSettings();
+    const initSettings = async () => {
+      try {
+        if (typeof window !== 'undefined' && window.electronAPI) {
+          const result = await window.electronAPI.loadUserData('settings');
+          if (result.success && result.data) {
+            setSettings({ ...defaultSettings, ...(result.data as AppSettings) });
+          }
+        } else {
+          // Browser fallback
+          const saved = localStorage.getItem('quark-settings');
+          if (saved) {
+            setSettings({ ...defaultSettings, ...JSON.parse(saved) });
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load settings:', err);
+      }
+      setIsLoaded(true);
+    };
+    
+    initSettings();
   }, []);
 
   // Apply theme when settings change
   useEffect(() => {
     if (isLoaded) {
-      applyTheme(settings.theme);
-      applyScale(settings.uiScale);
+      // Apply theme
+      const html = document.documentElement;
+      html.classList.remove('dark', 'oled');
+      html.classList.add(settings.theme);
+      
+      // Apply scale
+      document.documentElement.style.setProperty('--ui-scale', settings.uiScale.toString());
+      document.body.style.fontSize = `${settings.uiScale * 14}px`;
+      
+      // Save settings
+      const saveSettings = async () => {
+        try {
+          if (typeof window !== 'undefined' && window.electronAPI) {
+            await window.electronAPI.saveUserData('settings', settings);
+          } else {
+            localStorage.setItem('quark-settings', JSON.stringify(settings));
+          }
+        } catch (err) {
+          console.error('Failed to save settings:', err);
+        }
+      };
       saveSettings();
     }
   }, [settings, isLoaded]);
-
-  const loadSettings = async () => {
-    try {
-      if (typeof window !== 'undefined' && window.electronAPI) {
-        const result = await window.electronAPI.loadUserData('settings');
-        if (result.success && result.data) {
-          setSettings({ ...defaultSettings, ...(result.data as AppSettings) });
-        }
-      } else {
-        // Browser fallback
-        const saved = localStorage.getItem('quark-settings');
-        if (saved) {
-          setSettings({ ...defaultSettings, ...JSON.parse(saved) });
-        }
-      }
-    } catch (err) {
-      console.error('Failed to load settings:', err);
-    }
-    setIsLoaded(true);
-  };
-
-  const saveSettings = async () => {
-    try {
-      if (typeof window !== 'undefined' && window.electronAPI) {
-        await window.electronAPI.saveUserData('settings', settings);
-      } else {
-        localStorage.setItem('quark-settings', JSON.stringify(settings));
-      }
-    } catch (err) {
-      console.error('Failed to save settings:', err);
-    }
-  };
-
-  const applyTheme = (theme: 'dark' | 'oled') => {
-    const html = document.documentElement;
-    html.classList.remove('dark', 'oled');
-    html.classList.add(theme);
-  };
-
-  const applyScale = (scale: number) => {
-    document.documentElement.style.setProperty('--ui-scale', scale.toString());
-    document.body.style.fontSize = `${scale * 14}px`;
-  };
 
   const updateSettings = useCallback((updates: Partial<AppSettings>) => {
     setSettings(prev => ({ ...prev, ...updates }));

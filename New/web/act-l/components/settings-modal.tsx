@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Moon, Sun, Monitor, Scale, EyeOff, FolderPlus, Trash2, Palette } from 'lucide-react';
+import { Moon, Monitor, EyeOff, FolderPlus, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { useSettings, Category } from '@/lib/settings-context';
+import { useSettings } from '@/lib/settings-context';
 import { useGames } from '@/lib/games-context';
 import { cn } from '@/lib/utils';
 
@@ -180,7 +180,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   <div className="text-center py-8 text-zinc-500">
                     <EyeOff className="h-12 w-12 mx-auto mb-3 opacity-50" />
                     <p>Brak ukrytych gier</p>
-                    <p className="text-xs mt-1">Kliknij PPM na kafelek gry i wybierz "Ukryj"</p>
+                    <p className="text-xs mt-1">Kliknij PPM na kafelek gry i wybierz &quot;Ukryj&quot;</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
