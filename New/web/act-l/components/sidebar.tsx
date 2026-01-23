@@ -44,7 +44,11 @@ export function Sidebar({ currentView, onNavigate, onGameSelect, onOpenSettings 
   const displayedGames = searchQuery ? filteredGames : games;
 
   return (
-    <aside className="w-[220px] bg-zinc-950/80 backdrop-blur-xl border-r border-white/5 flex flex-col h-full rounded-r-2xl">
+    <aside 
+      className="w-[220px] bg-zinc-950/80 backdrop-blur-xl border-r border-white/5 flex flex-col h-full rounded-r-2xl"
+      role="complementary"
+      aria-label="Main navigation and game search"
+    >
       {/* Search - bezpośrednio na górze */}
       <div className="px-3 pt-4 pb-2">
         <div className="relative">
@@ -54,12 +58,13 @@ export function Sidebar({ currentView, onNavigate, onGameSelect, onOpenSettings 
             className="pl-8 h-8 bg-zinc-900/50 border-white/5 text-xs placeholder:text-zinc-600 focus-visible:ring-violet-500/50"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            aria-label="Wyszukaj gry w bibliotece"
           />
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="px-2 py-2 space-y-0.5">
+      <nav className="px-2 py-2 space-y-0.5" aria-label="Primary navigation">
         {navItems.map((item) => (
           <Button
             key={item.id}
@@ -71,6 +76,8 @@ export function Sidebar({ currentView, onNavigate, onGameSelect, onOpenSettings 
                 : 'text-zinc-400 hover:text-white hover:bg-white/5'
             )}
             onClick={() => onNavigate(item.id)}
+            aria-label={`Przejdź do ${item.label}`}
+            aria-current={currentView === item.id ? 'page' : undefined}
           >
             <item.icon className="h-4 w-4" />
             {item.label}
@@ -113,6 +120,7 @@ export function Sidebar({ currentView, onNavigate, onGameSelect, onOpenSettings 
                     'hover:bg-white/5 text-zinc-400 hover:text-white'
                   )}
                   onClick={() => onGameSelect(game)}
+                  aria-label={`Otwórz szczegóły gry ${game.name}`}
                 >
                   <Avatar className="h-5 w-5 rounded">
                     <AvatarImage src={game.image} alt={game.name} className="object-cover" />
@@ -142,6 +150,7 @@ export function Sidebar({ currentView, onNavigate, onGameSelect, onOpenSettings 
             size="icon" 
             className="h-7 w-7 hover:bg-white/10"
             onClick={onOpenSettings}
+            aria-label="Otwórz ustawienia"
           >
             <Settings className="h-4 w-4 text-zinc-400 hover:text-white transition-colors" />
           </Button>

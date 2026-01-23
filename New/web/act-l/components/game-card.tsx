@@ -64,13 +64,14 @@ export function GameCard({ game, variant = 'medium', onClick }: GameCardProps) {
           onClick={onClick}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
+          aria-label={`${game.name} - Kliknij aby otworzyć szczegóły`}
         >
           {/* Background Image */}
           <div className="absolute inset-0">
             {imageUrl ? (
               <img
                 src={imageUrl}
-                alt={game.name}
+                alt={`${game.name} cover art`}
                 className={cn(
                   'w-full h-full object-cover transition-all duration-500',
                   isHovered && 'scale-105 brightness-75'

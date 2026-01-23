@@ -65,8 +65,9 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
           <Button
             variant="ghost"
             size="sm"
-            className="gap-2 text-zinc-400 hover:text-white"
+            className="gap-2 text-zinc-400 hover:text-white focus:ring-2 focus:ring-violet-500"
             onClick={onClose}
+            aria-label="Zamknij szczegóły gry"
           >
             <ChevronLeft className="h-4 w-4" />
             Powrót
@@ -76,8 +77,9 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
+              className="h-8 w-8 focus:ring-2 focus:ring-violet-500"
               onClick={() => toggleFavorite(game.id)}
+              aria-label={game.isFavorite ? 'Usuń z ulubionych' : 'Dodaj do ulubionych'}
             >
               <Star className={cn(
                 'h-4 w-4',
@@ -135,8 +137,9 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
                 <div className="flex items-center gap-4">
                   <Button
                     size="lg"
-                    className="bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white font-bold px-8 gap-2 shadow-lg shadow-violet-500/25"
+                    className="bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white font-bold px-8 gap-2 shadow-lg shadow-violet-500/25 focus:ring-2 focus:ring-violet-400"
                     onClick={handlePlay}
+                    aria-label={`Uruchom grę ${game.name}`}
                   >
                     <Play className="h-5 w-5 fill-current" />
                     Uruchom grę
