@@ -32,11 +32,11 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   // Toast notifications - may be undefined if ToastProvider not yet mounted
   const toast = useContext(ToastContext);
 
-  // Load games on mount
+  // Load games on mount - only run once on component initialization
   useEffect(() => {
     refreshGames();
     loadUserSettings();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only run on mount, dependencies would cause infinite loops
   }, []);
 
   const loadUserSettings = async () => {
