@@ -12,11 +12,12 @@ import { SettingsProvider, useSettings } from '@/lib/settings-context';
 import { Game } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { useKeyboardShortcuts, commonShortcuts } from '@/lib/use-keyboard-shortcuts';
 
 function LauncherContent() {
   const [currentView, setCurrentView] = useState('home');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const { selectedGame, setSelectedGame } = useGames();
+  const { selectedGame, setSelectedGame, refreshGames } = useGames();
   const { settings } = useSettings();
 
   const handleGameSelect = (game: Game) => {
@@ -26,6 +27,21 @@ function LauncherContent() {
   const handleCloseDetails = () => {
     setSelectedGame(null);
   };
+
+  // Setup keyboard shortcuts
+  useKeyboardShortcuts([
+    commonShortcuts.settings(() => setIsSettingsOpen(true)),
+    commonShortcuts.home(() => setCurrentView('home')),
+    commonShortcuts.library(() => setCurrentView('library')),
+    commonShortcuts.escape(() => {
+      if (selectedGame) {
+        setSelectedGame(null);
+      } else if (isSettingsOpen) {
+        setIsSettingsOpen(false);
+      }
+    }),
+    commonShortcuts.refresh(() => refreshGames()),
+  ]);
 
   // Dynamiczny styl dla skalowania UI
   const scaleStyle = {

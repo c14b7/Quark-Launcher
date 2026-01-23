@@ -10,13 +10,15 @@ import {
   ChevronLeft,
   Settings,
   Share2,
-  ExternalLink
+  ExternalLink,
+  Trophy,
+  Target
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
+import { cn, formatPlaytime, formatLastPlayed, formatBytes } from '@/lib/utils';
 import { Game } from '@/lib/types';
 import { useGames } from '@/lib/games-context';
 
@@ -31,21 +33,6 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
 
   const handlePlay = () => {
     launchGame(game);
-  };
-
-  const formatBytes = (bytes?: number) => {
-    if (!bytes) return 'Nieznany';
-    const gb = bytes / (1024 * 1024 * 1024);
-    return `${gb.toFixed(1)} GB`;
-  };
-
-  const formatDate = (timestamp?: number) => {
-    if (!timestamp) return 'Nieznany';
-    return new Date(timestamp * 1000).toLocaleDateString('pl-PL', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
   };
 
   return (
@@ -162,23 +149,50 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
                 </div>
 
                 {/* Stats */}
-                <div className="flex items-center gap-6 pt-4">
-                  {game.playtime && (
-                    <div className="flex items-center gap-2 text-sm text-zinc-400">
-                      <Clock className="h-4 w-4" />
-                      <span>{Math.floor(game.playtime / 60)} godzin gry</span>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
+                  <div className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/5">
+                    <Clock className="h-5 w-5 text-violet-400" />
+                    <div>
+                      <p className="text-xs text-zinc-500">Czas gry</p>
+                      <p className="text-sm font-semibold text-white">{formatPlaytime(game.playtime)}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/5">
+                    <Calendar className="h-5 w-5 text-blue-400" />
+                    <div>
+                      <p className="text-xs text-zinc-500">Ostatnio grane</p>
+                      <p className="text-sm font-semibold text-white">{formatLastPlayed(game.lastPlayed)}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/5">
+                    <HardDrive className="h-5 w-5 text-green-400" />
+                    <div>
+                      <p className="text-xs text-zinc-500">Rozmiar</p>
+                      <p className="text-sm font-semibold text-white">{formatBytes(game.sizeOnDisk)}</p>
+                    </div>
+                  </div>
+                  
+                  {game.sessions && (
+                    <div className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/5">
+                      <Target className="h-5 w-5 text-yellow-400" />
+                      <div>
+                        <p className="text-xs text-zinc-500">Sesje</p>
+                        <p className="text-sm font-semibold text-white">{game.sessions}</p>
+                      </div>
                     </div>
                   )}
-                  {game.lastPlayed && (
-                    <div className="flex items-center gap-2 text-sm text-zinc-400">
-                      <Calendar className="h-4 w-4" />
-                      <span>Ostatnio grane: {formatDate(parseInt(game.lastPlayed))}</span>
-                    </div>
-                  )}
-                  {game.sizeOnDisk && (
-                    <div className="flex items-center gap-2 text-sm text-zinc-400">
-                      <HardDrive className="h-4 w-4" />
-                      <span>{formatBytes(game.sizeOnDisk)}</span>
+                  
+                  {game.achievements && (
+                    <div className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/5">
+                      <Trophy className="h-5 w-5 text-amber-400" />
+                      <div>
+                        <p className="text-xs text-zinc-500">Osiągnięcia</p>
+                        <p className="text-sm font-semibold text-white">
+                          {game.achievements.unlocked}/{game.achievements.total}
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>

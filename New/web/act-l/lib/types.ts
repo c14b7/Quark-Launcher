@@ -9,7 +9,12 @@ export interface Game {
   sizeOnDisk?: number;
   lastUpdated?: number;
   lastPlayed?: string;
-  playtime?: number;
+  playtime?: number; // in minutes
+  sessions?: number; // number of play sessions
+  achievements?: {
+    unlocked: number;
+    total: number;
+  };
   
   // Images
   image: string;        // Header (460x215)
