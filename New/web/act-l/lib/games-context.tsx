@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { Game } from '@/lib/types';
+import { ToastContext } from '@/lib/toast-context';
 
 interface GamesContextType {
   games: Game[];
@@ -27,6 +28,9 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Toast notifications - may be undefined if ToastProvider not yet mounted
+  const toast = useContext(ToastContext);
 
   // Load games on mount
   useEffect(() => {
@@ -56,19 +60,25 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       if (typeof window !== 'undefined' && window.electronAPI) {
         const steamGames = await window.electronAPI.steamGetInstalledGames();
         setGames(steamGames);
+        toast?.success(`Załadowano ${steamGames.length} gier`);
       } else {
         // Mock data for development without Electron
         setGames(getMockGames());
       }
     } catch (err) {
-      setError('Nie udało się załadować gier');
+      const errorMsg = 'Nie udało się załadować gier';
+      setError(errorMsg);
+      toast?.error(errorMsg);
       console.error('Failed to load games:', err);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   const toggleFavorite = useCallback(async (gameId: string) => {
+    const game = games.find(g => g.id === gameId);
+    const isFavorited = favoriteIds.includes(gameId);
+    
     setFavoriteIds(prev => {
       const newFavorites = prev.includes(gameId)
         ? prev.filter(id => id !== gameId)
@@ -81,7 +91,15 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       
       return newFavorites;
     });
-  }, []);
+    
+    if (game) {
+      toast?.[isFavorited ? 'info' : 'success'](
+        isFavorited 
+          ? `Usunięto ${game.name} z ulubionych` 
+          : `Dodano ${game.name} do ulubionych`
+      );
+    }
+  }, [favoriteIds, games, toast]);
 
   const launchGame = useCallback(async (game: Game) => {
     try {
@@ -92,17 +110,24 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         });
         
         if (!result.success) {
-          setError(result.error || 'Nie udało się uruchomić gry');
+          const errorMsg = result.error || 'Nie udało się uruchomić gry';
+          setError(errorMsg);
+          toast?.error(errorMsg);
+        } else {
+          toast?.success(`Uruchamianie ${game.name}...`);
         }
       } else {
         // Development fallback
         window.open(`steam://rungameid/${game.id}`, '_blank');
+        toast?.info(`Uruchamianie ${game.name}...`);
       }
     } catch (err) {
-      setError('Nie udało się uruchomić gry');
+      const errorMsg = 'Nie udało się uruchomić gry';
+      setError(errorMsg);
+      toast?.error(errorMsg);
       console.error('Failed to launch game:', err);
     }
-  }, []);
+  }, [toast]);
 
   // Compute derived state
   const gamesWithFavorites = games.map(game => ({

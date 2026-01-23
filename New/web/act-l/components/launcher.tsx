@@ -13,6 +13,7 @@ import { Game } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useKeyboardShortcuts, commonShortcuts } from '@/lib/use-keyboard-shortcuts';
+import { ToastProvider } from '@/lib/toast-context';
 
 function LauncherContent() {
   const [currentView, setCurrentView] = useState('home');
@@ -117,11 +118,13 @@ function LauncherContent() {
 export function Launcher() {
   return (
     <TooltipProvider>
-      <SettingsProvider>
-        <GamesProvider>
-          <LauncherContent />
-        </GamesProvider>
-      </SettingsProvider>
+      <ToastProvider>
+        <SettingsProvider>
+          <GamesProvider>
+            <LauncherContent />
+          </GamesProvider>
+        </SettingsProvider>
+      </ToastProvider>
     </TooltipProvider>
   );
 }
