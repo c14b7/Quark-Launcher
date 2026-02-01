@@ -1,6 +1,6 @@
 {
-  "name": "act-l",
-  "version": "0.1.0",
+  "name": "quark-launcher-web-act-l",
+  "version": "0.0.2 beta 02",
   "private": true,
   "scripts": {
     "dev": "next dev -p 30211",

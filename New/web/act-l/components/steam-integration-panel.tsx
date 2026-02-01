@@ -36,10 +36,11 @@ type ConnectionStep = 'idle' | 'input' | 'validating' | 'connected';
 
 export function SteamIntegrationPanel() {
   const { user, profile, steamIntegration: userSteamData, linkSteam, unlinkSteam } = useAuth();
-  const { settings } = useSettings();
+  const { settings, setSteamFriends: setGlobalSteamFriends, setSteamUser } = useSettings();
   
   const [connectionStep, setConnectionStep] = useState<ConnectionStep>('idle');
   const [steamIdInput, setSteamIdInput] = useState('');
+  const [apiKeyInput, setApiKeyInput] = useState(settings.steamApiKey || '');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -56,6 +57,18 @@ export function SteamIntegrationPanel() {
     }
   }, [profile, userSteamData]);
 
+  // Helper to convert steam-integration.ts SteamFriend to types.ts SteamFriend format
+  const convertToGlobalFriendFormat = (friends: SteamFriend[]) => {
+    return friends.map(f => ({
+      steamId: f.steamid,
+      personaName: f.personaname,
+      avatarUrl: f.avatarfull || f.avatarmedium || f.avatar,
+      isOnline: f.isOnline,
+      currentGame: f.currentGame,
+      friendSince: f.friendSince,
+    }));
+  };
+
   const loadSteamData = async () => {
     if (!user || !settings.steamApiKey || !profile?.steamId) return;
     
@@ -69,6 +82,8 @@ export function SteamIntegrationPanel() {
 
       if (cachedFriends) {
         setFriends(cachedFriends);
+        // Sync cached friends to global context (converted format)
+        setGlobalSteamFriends(convertToGlobalFriendFormat(cachedFriends));
       }
       if (cachedStats) {
         setStats(cachedStats);
@@ -83,6 +98,8 @@ export function SteamIntegrationPanel() {
 
         if (freshFriends.length > 0) {
           setFriends(freshFriends);
+          // Sync friends to global context so sidebar and game-details can access them (converted format)
+          setGlobalSteamFriends(convertToGlobalFriendFormat(freshFriends));
         }
         if (freshStats) {
           setStats(freshStats);
@@ -98,6 +115,11 @@ export function SteamIntegrationPanel() {
   const handleConnect = async () => {
     if (!steamIdInput.trim()) {
       setError('Wprowadź Steam ID lub URL profilu');
+      return;
+    }
+
+    if (!apiKeyInput.trim()) {
+      setError('Klucz Steam API jest wymagany do połączenia konta');
       return;
     }
 
@@ -117,8 +139,8 @@ export function SteamIntegrationPanel() {
       }
 
       // Check if it's a vanity URL (not 17 digit number)
-      if (!/^\d{17}$/.test(steamId) && settings.steamApiKey) {
-        const resolved = await steamIntegration.resolveVanityUrl(settings.steamApiKey, steamId);
+      if (!/^\d{17}$/.test(steamId)) {
+        const resolved = await steamIntegration.resolveVanityUrl(apiKeyInput.trim(), steamId);
         if (resolved) {
           steamId = resolved;
         } else {
@@ -128,36 +150,36 @@ export function SteamIntegrationPanel() {
         }
       }
 
-      // Validate Steam ID
-      if (settings.steamApiKey) {
-        const player = await steamIntegration.getPlayerSummary(settings.steamApiKey, steamId);
-        if (!player) {
-          setError('Nieprawidłowe Steam ID lub profil jest prywatny.');
-          setIsLoading(false);
-          return;
-        }
+      // Validate Steam ID with provided API key
+      const player = await steamIntegration.getPlayerSummary(apiKeyInput.trim(), steamId);
+      if (!player) {
+        setError('Nieprawidłowe Steam ID, klucz API lub profil jest prywatny.');
+        setIsLoading(false);
+        return;
+      }
 
-        // Link the account
-        const result = await linkSteam(steamId, {
+      // Link the account
+      const result = await linkSteam(steamId, {
+        personaName: player.personaname,
+        avatarUrl: player.avatarfull,
+        profileUrl: player.profileurl,
+      });
+
+      if (result.success) {
+        // Update global Steam user context (convert to types.ts format)
+        setSteamUser({
+          steamId: steamId,
           personaName: player.personaname,
           avatarUrl: player.avatarfull,
+          avatarMediumUrl: player.avatarmedium,
+          avatarFullUrl: player.avatarfull,
           profileUrl: player.profileurl,
-        });
-
-        if (result.success) {
-          setConnectionStep('connected');
-          loadSteamData();
-        } else {
-          setError(result.error || 'Nie udało się połączyć konta Steam');
-        }
-      } else {
-        // No API key, just save the Steam ID
-        await linkSteam(steamId, {
-          personaName: 'Steam User',
-          avatarUrl: '',
-          profileUrl: `https://steamcommunity.com/profiles/${steamId}`,
+          isOnline: player.personastate !== 0,
         });
         setConnectionStep('connected');
+        loadSteamData();
+      } else {
+        setError(result.error || 'Nie udało się połączyć konta Steam');
       }
     } catch (err) {
       setError('Wystąpił błąd podczas łączenia konta');
@@ -266,7 +288,23 @@ export function SteamIntegrationPanel() {
           >
             <div className="space-y-2">
               <label className="text-sm text-zinc-400">
-                Steam ID lub URL profilu
+                Steam API Key <span className="text-red-400">*</span>
+              </label>
+              <Input
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+                placeholder="Twój klucz Steam Web API"
+                className="h-12 bg-zinc-800/50 border-zinc-700 focus:border-blue-500 font-mono text-sm"
+                type="password"
+              />
+              <p className="text-xs text-zinc-500">
+                Pobierz klucz na <a href="https://steamcommunity.com/dev/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">steamcommunity.com/dev/apikey</a>
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm text-zinc-400">
+                Steam ID lub URL profilu <span className="text-red-400">*</span>
               </label>
               <Input
                 value={steamIdInput}

@@ -110,6 +110,13 @@ export interface SteamInstallation {
 declare global {
   interface Window {
     electronAPI?: {
+      // Steam API Proxy (fix CORS)
+      steamApiFetch: (endpoint: string, params: Record<string, string>) => Promise<{
+        success: boolean;
+        data?: any;
+        error?: string;
+      }>;
+      
       // Window controls
       windowMinimize: () => Promise<void>;
       windowMaximize: () => Promise<boolean>;

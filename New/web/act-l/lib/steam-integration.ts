@@ -212,21 +212,22 @@ export const steamIntegration = {
    */
   async getPlayerAchievements(steamApiKey: string, steamId: string, appId: number): Promise<SteamAchievement[]> {
     try {
-      // Get player achievements
-      const achievementsResponse = await fetch(
-        `${STEAM_API_BASE}/ISteamUserStats/GetPlayerAchievements/v1/?key=${steamApiKey}&steamid=${steamId}&appid=${appId}`
-      );
-      const achievementsData = await achievementsResponse.json();
+      // Get player achievements using proxy
+      const achievementsData = await fetchSteamAPI('/ISteamUserStats/GetPlayerAchievements/v1/', {
+        key: steamApiKey,
+        steamid: steamId,
+        appid: appId.toString()
+      });
       
       if (!achievementsData.playerstats?.success) {
         return [];
       }
 
-      // Get achievement schema for names and icons
-      const schemaResponse = await fetch(
-        `${STEAM_API_BASE}/ISteamUserStats/GetSchemaForGame/v2/?key=${steamApiKey}&appid=${appId}`
-      );
-      const schemaData = await schemaResponse.json();
+      // Get achievement schema for names and icons using proxy
+      const schemaData = await fetchSteamAPI('/ISteamUserStats/GetSchemaForGame/v2/', {
+        key: steamApiKey,
+        appid: appId.toString()
+      });
       const schema = schemaData.game?.availableGameStats?.achievements || [];
 
       // Merge data

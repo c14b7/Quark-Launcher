@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Play, 
   Star, 
@@ -23,6 +23,8 @@ import { cn } from '@/lib/utils';
 import { Game } from '@/lib/types';
 import { useGames } from '@/lib/games-context';
 import { useSettings } from '@/lib/settings-context';
+import { useAuth } from '@/lib/auth-context';
+import { steamIntegration, SteamAchievement, SteamFriend } from '@/lib/steam-integration';
 import { PlaytimeBadge } from '@/components/steam-profile';
 
 interface GameDetailsProps {
@@ -30,25 +32,98 @@ interface GameDetailsProps {
   onClose: () => void;
 }
 
-// Mock achievements for demo
-const mockAchievements = [
-  { id: '1', name: 'Pierwszy krok', description: 'Ukończ samouczek', achieved: true, iconUrl: '' },
-  { id: '2', name: 'Odkrywca', description: 'Odwiedź wszystkie lokacje', achieved: true, iconUrl: '' },
-  { id: '3', name: 'Mistro walki', description: 'Pokonaj 100 wrogów', achieved: false, iconUrl: '' },
-  { id: '4', name: 'Kolekcjoner', description: 'Zbierz wszystkie przedmioty', achieved: false, iconUrl: '' },
-];
-
-// Mock friends playing
-const mockFriendsPlaying = [
-  { name: 'ProGamer2024', playtime: 45 },
-  { name: 'NightOwl', playtime: 120 },
-];
+interface FriendPlaying {
+  name: string;
+  avatar?: string;
+  playtime?: number;
+}
 
 export function GameDetails({ game, onClose }: GameDetailsProps) {
   const { launchGame, toggleFavorite } = useGames();
-  const { isLoggedIn } = useSettings();
+  const { isLoggedIn, settings, steamFriends } = useSettings();
+  const { profile } = useAuth();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'achievements' | 'friends'>('overview');
+  
+  // State for real achievements and friends
+  const [achievements, setAchievements] = useState<SteamAchievement[]>([]);
+  const [friendsPlaying, setFriendsPlaying] = useState<FriendPlaying[]>([]);
+  const [isLoadingAchievements, setIsLoadingAchievements] = useState(false);
+  const [isLoadingFriends, setIsLoadingFriends] = useState(false);
+  
+  // Fetch achievements when tab is selected
+  useEffect(() => {
+    async function fetchAchievements() {
+      if (
+        activeTab === 'achievements' &&
+        game.platform === 'steam' &&
+        isLoggedIn &&
+        settings.steamApiKey &&
+        profile?.steamId
+      ) {
+        setIsLoadingAchievements(true);
+        try {
+          const appId = parseInt(game.id, 10);
+          if (!isNaN(appId)) {
+            const result = await steamIntegration.getPlayerAchievements(
+              settings.steamApiKey,
+              profile.steamId,
+              appId
+            );
+            setAchievements(result);
+          }
+        } catch (error) {
+          console.error('Error fetching achievements:', error);
+        } finally {
+          setIsLoadingAchievements(false);
+        }
+      }
+    }
+    fetchAchievements();
+  }, [activeTab, game.id, game.platform, isLoggedIn, settings.steamApiKey, profile?.steamId]);
+  
+  // Fetch friends who own this game
+  useEffect(() => {
+    async function fetchFriendsWithGame() {
+      if (
+        activeTab === 'friends' &&
+        game.platform === 'steam' &&
+        isLoggedIn &&
+        settings.steamApiKey &&
+        steamFriends.length > 0
+      ) {
+        setIsLoadingFriends(true);
+        try {
+          const appId = parseInt(game.id, 10);
+          if (!isNaN(appId)) {
+            // Filter friends who might own this game
+            // We check if they're currently playing this game or we can infer ownership
+            const friendsWithGame: FriendPlaying[] = [];
+            
+            for (const friend of steamFriends) {
+              // If friend is currently playing this game
+              if (friend.currentGame?.toLowerCase() === game.name.toLowerCase()) {
+                friendsWithGame.push({
+                  name: friend.personaName,
+                  avatar: friend.avatarUrl,
+                  playtime: undefined // We don't have their playtime for this specific game
+                });
+              }
+            }
+            
+            // For a more complete implementation, we would need to check owned games for each friend
+            // but that's expensive API-wise. For now, show friends currently playing.
+            setFriendsPlaying(friendsWithGame);
+          }
+        } catch (error) {
+          console.error('Error fetching friends with game:', error);
+        } finally {
+          setIsLoadingFriends(false);
+        }
+      }
+    }
+    fetchFriendsWithGame();
+  }, [activeTab, game.id, game.name, game.platform, isLoggedIn, settings.steamApiKey, steamFriends]);
 
   const handlePlay = () => {
     launchGame(game);
@@ -79,8 +154,8 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
     });
   };
 
-  const achievedCount = mockAchievements.filter(a => a.achieved).length;
-  const achievementProgress = (achievedCount / mockAchievements.length) * 100;
+  const achievedCount = achievements.filter(a => a.achieved).length;
+  const achievementProgress = achievements.length > 0 ? (achievedCount / achievements.length) * 100 : 0;
 
   return (
     <div className="fixed inset-0 z-50 flex">
@@ -253,63 +328,89 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h2 className="text-lg font-semibold text-white">Osiągnięcia</h2>
-                      <span className="text-sm text-zinc-400">{achievedCount} / {mockAchievements.length}</span>
+                      <span className="text-sm text-zinc-400">
+                        {isLoadingAchievements ? 'Ładowanie...' : `${achievedCount} / ${achievements.length}`}
+                      </span>
                     </div>
                     <Progress value={achievementProgress} className="h-2" />
-                    <div className="grid grid-cols-2 gap-3">
-                      {mockAchievements.map(achievement => (
-                        <div
-                          key={achievement.id}
-                          className={cn(
-                            'p-3 rounded-xl border transition-all',
-                            achievement.achieved
-                              ? 'bg-yellow-500/10 border-yellow-500/30'
-                              : 'bg-zinc-800/50 border-white/5 opacity-60'
-                          )}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className={cn(
-                              'w-10 h-10 rounded-lg flex items-center justify-center',
-                              achievement.achieved ? 'bg-yellow-500/20' : 'bg-zinc-700'
-                            )}>
-                              <Trophy className={cn(
-                                'h-5 w-5',
-                                achievement.achieved ? 'text-yellow-400' : 'text-zinc-500'
-                              )} />
-                            </div>
-                            <div>
-                              <p className="font-medium text-white text-sm">{achievement.name}</p>
-                              <p className="text-xs text-zinc-500">{achievement.description}</p>
+                    {isLoadingAchievements ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full" />
+                      </div>
+                    ) : achievements.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-3">
+                        {achievements.map(achievement => (
+                          <div
+                            key={achievement.apiname}
+                            className={cn(
+                              'p-3 rounded-xl border transition-all',
+                              achievement.achieved
+                                ? 'bg-yellow-500/10 border-yellow-500/30'
+                                : 'bg-zinc-800/50 border-white/5 opacity-60'
+                            )}
+                          >
+                            <div className="flex items-center gap-3">
+                              {achievement.icon || achievement.iconGray ? (
+                                <img 
+                                  src={achievement.achieved ? achievement.icon : achievement.iconGray} 
+                                  alt="" 
+                                  className="w-10 h-10 rounded-lg"
+                                />
+                              ) : (
+                                <div className={cn(
+                                  'w-10 h-10 rounded-lg flex items-center justify-center',
+                                  achievement.achieved ? 'bg-yellow-500/20' : 'bg-zinc-700'
+                                )}>
+                                  <Trophy className={cn(
+                                    'h-5 w-5',
+                                    achievement.achieved ? 'text-yellow-400' : 'text-zinc-500'
+                                  )} />
+                                </div>
+                              )}
+                              <div>
+                                <p className="font-medium text-white text-sm">{achievement.name}</p>
+                                <p className="text-xs text-zinc-500">{achievement.description}</p>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-zinc-500 text-sm">Brak osiągnięć dla tej gry lub nie można ich pobrać.</p>
+                    )}
                   </div>
                 )}
 
                 {activeTab === 'friends' && (
                   <div className="space-y-4">
                     <h2 className="text-lg font-semibold text-white">Znajomi grający w tę grę</h2>
-                    {mockFriendsPlaying.length > 0 ? (
+                    {isLoadingFriends ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full" />
+                      </div>
+                    ) : friendsPlaying.length > 0 ? (
                       <div className="space-y-2">
-                        {mockFriendsPlaying.map(friend => (
+                        {friendsPlaying.map(friend => (
                           <div
                             key={friend.name}
                             className="flex items-center gap-3 p-3 rounded-xl bg-zinc-800/50 border border-white/5"
                           >
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
-                              <span className="text-white font-bold">{friend.name[0]}</span>
-                            </div>
+                            {friend.avatar ? (
+                              <img src={friend.avatar} alt="" className="w-10 h-10 rounded-full" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
+                                <span className="text-white font-bold">{friend.name[0]}</span>
+                              </div>
+                            )}
                             <div className="flex-1">
                               <p className="font-medium text-white">{friend.name}</p>
-                              <p className="text-xs text-zinc-500">{friend.playtime} godzin gry</p>
+                              <p className="text-xs text-green-400">Aktualnie gra</p>
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-zinc-500 text-sm">Żaden z twoich znajomych nie gra w tę grę.</p>
+                      <p className="text-zinc-500 text-sm">Żaden z twoich znajomych aktualnie nie gra w tę grę.</p>
                     )}
                   </div>
                 )}
@@ -333,7 +434,7 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
                           <span className="text-xs uppercase">Osiągnięcia</span>
                         </div>
                         <p className="text-xl font-bold text-white">
-                          {achievedCount}/{mockAchievements.length}
+                          {achievements.length > 0 ? `${achievedCount}/${achievements.length}` : '-'}
                         </p>
                       </div>
                       <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5">

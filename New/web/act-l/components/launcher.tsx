@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TitleBar } from '@/components/title-bar';
 import { Sidebar } from '@/components/sidebar';
 import { HomeView } from '@/components/home-view';
@@ -11,18 +11,40 @@ import { AIChatPanel } from '@/components/ai-chat';
 import { DownloadsView } from '@/components/downloads-view';
 import { NewsView } from '@/components/news-view';
 import { AccountsView } from '@/components/accounts-view';
+import { SteamIntegrationPanel } from '@/components/steam-integration-panel';
 import { GamesProvider, useGames } from '@/lib/games-context';
 import { SettingsProvider, useSettings } from '@/lib/settings-context';
+import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { Game } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 
 function LauncherContent() {
   const [currentView, setCurrentView] = useState('home');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isSteamIntegrationOpen, setIsSteamIntegrationOpen] = useState(false);
   const { selectedGame, setSelectedGame } = useGames();
   const { settings } = useSettings();
+  const { isAuthenticated, profile, isLoading } = useAuth();
+
+  // Show Steam integration modal after login if not connected
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && profile && profile.steamLinked === false) {
+      // Small delay to ensure the UI is ready
+      const timer = setTimeout(() => {
+        setIsSteamIntegrationOpen(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, isAuthenticated, profile]);
 
   const handleGameSelect = (game: Game) => {
     setSelectedGame(game);
@@ -57,6 +79,7 @@ function LauncherContent() {
           onGameSelect={handleGameSelect}
           onOpenSettings={() => setIsSettingsOpen(true)}
           onOpenChat={() => setIsChatOpen(true)}
+          onOpenSteamIntegration={() => setIsSteamIntegrationOpen(true)}
         />
 
         {/* Main View */}
@@ -106,6 +129,19 @@ function LauncherContent() {
         isOpen={isSettingsOpen} 
         onClose={() => setIsSettingsOpen(false)} 
       />
+
+      {/* Steam Integration Modal */}
+      <Dialog open={isSteamIntegrationOpen} onOpenChange={setIsSteamIntegrationOpen}>
+        <DialogContent className="sm:max-w-[600px] bg-zinc-900 border-zinc-800">
+          <DialogHeader>
+            <DialogTitle className="text-white">Połącz konto Steam</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Połącz swoje konto Steam, aby synchronizować znajomych, osiągnięcia i statystyki.
+            </DialogDescription>
+          </DialogHeader>
+          <SteamIntegrationPanel />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -113,11 +149,13 @@ function LauncherContent() {
 export function Launcher() {
   return (
     <TooltipProvider>
-      <SettingsProvider>
-        <GamesProvider>
-          <LauncherContent />
-        </GamesProvider>
-      </SettingsProvider>
+      <AuthProvider>
+        <SettingsProvider>
+          <GamesProvider>
+            <LauncherContent />
+          </GamesProvider>
+        </SettingsProvider>
+      </AuthProvider>
     </TooltipProvider>
   );
 }

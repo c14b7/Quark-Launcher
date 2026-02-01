@@ -31,6 +31,7 @@ interface SidebarProps {
   onGameSelect: (game: Game) => void;
   onOpenSettings?: () => void;
   onOpenChat?: () => void;
+  onOpenSteamIntegration?: () => void;
 }
 
 const navItems = [
@@ -42,7 +43,7 @@ const navItems = [
   { id: 'store', label: 'Sklep', icon: Gamepad2 },
 ];
 
-export function Sidebar({ currentView, onNavigate, onGameSelect, onOpenSettings, onOpenChat }: SidebarProps) {
+export function Sidebar({ currentView, onNavigate, onGameSelect, onOpenSettings, onOpenChat, onOpenSteamIntegration }: SidebarProps) {
   const { games, searchQuery, setSearchQuery, filteredGames } = useGames();
   const [isGamesExpanded, setIsGamesExpanded] = useState(true);
 
@@ -52,7 +53,7 @@ export function Sidebar({ currentView, onNavigate, onGameSelect, onOpenSettings,
     <aside className="w-[240px] bg-zinc-950/80 backdrop-blur-xl border-r border-white/5 flex flex-col h-full">
       {/* Steam Profile */}
       <div className="px-3 pt-3 pb-2">
-        <SteamProfile />
+        <SteamProfile onOpenSteamIntegration={onOpenSteamIntegration} />
       </div>
 
       <Separator className="bg-white/5 mx-3" />
