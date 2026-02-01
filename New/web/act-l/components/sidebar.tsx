@@ -37,9 +37,9 @@ interface SidebarProps {
 const navItems = [
   { id: 'home', label: 'Home', icon: Home },
   { id: 'library', label: 'Biblioteka', icon: Library },
-  { id: 'downloads', label: 'Pobieranie', icon: Download },
+ /*  { id: 'downloads', label: 'Pobieranie', icon: Download }, */
   { id: 'news', label: 'Aktualności', icon: Bell, badge: '3' },
-  { id: 'accounts', label: 'Połączone konta', icon: User },
+ /*  { id: 'accounts', label: 'Połączone konta', icon: User }, */
   { id: 'store', label: 'Sklep', icon: Gamepad2 },
 ];
 

@@ -1,7 +1,8 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { Game } from '@/lib/types';
+import { useSettings } from '@/lib/settings-context';
 
 interface GamesContextType {
   games: Game[];
@@ -25,14 +26,40 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const { settings } = useSettings();
+
+  // Get selected game from current games list (so it always has updated playtime)
+  const selectedGame = useMemo(() => {
+    if (!selectedGameId) return null;
+    return games.find(g => g.id === selectedGameId) || null;
+  }, [selectedGameId, games]);
+
+  const setSelectedGame = useCallback((game: Game | null) => {
+    setSelectedGameId(game?.id || null);
+  }, []);
+
+  // Track if we've enriched games already to avoid infinite loops
+  const [hasEnrichedGames, setHasEnrichedGames] = useState(false);
 
   // Load games on mount
   useEffect(() => {
     refreshGames();
     loadUserSettings();
   }, []);
+
+  // Refresh playtime when Steam settings change OR when games load for the first time
+  useEffect(() => {
+    const steamGames = games.filter(g => g.platform === 'steam');
+    const needsEnrichment = steamGames.length > 0 && steamGames.every(g => g.playtime === undefined);
+    
+    if (settings.steamApiKey && settings.steamUserId && games.length > 0 && (!hasEnrichedGames || needsEnrichment)) {
+      console.log('[GAMES] Triggering enrichGamesWithSteamData...');
+      enrichGamesWithSteamData();
+      setHasEnrichedGames(true);
+    }
+  }, [settings.steamApiKey, settings.steamUserId, games.length, hasEnrichedGames]);
 
   const loadUserSettings = async () => {
     try {
@@ -47,9 +74,82 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Enrich games with Steam playtime data
+  const enrichGamesWithSteamData = async () => {
+    if (!settings.steamApiKey || !settings.steamUserId) {
+      console.log('[GAMES] No Steam API key or User ID configured');
+      return;
+    }
+    
+    console.log('[GAMES] Enriching games with Steam data...');
+    console.log('[GAMES] API Key:', settings.steamApiKey.substring(0, 8) + '...');
+    console.log('[GAMES] Steam User ID:', settings.steamUserId);
+    
+    try {
+      if (typeof window !== 'undefined' && window.electronAPI?.steamGetOwnedGames) {
+        const result = await window.electronAPI.steamGetOwnedGames(
+          settings.steamApiKey,
+          settings.steamUserId
+        );
+        
+        console.log('[GAMES] Steam API result:', result.success ? 'success' : 'failed');
+        if (!result.success) {
+          console.log('[GAMES] Error:', result.error);
+          return;
+        }
+        
+        if (result.success && result.data) {
+          const dataKeys = Object.keys(result.data);
+          console.log('[GAMES] Received playtime for', dataKeys.length, 'games');
+          console.log('[GAMES] Playtime data sample keys:', dataKeys.slice(0, 5));
+          
+          // Log sample playtime values
+          dataKeys.slice(0, 3).forEach(key => {
+            console.log(`[GAMES] Playtime for key "${key}":`, result.data?.[key]);
+          });
+          
+          setGames(prevGames => {
+            const steamGames = prevGames.filter(g => g.platform === 'steam');
+            console.log('[GAMES] Steam games in library:', steamGames.length);
+            console.log('[GAMES] Steam game IDs (type check):', steamGames.slice(0, 5).map(g => ({ id: g.id, type: typeof g.id })));
+            
+            let matchCount = 0;
+            const updatedGames = prevGames.map(game => {
+              if (game.platform === 'steam') {
+                // Ensure game.id is string for lookup
+                const gameIdStr = String(game.id);
+                const steamData = result.data?.[gameIdStr];
+                if (steamData) {
+                  matchCount++;
+                  console.log(`[GAMES] Match found for ${game.name} (${gameIdStr}):`, steamData.playtime, 'minutes');
+                  return {
+                    ...game,
+                    playtime: steamData.playtime,
+                    lastPlayed: steamData.lastPlayed ? steamData.lastPlayed.toString() : undefined
+                  };
+                } else {
+                  console.log(`[GAMES] No playtime data for ${game.name} (ID: "${gameIdStr}", type: ${typeof game.id})`);
+                }
+              }
+              return game;
+            });
+            
+            console.log(`[GAMES] Total matches: ${matchCount} / ${steamGames.length} steam games`);
+            return updatedGames;
+          });
+        }
+      } else {
+        console.log('[GAMES] electronAPI.steamGetOwnedGames not available');
+      }
+    } catch (err) {
+      console.error('[GAMES] Failed to enrich games with Steam data:', err);
+    }
+  };
+
   const refreshGames = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    setHasEnrichedGames(false); // Reset enrichment flag
 
     try {
       if (typeof window !== 'undefined' && window.electronAPI) {
@@ -61,7 +161,10 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         
         // Połącz gry z różnych platform
         const allGames = [...steamGames, ...epicGames];
+        console.log('[GAMES] Loaded', allGames.length, 'games (Steam:', steamGames.length, ', Epic:', epicGames.length, ')');
         setGames(allGames);
+        
+        // Note: enrichGamesWithSteamData will be called by the useEffect when games.length changes
       } else {
         // Mock data for development without Electron
         setGames(getMockGames());
@@ -72,7 +175,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [settings.steamApiKey, settings.steamUserId]);
 
   const toggleFavorite = useCallback(async (gameId: string) => {
     setFavoriteIds(prev => {

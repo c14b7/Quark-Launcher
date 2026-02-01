@@ -51,36 +51,69 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
   const [isLoadingAchievements, setIsLoadingAchievements] = useState(false);
   const [isLoadingFriends, setIsLoadingFriends] = useState(false);
   
-  // Fetch achievements when tab is selected
+  // Fetch achievements immediately when game details open (for Steam games)
   useEffect(() => {
     async function fetchAchievements() {
+      console.log('[ACHIEVEMENTS] Checking conditions:');
+      console.log('  - game.platform:', game.platform);
+      console.log('  - steamApiKey:', settings.steamApiKey ? 'present' : 'missing');
+      console.log('  - steamUserId:', settings.steamUserId || 'missing');
+      console.log('  - game.id:', game.id);
+      
+      // Fetch achievements for Steam games immediately, not just when tab is active
       if (
-        activeTab === 'achievements' &&
         game.platform === 'steam' &&
-        isLoggedIn &&
         settings.steamApiKey &&
-        profile?.steamId
+        settings.steamUserId
       ) {
         setIsLoadingAchievements(true);
         try {
-          const appId = parseInt(game.id, 10);
-          if (!isNaN(appId)) {
-            const result = await steamIntegration.getPlayerAchievements(
+          // Preferuj Electron API jeśli dostępne
+          if (typeof window !== 'undefined' && window.electronAPI?.steamGetAchievements) {
+            console.log('[ACHIEVEMENTS] Using Electron API...');
+            const result = await window.electronAPI.steamGetAchievements(
               settings.steamApiKey,
-              profile.steamId,
-              appId
+              settings.steamUserId,
+              game.id
             );
-            setAchievements(result);
+            console.log('[ACHIEVEMENTS] Result:', result.success ? 'success' : 'failed', result.data?.length || 0, 'achievements');
+            
+            if (result.success && result.data) {
+              // Dane z Electron API już mają poprawny format
+              setAchievements(result.data.map(a => ({
+                apiname: a.apiname || '',
+                name: a.name || a.apiname || '',
+                description: a.description || '',
+                achieved: a.achieved,
+                unlocktime: a.unlocktime || 0,
+                icon: a.icon || '',
+                iconGray: a.iconGray || ''
+              })));
+            }
+          } else if (profile?.steamId) {
+            console.log('[ACHIEVEMENTS] Fallback to steam-integration...');
+            // Fallback do steam-integration
+            const appId = parseInt(game.id, 10);
+            if (!isNaN(appId)) {
+              const result = await steamIntegration.getPlayerAchievements(
+                settings.steamApiKey,
+                profile.steamId,
+                appId
+              );
+              setAchievements(result);
+            }
+          } else {
+            console.log('[ACHIEVEMENTS] No Electron API or profile steamId available');
           }
         } catch (error) {
-          console.error('Error fetching achievements:', error);
+          console.error('[ACHIEVEMENTS] Error fetching achievements:', error);
         } finally {
           setIsLoadingAchievements(false);
         }
       }
     }
     fetchAchievements();
-  }, [activeTab, game.id, game.platform, isLoggedIn, settings.steamApiKey, profile?.steamId]);
+  }, [game.id, game.platform, settings.steamApiKey, settings.steamUserId, profile?.steamId]);
   
   // Fetch friends who own this game
   useEffect(() => {
@@ -169,15 +202,17 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
       <div className="relative flex-1 flex flex-col m-4 ml-[220px] rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 shadow-2xl">
         {/* Hero Background */}
         <div className="absolute inset-0">
-          <img
-            src={game.background || game.hero}
-            alt={game.name}
-            className={cn(
-              'w-full h-full object-cover transition-opacity duration-500',
-              imageLoaded ? 'opacity-30' : 'opacity-0'
-            )}
-            onLoad={() => setImageLoaded(true)}
-          />
+          {(game.background || game.hero) && (
+            <img
+              src={game.background || game.hero}
+              alt={game.name}
+              className={cn(
+                'w-full h-full object-cover transition-opacity duration-500',
+                imageLoaded ? 'opacity-30' : 'opacity-0'
+              )}
+              onLoad={() => setImageLoaded(true)}
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-zinc-950/40" />
           <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/90 to-transparent" />
         </div>
@@ -222,11 +257,17 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
             <div className="flex items-end gap-8">
               {/* Game Capsule Image */}
               <div className="w-48 flex-shrink-0">
-                <img
-                  src={game.capsule || game.image}
-                  alt={game.name}
-                  className="w-full rounded-xl shadow-2xl border border-white/10"
-                />
+                {(game.capsule || game.image) ? (
+                  <img
+                    src={game.capsule || game.image}
+                    alt={game.name}
+                    className="w-full rounded-xl shadow-2xl border border-white/10"
+                  />
+                ) : (
+                  <div className="w-full aspect-[3/4] rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-white/10 flex items-center justify-center">
+                    <span className="text-4xl font-bold text-zinc-600">{game.name[0]}</span>
+                  </div>
+                )}
               </div>
 
               {/* Game Info */}
@@ -299,8 +340,8 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
 
             <Separator className="bg-white/5" />
 
-            {/* Tabs for Overview / Achievements / Friends */}
-            {isLoggedIn && game.platform === 'steam' && (
+            {/* Tabs for Overview / Achievements / Friends - pokazuj dla Steam jeśli mamy API key */}
+            {game.platform === 'steam' && settings.steamApiKey && (
               <>
                 <div className="flex gap-2">
                   {[
@@ -350,11 +391,12 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
                             )}
                           >
                             <div className="flex items-center gap-3">
-                              {achievement.icon || achievement.iconGray ? (
+                              {(achievement.achieved && achievement.icon) || (!achievement.achieved && achievement.iconGray) ? (
                                 <img 
-                                  src={achievement.achieved ? achievement.icon : achievement.iconGray} 
+                                  src={achievement.achieved ? (achievement.icon || undefined) : (achievement.iconGray || undefined)} 
                                   alt="" 
                                   className="w-10 h-10 rounded-lg"
+                                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                 />
                               ) : (
                                 <div className={cn(
@@ -523,21 +565,69 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
               </>
             )}
 
-            {/* Show overview for non-steam or not logged in */}
-            {(!isLoggedIn || game.platform !== 'steam') && (
+            {/* Show overview for non-steam or Steam without API key */}
+            {(game.platform !== 'steam' || !settings.steamApiKey) && (
               <>
-                {/* Description */}
-                {game.description && (
-                  <div className="space-y-4">
-                    <h2 className="text-lg font-semibold text-white">O grze</h2>
-                    <p className="text-zinc-400 leading-relaxed max-w-3xl">
-                      {game.description}
+                {/* Quick Stats Cards */}
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5">
+                    <div className="flex items-center gap-2 text-zinc-400 mb-2">
+                      <Clock className="h-4 w-4" />
+                      <span className="text-xs uppercase">Czas gry</span>
+                    </div>
+                    <p className="text-xl font-bold text-white">
+                      {game.playtime ? `${Math.floor(game.playtime / 60)}h` : '0h'}
                     </p>
                   </div>
-                )}
+                  <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5">
+                    <div className="flex items-center gap-2 text-zinc-400 mb-2">
+                      <Trophy className="h-4 w-4" />
+                      <span className="text-xs uppercase">Osiągnięcia</span>
+                    </div>
+                    <p className="text-xl font-bold text-white">-</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5">
+                    <div className="flex items-center gap-2 text-zinc-400 mb-2">
+                      <HardDrive className="h-4 w-4" />
+                      <span className="text-xs uppercase">Rozmiar</span>
+                    </div>
+                    <p className="text-xl font-bold text-white">
+                      {formatBytes(game.sizeOnDisk)}
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5">
+                    <div className="flex items-center gap-2 text-zinc-400 mb-2">
+                      <Calendar className="h-4 w-4" />
+                      <span className="text-xs uppercase">Ostatnia aktualizacja</span>
+                    </div>
+                    <p className="text-xl font-bold text-white">
+                      {game.lastUpdated ? formatDate(game.lastUpdated) : 'Nieznana'}
+                    </p>
+                  </div>
+                </div>
 
-                {/* Additional Info */}
-                <div className="grid grid-cols-2 gap-8">
+                {/* Description */}
+                <div className="space-y-4">
+                  <h2 className="text-lg font-semibold text-white">O grze</h2>
+                  <p className="text-zinc-400 leading-relaxed max-w-3xl">
+                    {game.description || `${game.name} to gra dostępna na platformie ${game.platform.toUpperCase()}. Uruchom grę, aby rozpocząć przygodę!`}
+                  </p>
+                </div>
+
+                {/* Game Info Grid */}
+                <div className="grid grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">Platforma</h3>
+                    <p className="text-white">{game.platform.toUpperCase()}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">Status</h3>
+                    <p className="text-green-400">{game.installed ? 'Zainstalowana' : 'Niezainstalowana'}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">ID gry</h3>
+                    <p className="text-white font-mono text-sm">{game.id.length > 20 ? game.id.substring(0, 20) + '...' : game.id}</p>
+                  </div>
                   {game.developers && game.developers.length > 0 && (
                     <div className="space-y-2">
                       <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">Deweloper</h3>
@@ -554,6 +644,12 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
                     <div className="space-y-2">
                       <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">Data wydania</h3>
                       <p className="text-white">{game.releaseDate}</p>
+                    </div>
+                  )}
+                  {game.installDir && (
+                    <div className="space-y-2 col-span-3">
+                      <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">Folder instalacji</h3>
+                      <p className="text-white font-mono text-sm truncate">{game.installDir}</p>
                     </div>
                   )}
                 </div>

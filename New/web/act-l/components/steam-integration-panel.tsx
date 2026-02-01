@@ -21,7 +21,6 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useAuth } from '@/lib/auth-context';
 import { useSettings } from '@/lib/settings-context';
 import { 
   steamIntegration, 
@@ -35,8 +34,7 @@ import { cn } from '@/lib/utils';
 type ConnectionStep = 'idle' | 'input' | 'validating' | 'connected';
 
 export function SteamIntegrationPanel() {
-  const { user, profile, steamIntegration: userSteamData, linkSteam, unlinkSteam } = useAuth();
-  const { settings, setSteamFriends: setGlobalSteamFriends, setSteamUser } = useSettings();
+  const { settings, updateSettings, steamUser, setSteamUser, setSteamFriends: setGlobalSteamFriends } = useSettings();
   
   const [connectionStep, setConnectionStep] = useState<ConnectionStep>('idle');
   const [steamIdInput, setSteamIdInput] = useState('');
@@ -49,13 +47,13 @@ export function SteamIntegrationPanel() {
   const [stats, setStats] = useState<SteamStats | null>(null);
   const [isFetchingData, setIsFetchingData] = useState(false);
 
-  // Check if already connected
+  // Check if already connected (locally stored)
   useEffect(() => {
-    if (profile?.steamLinked && userSteamData) {
+    if (steamUser && settings.steamApiKey && settings.steamUserId) {
       setConnectionStep('connected');
       loadSteamData();
     }
-  }, [profile, userSteamData]);
+  }, [steamUser, settings.steamApiKey, settings.steamUserId]);
 
   // Helper to convert steam-integration.ts SteamFriend to types.ts SteamFriend format
   const convertToGlobalFriendFormat = (friends: SteamFriend[]) => {
@@ -70,40 +68,21 @@ export function SteamIntegrationPanel() {
   };
 
   const loadSteamData = async () => {
-    if (!user || !settings.steamApiKey || !profile?.steamId) return;
+    if (!settings.steamApiKey || !settings.steamUserId) return;
     
     setIsFetchingData(true);
     try {
-      // Try to get cached data first
-      const [cachedFriends, cachedStats] = await Promise.all([
-        steamIntegration.getCachedFriends(user.$id),
-        steamIntegration.getCachedStats(user.$id),
+      const [freshFriends, freshStats] = await Promise.all([
+        steamIntegration.getFriendsWithSummaries(settings.steamApiKey, settings.steamUserId),
+        steamIntegration.getUserStats(settings.steamApiKey, settings.steamUserId),
       ]);
 
-      if (cachedFriends) {
-        setFriends(cachedFriends);
-        // Sync cached friends to global context (converted format)
-        setGlobalSteamFriends(convertToGlobalFriendFormat(cachedFriends));
+      if (freshFriends.length > 0) {
+        setFriends(freshFriends);
+        setGlobalSteamFriends(convertToGlobalFriendFormat(freshFriends));
       }
-      if (cachedStats) {
-        setStats(cachedStats);
-      }
-
-      // Fetch fresh data if we have API key
-      if (settings.steamApiKey) {
-        const [freshFriends, freshStats] = await Promise.all([
-          steamIntegration.getFriendsWithSummaries(settings.steamApiKey, profile.steamId),
-          steamIntegration.getUserStats(settings.steamApiKey, profile.steamId),
-        ]);
-
-        if (freshFriends.length > 0) {
-          setFriends(freshFriends);
-          // Sync friends to global context so sidebar and game-details can access them (converted format)
-          setGlobalSteamFriends(convertToGlobalFriendFormat(freshFriends));
-        }
-        if (freshStats) {
-          setStats(freshStats);
-        }
+      if (freshStats) {
+        setStats(freshStats);
       }
     } catch (err) {
       console.error('Error loading Steam data:', err);
@@ -131,7 +110,6 @@ export function SteamIntegrationPanel() {
       
       // Check if it's a URL
       if (steamId.includes('steamcommunity.com')) {
-        // Extract vanity URL or steam ID from URL
         const match = steamId.match(/(?:id|profiles)\/([^\/]+)/);
         if (match) {
           steamId = match[1];
@@ -158,31 +136,29 @@ export function SteamIntegrationPanel() {
         return;
       }
 
-      // Link the account
-      const result = await linkSteam(steamId, {
-        personaName: player.personaname,
-        avatarUrl: player.avatarfull,
-        profileUrl: player.profileurl,
+      // Save to local settings
+      updateSettings({
+        steamApiKey: apiKeyInput.trim(),
+        steamUserId: steamId,
       });
 
-      if (result.success) {
-        // Update global Steam user context (convert to types.ts format)
-        setSteamUser({
-          steamId: steamId,
-          personaName: player.personaname,
-          avatarUrl: player.avatarfull,
-          avatarMediumUrl: player.avatarmedium,
-          avatarFullUrl: player.avatarfull,
-          profileUrl: player.profileurl,
-          isOnline: player.personastate !== 0,
-        });
-        setConnectionStep('connected');
-        loadSteamData();
-      } else {
-        setError(result.error || 'Nie udało się połączyć konta Steam');
-      }
+      // Update global Steam user context
+      setSteamUser({
+        steamId: steamId,
+        personaName: player.personaname,
+        avatarUrl: player.avatarfull,
+        avatarMediumUrl: player.avatarmedium,
+        avatarFullUrl: player.avatarfull,
+        profileUrl: player.profileurl,
+        isOnline: player.personastate !== 0,
+      });
+
+      setConnectionStep('connected');
+      
+      // Load Steam data after connecting
+      setTimeout(() => loadSteamData(), 500);
     } catch (err) {
-      setError('Wystąpił błąd podczas łączenia konta');
+      setError('Wystąpił błąd podczas łączenia konta. Upewnij się, że uruchamiasz aplikację przez Electron.');
     } finally {
       setIsLoading(false);
     }
@@ -191,11 +167,19 @@ export function SteamIntegrationPanel() {
   const handleDisconnect = async () => {
     setIsLoading(true);
     try {
-      await unlinkSteam();
+      // Clear local settings
+      updateSettings({
+        steamApiKey: undefined,
+        steamUserId: undefined,
+      });
+      
+      setSteamUser(null);
+      setGlobalSteamFriends([]);
       setConnectionStep('idle');
       setFriends([]);
       setStats(null);
       setSteamIdInput('');
+      setApiKeyInput('');
     } catch (err) {
       setError('Nie udało się rozłączyć konta Steam');
     } finally {
@@ -235,28 +219,6 @@ export function SteamIntegrationPanel() {
           </Button>
         )}
       </div>
-
-      {/* Warning if no API key */}
-      {!settings.steamApiKey && connectionStep !== 'connected' && (
-        <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-            <div className="flex-1 space-y-2">
-              <p className="text-sm text-yellow-400 font-medium">
-                Brak klucza Steam API
-              </p>
-              <p className="text-xs text-yellow-400/80">
-                Aby połączyć konto Steam i synchronizować dane, musisz dodać klucz API Steam. 
-                Pobierz go na <a href="https://steamcommunity.com/dev/apikey" target="_blank" rel="noopener noreferrer" className="underline hover:text-yellow-300">steamcommunity.com/dev/apikey</a> 
-                i wklej w <strong>Ustawienia → Ogólne → Steam API Key</strong>.
-              </p>
-              <p className="text-xs text-yellow-400/60">
-                📖 Szczegółowa instrukcja: <code className="text-yellow-300">STEAM-SETUP.md</code>
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       <AnimatePresence mode="wait">
         {/* Idle / Not Connected */}
@@ -354,7 +316,7 @@ export function SteamIntegrationPanel() {
         )}
 
         {/* Connected */}
-        {connectionStep === 'connected' && userSteamData && (
+        {connectionStep === 'connected' && steamUser && (
           <motion.div
             key="connected"
             initial={{ opacity: 0, y: 10 }}
@@ -365,20 +327,20 @@ export function SteamIntegrationPanel() {
             {/* Profile Card */}
             <div className="flex items-center gap-4 p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
               <Avatar className="w-14 h-14">
-                <AvatarImage src={userSteamData.avatarUrl} />
+                <AvatarImage src={steamUser.avatarUrl} />
                 <AvatarFallback>
                   <User className="w-6 h-6" />
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-white">{userSteamData.personaName}</span>
+                  <span className="font-medium text-white">{steamUser.personaName}</span>
                   <Badge variant="secondary" className="bg-green-500/10 text-green-400 border-green-500/20">
                     <Check className="w-3 h-3 mr-1" />
                     Połączono
                   </Badge>
                 </div>
-                <p className="text-sm text-zinc-400">Steam ID: {userSteamData.steamId}</p>
+                <p className="text-sm text-zinc-400">Steam ID: {steamUser.steamId}</p>
               </div>
               <Button
                 variant="ghost"

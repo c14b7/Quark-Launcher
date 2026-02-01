@@ -272,16 +272,24 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {hiddenGamesData.map(game => (
+                    {hiddenGamesData.map((game, index) => (
                       <div
-                        key={game.id}
+                        key={`${game.id}_${index}`}
                         className="flex items-center gap-3 p-3 rounded-xl bg-zinc-800/50 border border-white/5"
                       >
-                        <img
-                          src={game.image}
-                          alt={game.name}
-                          className="w-16 h-8 object-cover rounded-lg"
-                        />
+                        {game.image ? (
+                          <img
+                            src={game.image}
+                            alt={game.name}
+                            className="w-16 h-8 object-cover rounded-lg"
+                          />
+                        ) : (
+                          <div className="w-16 h-8 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-600/20 flex items-center justify-center">
+                            <span className="text-xs font-bold text-violet-400">
+                              {game.name?.[0] || '?'}
+                            </span>
+                          </div>
+                        )}
                         <span className="flex-1 text-sm font-medium">{game.name}</span>
                         <Button
                           variant="ghost"

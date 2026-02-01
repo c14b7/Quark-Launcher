@@ -61,12 +61,16 @@ export interface SteamFriend {
 // Game Achievement
 export interface GameAchievement {
   id: string;
+  apiname?: string;
   name: string;
   description: string;
   iconUrl: string;
   iconGrayUrl: string;
+  icon?: string;
+  iconGray?: string;
   achieved: boolean;
   unlockTime?: number;
+  unlocktime?: number;
 }
 
 // AI Chat Message
@@ -126,6 +130,16 @@ declare global {
       // Steam
       steamDetectInstallation: () => Promise<SteamInstallation>;
       steamGetInstalledGames: () => Promise<Game[]>;
+      steamGetOwnedGames: (steamApiKey: string, steamId: string) => Promise<{
+        success: boolean;
+        data?: Record<string, { playtime: number; playtime2weeks: number; lastPlayed: number }>;
+        error?: string;
+      }>;
+      steamGetAchievements: (steamApiKey: string, steamId: string, appId: string) => Promise<{
+        success: boolean;
+        data?: GameAchievement[];
+        error?: string;
+      }>;
       
       // Epic Games
       epicGetInstalledGames: () => Promise<Game[]>;

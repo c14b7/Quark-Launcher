@@ -187,6 +187,178 @@ class QuarkLauncher {
       }
     });
 
+    // ===== STEAM PLAYTIME & STATS =====
+    ipcMain.handle('steam-get-owned-games', async (event, { steamApiKey, steamId }) => {
+      try {
+        console.log('[STEAM API] GetOwnedGames called with:');
+        console.log('  - API Key:', steamApiKey ? `${steamApiKey.substring(0, 8)}...` : 'MISSING');
+        console.log('  - Steam ID:', steamId || 'MISSING');
+        
+        if (!steamApiKey || !steamId) {
+          console.log('[STEAM API] ERROR: Missing Steam API key or Steam ID');
+          return { success: false, error: 'Missing Steam API key or Steam ID' };
+        }
+
+        const https = require('https');
+        const url = `https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=${steamApiKey}&steamid=${steamId}&include_appinfo=1&include_played_free_games=1`;
+        console.log('[STEAM API] Fetching:', url.replace(steamApiKey, 'HIDDEN'));
+
+        return new Promise((resolve) => {
+          https.get(url, (res) => {
+            console.log('[STEAM API] Response status:', res.statusCode);
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+              try {
+                const json = JSON.parse(data);
+                console.log('[STEAM API] Response received, parsing...');
+                
+                // Sprawdź czy są błędy w odpowiedzi
+                if (json.response === undefined) {
+                  console.log('[STEAM API] ERROR: Empty response, possible invalid API key or private profile');
+                  console.log('[STEAM API] Raw response:', data.substring(0, 500));
+                  resolve({ success: false, error: 'Empty response - check API key and profile visibility' });
+                  return;
+                }
+                
+                const games = json.response?.games || [];
+                console.log('[STEAM API] Found', games.length, 'games');
+                
+                // Mapuj na format przyjazny dla frontendu
+                const playtimeMap = {};
+                for (const game of games) {
+                  playtimeMap[game.appid.toString()] = {
+                    playtime: game.playtime_forever || 0, // w minutach
+                    playtime2weeks: game.playtime_2weeks || 0,
+                    lastPlayed: game.rtime_last_played || 0
+                  };
+                }
+                
+                // Loguj kilka przykładów
+                const sampleIds = Object.keys(playtimeMap).slice(0, 3);
+                console.log('[STEAM API] Sample playtime data:', sampleIds.map(id => ({ id, ...playtimeMap[id] })));
+                
+                resolve({ success: true, data: playtimeMap });
+              } catch (err) {
+                console.log('[STEAM API] Parse error:', err.message);
+                console.log('[STEAM API] Raw data:', data.substring(0, 200));
+                resolve({ success: false, error: 'Failed to parse Steam response' });
+              }
+            });
+          }).on('error', (err) => {
+            console.log('[STEAM API] Network error:', err.message);
+            resolve({ success: false, error: err.message });
+          });
+        });
+      } catch (error) {
+        console.error('[STEAM API] Steam owned games error:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // ===== STEAM ACHIEVEMENTS =====
+    ipcMain.handle('steam-get-achievements', async (event, { steamApiKey, steamId, appId }) => {
+      try {
+        console.log('[STEAM ACHIEVEMENTS] GetAchievements called:');
+        console.log('  - API Key:', steamApiKey ? `${steamApiKey.substring(0, 8)}...` : 'MISSING');
+        console.log('  - Steam ID:', steamId || 'MISSING');
+        console.log('  - App ID:', appId || 'MISSING');
+        
+        if (!steamApiKey || !steamId || !appId) {
+          console.log('[STEAM ACHIEVEMENTS] ERROR: Missing parameters');
+          return { success: false, error: 'Missing parameters' };
+        }
+
+        const https = require('https');
+        
+        // Pobierz osiągnięcia gracza
+        const achievementsUrl = `https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v1/?key=${steamApiKey}&steamid=${steamId}&appid=${appId}`;
+        
+        // Pobierz schemat osiągnięć (nazwy, ikony)
+        const schemaUrl = `https://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v2/?key=${steamApiKey}&appid=${appId}`;
+        
+        console.log('[STEAM ACHIEVEMENTS] Fetching achievements and schema...');
+
+        const fetchJson = (url, name) => new Promise((resolve) => {
+          https.get(url, (res) => {
+            console.log(`[STEAM ACHIEVEMENTS] ${name} response status:`, res.statusCode);
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+              try {
+                const json = JSON.parse(data);
+                resolve(json);
+              } catch (err) {
+                console.log(`[STEAM ACHIEVEMENTS] ${name} parse error:`, err.message);
+                console.log(`[STEAM ACHIEVEMENTS] ${name} raw:`, data.substring(0, 200));
+                resolve(null);
+              }
+            });
+          }).on('error', (err) => {
+            console.log(`[STEAM ACHIEVEMENTS] ${name} network error:`, err.message);
+            resolve(null);
+          });
+        });
+
+        const [achievementsData, schemaData] = await Promise.all([
+          fetchJson(achievementsUrl, 'PlayerAchievements'),
+          fetchJson(schemaUrl, 'Schema')
+        ]);
+
+        console.log('[STEAM ACHIEVEMENTS] Achievements data received:', achievementsData ? 'yes' : 'no');
+        console.log('[STEAM ACHIEVEMENTS] Schema data received:', schemaData ? 'yes' : 'no');
+
+        // Dodaj więcej debugowania
+        if (achievementsData) {
+          console.log('[STEAM ACHIEVEMENTS] playerstats:', JSON.stringify(achievementsData.playerstats || {}, null, 2).substring(0, 500));
+        }
+
+        if (!achievementsData?.playerstats?.success) {
+          console.log('[STEAM ACHIEVEMENTS] No achievements or game has none');
+          console.log('[STEAM ACHIEVEMENTS] Error message:', achievementsData?.playerstats?.error);
+          // Jeśli profil prywatny, zwróć odpowiedni komunikat
+          if (achievementsData?.playerstats?.error === 'Profile is not public') {
+            return { success: false, error: 'Profil Steam jest prywatny. Ustaw widoczność profilu na publiczny.' };
+          }
+          return { success: true, data: [] };
+        }
+
+        const schema = schemaData?.game?.availableGameStats?.achievements || [];
+        console.log('[STEAM ACHIEVEMENTS] Schema has', schema.length, 'achievements defined');
+        if (schema.length > 0) {
+          console.log('[STEAM ACHIEVEMENTS] Schema sample:', JSON.stringify(schema[0]));
+        }
+        const schemaMap = new Map(schema.map(a => [a.name, a]));
+
+        const playerAchievements = achievementsData.playerstats.achievements || [];
+        console.log('[STEAM ACHIEVEMENTS] Player has', playerAchievements.length, 'achievements');
+        if (playerAchievements.length > 0) {
+          console.log('[STEAM ACHIEVEMENTS] Player sample:', JSON.stringify(playerAchievements[0]));
+        }
+
+        const achievements = playerAchievements.map(achievement => {
+          const schemaItem = schemaMap.get(achievement.apiname);
+          return {
+            apiname: achievement.apiname,
+            name: schemaItem?.displayName || achievement.apiname,
+            description: schemaItem?.description || '',
+            achieved: achievement.achieved === 1,
+            unlocktime: achievement.unlocktime,
+            icon: schemaItem?.icon || '',
+            iconGray: schemaItem?.icongray || '',
+          };
+        });
+
+        console.log('[STEAM ACHIEVEMENTS] Returning', achievements.length, 'achievements');
+        console.log('[STEAM ACHIEVEMENTS] Sample:', achievements.slice(0, 2));
+
+        return { success: true, data: achievements };
+      } catch (error) {
+        console.error('[STEAM ACHIEVEMENTS] Error:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
     // ===== EPIC GAMES DETECTION =====
     ipcMain.handle('epic-get-installed-games', async () => {
       try {
@@ -400,19 +572,21 @@ class QuarkLauncher {
           const game = this.parseAcfFile(content);
           
           if (game && game.name && !game.name.includes('Proton') && !game.name.includes('Steamworks')) {
+            const gameId = game.appid?.toString() || '';
+            console.log(`[STEAM SCAN] Found: ${game.name} (ID: ${gameId})`);
             games.push({
-              id: game.appid,
+              id: gameId,
               name: game.name,
               platform: 'steam',
               installDir: game.installdir,
               sizeOnDisk: parseInt(game.SizeOnDisk) || 0,
               lastUpdated: parseInt(game.LastUpdated) || 0,
               installed: true,
-              image: `https://cdn.akamai.steamstatic.com/steam/apps/${game.appid}/header.jpg`,
-              hero: `https://cdn.akamai.steamstatic.com/steam/apps/${game.appid}/library_hero.jpg`,
-              logo: `https://cdn.akamai.steamstatic.com/steam/apps/${game.appid}/logo.png`,
-              capsule: `https://cdn.akamai.steamstatic.com/steam/apps/${game.appid}/library_600x900.jpg`,
-              background: `https://cdn.akamai.steamstatic.com/steam/apps/${game.appid}/page_bg_generated_v6b.jpg`
+              image: `https://cdn.akamai.steamstatic.com/steam/apps/${gameId}/header.jpg`,
+              hero: `https://cdn.akamai.steamstatic.com/steam/apps/${gameId}/library_hero.jpg`,
+              logo: `https://cdn.akamai.steamstatic.com/steam/apps/${gameId}/logo.png`,
+              capsule: `https://cdn.akamai.steamstatic.com/steam/apps/${gameId}/library_600x900.jpg`,
+              background: `https://cdn.akamai.steamstatic.com/steam/apps/${gameId}/page_bg_generated_v6b.jpg`
             });
           }
         } catch (err) {
@@ -463,59 +637,12 @@ class QuarkLauncher {
             // Tworzenie ID w formacie namespace:appName:artifactId
             const launchId = `${manifest.CatalogNamespace}:${manifest.AppName}:${manifest.CatalogItemId}`;
             
-            // Try to get images from multiple Epic CDN patterns
             const catalogNs = manifest.CatalogNamespace;
             const catalogId = manifest.CatalogItemId;
             const appName = manifest.AppName;
             
-            // Try to find local images in multiple locations
-            let gameImage = '';
-            
-            if (manifest.InstallLocation) {
-              // Try multiple common icon locations
-              const iconLocations = [
-                // Check ContentCache first - most reliable
-                path.join('C:\\ProgramData\\Epic\\EpicGamesLauncher\\Data\\ContentCache', `${catalogId}_*.*`),
-                path.join('C:\\ProgramData\\Epic\\EpicGamesLauncher\\Data\\ContentCache', `${appName}_*.*`),
-                // Then check game install directory
-                path.join(manifest.InstallLocation, '.egstore', `${catalogId}.png`),
-                path.join(manifest.InstallLocation, '.egstore', `${appName}.png`),
-                path.join(manifest.InstallLocation, '.egstore', 'icon.png'),
-                path.join(manifest.InstallLocation, 'icon.png'),
-                path.join(manifest.InstallLocation, 'Icon.png'),
-                path.join(manifest.InstallLocation, `${manifest.DisplayName}.png`)
-              ];
-              
-              for (const iconPattern of iconLocations) {
-                try {
-                  // Check if pattern has wildcard
-                  if (iconPattern.includes('*')) {
-                    const dir = path.dirname(iconPattern);
-                    const pattern = path.basename(iconPattern);
-                    const files = await fs.readdir(dir);
-                    const matching = files.find(f => {
-                      const base = pattern.split('_')[0];
-                      return f.startsWith(base) && (f.endsWith('.png') || f.endsWith('.jpg'));
-                    });
-                    if (matching) {
-                      gameImage = `game-asset://${path.join(dir, matching)}`;
-                      console.log(`Found icon for ${manifest.DisplayName}: ${path.join(dir, matching)}`);
-                      break;
-                    }
-                  } else if (await this.fileExists(iconPattern)) {
-                    gameImage = `game-asset://${iconPattern}`;
-                    console.log(`Found icon for ${manifest.DisplayName}: ${iconPattern}`);
-                    break;
-                  }
-                } catch (err) {
-                  // Continue to next location
-                }
-              }
-            }
-            
-            // If no local image, try using a generic Epic Games placeholder URL
-            // Using a pattern that might work for some games
-            const epicImageUrl = gameImage || `https://cdn2.unrealengine.com/epic-${appName.toLowerCase()}-1920x1080.jpg`;
+            // Pobierz obrazek z Epic Games Store API
+            const epicImages = await this.fetchEpicGameImages(catalogNs, catalogId, appName, manifest.DisplayName);
             
             games.push({
               id: launchId,
@@ -529,16 +656,14 @@ class QuarkLauncher {
               namespace: catalogNs,
               catalogItemId: catalogId,
               launchExecutable: manifest.LaunchExecutable,
-              // Store full game path if LaunchExecutable exists
               gamePath: manifest.LaunchExecutable && manifest.InstallLocation 
                 ? path.join(manifest.InstallLocation, manifest.LaunchExecutable)
                 : null,
-              // Use local icon if available, otherwise use Epic CDN attempt
-              image: epicImageUrl,
-              hero: epicImageUrl,
-              logo: epicImageUrl,
-              capsule: epicImageUrl,
-              background: epicImageUrl
+              image: epicImages.image,
+              hero: epicImages.hero,
+              logo: epicImages.logo,
+              capsule: epicImages.capsule,
+              background: epicImages.background
             });
           }
         } catch (err) {
@@ -550,6 +675,142 @@ class QuarkLauncher {
     }
 
     return games;
+  }
+
+  // Pobierz obrazki gry Epic Games - używa Wikipedia/DBpedia lub generuje placeholder
+  async fetchEpicGameImages(namespace, catalogId, appName, displayName) {
+    // Domyślne obrazki placeholder
+    const defaultImages = {
+      image: '',
+      hero: '',
+      logo: '',
+      capsule: '',
+      background: ''
+    };
+    
+    try {
+      // Sprawdź czy mamy cache
+      const cacheDir = path.join(this.userDataPath, 'cache');
+      const cacheFile = path.join(cacheDir, `epic_${catalogId}.json`);
+      
+      // Utwórz folder cache jeśli nie istnieje
+      try {
+        await fs.mkdir(cacheDir, { recursive: true });
+      } catch {}
+      
+      try {
+        const cached = await fs.readFile(cacheFile, 'utf-8');
+        const cachedData = JSON.parse(cached);
+        // Cache ważny przez 30 dni
+        if (cachedData.timestamp && Date.now() - cachedData.timestamp < 30 * 24 * 60 * 60 * 1000) {
+          console.log(`[EPIC] Using cached images for ${displayName}`);
+          return cachedData.images;
+        }
+      } catch {
+        // Brak cache, kontynuuj
+      }
+
+      console.log(`[EPIC] Fetching images for: ${displayName}`);
+
+      const https = require('https');
+      
+      // Wyczyść nazwę gry do wyszukiwania
+      const cleanedName = displayName
+        .replace(/[™®©:]/g, '')
+        .replace(/\s+/g, '_')
+        .trim();
+      
+      // Spróbuj pobrać obrazek z Wikimedia Commons przez Wikipedia API
+      const searchQuery = encodeURIComponent(displayName.replace(/[™®©]/g, '').trim());
+      const wikiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${searchQuery}_(video_game)`;
+      
+      const images = await new Promise((resolve) => {
+        https.get(wikiUrl, {
+          headers: { 'User-Agent': 'QuarkLauncher/1.0 (contact@example.com)' }
+        }, (res) => {
+          console.log(`[EPIC] Wikipedia API response status: ${res.statusCode} for ${displayName}`);
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => {
+            try {
+              if (res.statusCode === 200) {
+                const json = JSON.parse(data);
+                const thumbnail = json?.thumbnail?.source || json?.originalimage?.source || '';
+                
+                if (thumbnail) {
+                  console.log(`[EPIC] Wikipedia image found for ${displayName}`);
+                  resolve({
+                    image: thumbnail,
+                    hero: thumbnail,
+                    logo: '',
+                    capsule: thumbnail,
+                    background: thumbnail
+                  });
+                  return;
+                }
+              }
+              
+              // Fallback: Spróbuj bez "(video_game)" w nazwie
+              const altWikiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${searchQuery}`;
+              https.get(altWikiUrl, {
+                headers: { 'User-Agent': 'QuarkLauncher/1.0 (contact@example.com)' }
+              }, (res2) => {
+                let data2 = '';
+                res2.on('data', chunk => data2 += chunk);
+                res2.on('end', () => {
+                  try {
+                    if (res2.statusCode === 200) {
+                      const json2 = JSON.parse(data2);
+                      const thumbnail2 = json2?.thumbnail?.source || json2?.originalimage?.source || '';
+                      
+                      if (thumbnail2) {
+                        console.log(`[EPIC] Wikipedia alt image found for ${displayName}`);
+                        resolve({
+                          image: thumbnail2,
+                          hero: thumbnail2,
+                          logo: '',
+                          capsule: thumbnail2,
+                          background: thumbnail2
+                        });
+                        return;
+                      }
+                    }
+                    console.log(`[EPIC] No Wikipedia image for ${displayName}`);
+                    resolve(defaultImages);
+                  } catch {
+                    resolve(defaultImages);
+                  }
+                });
+              }).on('error', () => resolve(defaultImages));
+            } catch (err) {
+              console.log('[EPIC] Wikipedia API parse error:', err.message);
+              resolve(defaultImages);
+            }
+          });
+        }).on('error', (err) => {
+          console.log('[EPIC] Wikipedia API error:', err.message);
+          resolve(defaultImages);
+        });
+      });
+
+      // Zapisz do cache jeśli znaleziono obrazki
+      if (images.image || images.hero) {
+        try {
+          await fs.writeFile(cacheFile, JSON.stringify({
+            timestamp: Date.now(),
+            images
+          }));
+          console.log(`[EPIC] Cached images for ${displayName}`);
+        } catch (cacheErr) {
+          console.log('[EPIC] Cache write error:', cacheErr.message);
+        }
+      }
+
+      return images;
+    } catch (error) {
+      console.log(`[EPIC] Error fetching images for ${displayName}:`, error);
+      return defaultImages;
+    }
   }
 }
 

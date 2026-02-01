@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Steam
   steamDetectInstallation: () => ipcRenderer.invoke('steam-detect-installation'),
   steamGetInstalledGames: () => ipcRenderer.invoke('steam-get-installed-games'),
+  steamGetOwnedGames: (steamApiKey, steamId) => ipcRenderer.invoke('steam-get-owned-games', { steamApiKey, steamId }),
+  steamGetAchievements: (steamApiKey, steamId, appId) => ipcRenderer.invoke('steam-get-achievements', { steamApiKey, steamId, appId }),
 
   // Epic Games
   epicGetInstalledGames: () => ipcRenderer.invoke('epic-get-installed-games'),
