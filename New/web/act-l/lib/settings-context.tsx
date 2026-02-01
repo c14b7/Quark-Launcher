@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { SteamUser, SteamFriend } from '@/lib/types';
 
 export interface AppSettings {
   theme: 'dark' | 'oled';
@@ -9,6 +10,10 @@ export interface AppSettings {
   customCategories: Category[];
   steamApiKey?: string;
   steamUserId?: string;
+  // AI Chat settings
+  aiServerUrl?: string;
+  aiApiToken?: string;
+  aiModel?: string;
 }
 
 export interface Category {
@@ -31,6 +36,13 @@ interface SettingsContextType {
   isSettingsOpen: boolean;
   openSettings: () => void;
   closeSettings: () => void;
+  // Steam user data
+  steamUser: SteamUser | null;
+  setSteamUser: (user: SteamUser | null) => void;
+  steamFriends: SteamFriend[];
+  setSteamFriends: (friends: SteamFriend[]) => void;
+  isLoggedIn: boolean;
+  logout: () => void;
 }
 
 const defaultSettings: AppSettings = {
@@ -46,10 +58,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [steamUser, setSteamUser] = useState<SteamUser | null>(null);
+  const [steamFriends, setSteamFriends] = useState<SteamFriend[]>([]);
 
   // Load settings on mount
   useEffect(() => {
     loadSettings();
+    loadSteamUser();
   }, []);
 
   // Apply theme when settings change
@@ -60,6 +75,64 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       saveSettings();
     }
   }, [settings, isLoaded]);
+
+  const loadSteamUser = async () => {
+    try {
+      if (typeof window !== 'undefined' && window.electronAPI) {
+        const result = await window.electronAPI.loadUserData('steamUser');
+        if (result.success && result.data) {
+          setSteamUser(result.data as SteamUser);
+        }
+        const friendsResult = await window.electronAPI.loadUserData('steamFriends');
+        if (friendsResult.success && friendsResult.data) {
+          setSteamFriends(friendsResult.data as SteamFriend[]);
+        }
+      } else {
+        const savedUser = localStorage.getItem('quark-steam-user');
+        if (savedUser) {
+          setSteamUser(JSON.parse(savedUser));
+        }
+        const savedFriends = localStorage.getItem('quark-steam-friends');
+        if (savedFriends) {
+          setSteamFriends(JSON.parse(savedFriends));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load Steam user:', err);
+    }
+  };
+
+  const saveSteamUser = async (user: SteamUser | null) => {
+    try {
+      if (typeof window !== 'undefined' && window.electronAPI) {
+        await window.electronAPI.saveUserData('steamUser', user);
+      } else {
+        if (user) {
+          localStorage.setItem('quark-steam-user', JSON.stringify(user));
+        } else {
+          localStorage.removeItem('quark-steam-user');
+        }
+      }
+    } catch (err) {
+      console.error('Failed to save Steam user:', err);
+    }
+  };
+
+  const handleSetSteamUser = useCallback((user: SteamUser | null) => {
+    setSteamUser(user);
+    saveSteamUser(user);
+  }, []);
+
+  const logout = useCallback(() => {
+    setSteamUser(null);
+    setSteamFriends([]);
+    saveSteamUser(null);
+    if (typeof window !== 'undefined' && window.electronAPI) {
+      window.electronAPI.saveUserData('steamFriends', []);
+    } else {
+      localStorage.removeItem('quark-steam-friends');
+    }
+  }, []);
 
   const loadSettings = async () => {
     try {
@@ -165,6 +238,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const openSettings = () => setIsSettingsOpen(true);
   const closeSettings = () => setIsSettingsOpen(false);
 
+  const isLoggedIn = steamUser !== null;
+
   return (
     <SettingsContext.Provider
       value={{
@@ -178,7 +253,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         removeGameFromCategory,
         isSettingsOpen,
         openSettings,
-        closeSettings
+        closeSettings,
+        steamUser,
+        setSteamUser: handleSetSteamUser,
+        steamFriends,
+        setSteamFriends,
+        isLoggedIn,
+        logout
       }}
     >
       {children}

@@ -1,6 +1,6 @@
 'use client';
 
-import { Play, Star, MoreHorizontal, HardDrive, EyeOff } from 'lucide-react';
+import { Play, Star, HardDrive, EyeOff, Store, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   ContextMenu,
@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { Game } from '@/lib/types';
 import { useGames } from '@/lib/games-context';
 import { useSettings } from '@/lib/settings-context';
+import { PlaytimeBadge } from '@/components/steam-profile';
 import { useState } from 'react';
 
 interface GameCardProps {
@@ -38,6 +39,27 @@ export function GameCard({ game, variant = 'medium', onClick }: GameCardProps) {
 
   const handleHide = () => {
     hideGame(game.id);
+  };
+
+  const handleShowInStore = () => {
+    if (game.platform === 'steam') {
+      window.open(`https://store.steampowered.com/app/${game.id}`, '_blank');
+    } else if (game.platform === 'epic') {
+      // Epic Games Store doesn't have direct links by AppName, but we can try the general store
+      window.open('https://store.epicgames.com/browse', '_blank');
+    } else if (game.platform === 'xbox') {
+      window.open(`https://www.xbox.com/games/store/${game.id}`, '_blank');
+    }
+  };
+
+  const handleShowFiles = async () => {
+    if (game.installDir && window.electronAPI) {
+      try {
+        await window.electronAPI.openFolder(game.installDir);
+      } catch (err) {
+        console.error('Failed to open folder:', err);
+      }
+    }
   };
 
   // Mniejsze kafelki
@@ -79,8 +101,14 @@ export function GameCard({ game, variant = 'medium', onClick }: GameCardProps) {
                 loading="lazy"
               />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
-                <span className="text-2xl font-bold text-zinc-600">{game.name[0]}</span>
+              <div className="w-full h-full bg-gradient-to-br from-violet-600/20 via-zinc-800 to-zinc-900 flex flex-col items-center justify-center p-6 text-center">
+                <div className="text-6xl font-black text-white/30 mb-3 tracking-tighter">{game.name[0]}</div>
+                <div className="text-sm font-semibold text-white/70 line-clamp-3 max-w-[80%]">{game.name}</div>
+                {game.platform === 'epic' && (
+                  <div className="mt-3 px-3 py-1 bg-violet-500/20 border border-violet-500/30 rounded-full">
+                    <span className="text-xs text-violet-300 font-medium">Epic Games</span>
+                  </div>
+                )}
               </div>
             )}
             {/* Gradient Overlay */}
@@ -88,11 +116,36 @@ export function GameCard({ game, variant = 'medium', onClick }: GameCardProps) {
           </div>
 
           {/* Favorite Star */}
-          {game.isFavorite && (
-            <div className="absolute top-2 right-2 z-10">
+          <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
+            {game.isFavorite && (
               <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 drop-shadow-lg" />
+            )}
+          </div>
+
+          {/* Playtime Badge + Platform Badge - top left */}
+          <div className="absolute top-2 left-2 z-10 flex items-center gap-1">
+            <PlaytimeBadge playtime={game.playtime} />
+            
+            {/* Platform Badge */}
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-black/50 backdrop-blur-sm border border-white/10">
+              {game.platform === 'steam' && (
+                <svg className="h-3 w-3 text-white" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+                </svg>
+              )}
+              {game.platform === 'epic' && (
+                <svg className="h-3 w-3 text-white" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18L19.82 8 12 11.82 4.18 8 12 4.18zM4 9.48l7 3.5v6.84l-7-3.5V9.48zm16 0v6.84l-7 3.5v-6.84l7-3.5z"/>
+                </svg>
+              )}
+              {game.platform === 'xbox' && (
+                <svg className="h-3 w-3 text-white" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M4.102 21.033A11.947 11.947 0 0 0 12 24a11.96 11.96 0 0 0 7.902-2.967c1.877-1.912-4.316-8.709-7.902-11.417-3.582 2.708-9.779 9.505-7.898 11.417z"/>
+                </svg>
+              )}
+              <span className="text-[10px] text-white/80 uppercase font-medium">{game.platform}</span>
             </div>
-          )}
+          </div>
 
           {/* Content - zawsze nazwa gry, nie logo */}
           <div className="absolute inset-0 p-3 flex flex-col justify-end">
@@ -144,10 +197,21 @@ export function GameCard({ game, variant = 'medium', onClick }: GameCardProps) {
           {game.isFavorite ? 'Usuń z ulubionych' : 'Dodaj do ulubionych'}
         </ContextMenuItem>
         <ContextMenuSeparator className="bg-white/10" />
-        <ContextMenuItem className="gap-2 text-sm cursor-pointer rounded-lg">
+        <ContextMenuItem 
+          className="gap-2 text-sm cursor-pointer rounded-lg"
+          onClick={handleShowInStore}
+        >
+          <Store className="h-4 w-4" />
+          Pokaż w sklepie
+        </ContextMenuItem>
+        <ContextMenuItem 
+          className="gap-2 text-sm cursor-pointer rounded-lg"
+          onClick={handleShowFiles}
+        >
           <HardDrive className="h-4 w-4" />
           Pokaż pliki
         </ContextMenuItem>
+        <ContextMenuSeparator className="bg-white/10" />
         <ContextMenuItem 
           className="gap-2 text-sm cursor-pointer rounded-lg text-red-400 focus:text-red-400"
           onClick={handleHide}

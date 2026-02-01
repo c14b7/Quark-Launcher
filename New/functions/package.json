@@ -1,0 +1,19 @@
+{
+  "name": "quark-launcher-functions",
+  "version": "1.0.0",
+  "description": "Appwrite Functions for Quark Launcher",
+  "main": "index.js",
+  "scripts": {
+    "setup-db": "npx ts-node setup-database.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "node-appwrite": "^14.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.0.0"
+  }
+}

@@ -2,6 +2,9 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 // Bezpieczne API dla renderer procesu
 contextBridge.exposeInMainWorld('electronAPI', {
+  // Steam API Proxy (fix CORS)
+  steamApiFetch: (endpoint, params) => ipcRenderer.invoke('steam-api-fetch', { endpoint, params }),
+
   // Window controls
   windowMinimize: () => ipcRenderer.invoke('window-minimize'),
   windowMaximize: () => ipcRenderer.invoke('window-maximize'),
@@ -11,6 +14,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Steam
   steamDetectInstallation: () => ipcRenderer.invoke('steam-detect-installation'),
   steamGetInstalledGames: () => ipcRenderer.invoke('steam-get-installed-games'),
+  steamGetOwnedGames: (steamApiKey, steamId) => ipcRenderer.invoke('steam-get-owned-games', { steamApiKey, steamId }),
+  steamGetAchievements: (steamApiKey, steamId, appId) => ipcRenderer.invoke('steam-get-achievements', { steamApiKey, steamId, appId }),
+
+  // Epic Games
+  epicGetInstalledGames: () => ipcRenderer.invoke('epic-get-installed-games'),
 
   // Game launching
   launchGame: (gameData) => ipcRenderer.invoke('launch-game', gameData),
@@ -22,6 +30,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // File operations
   selectGameExecutable: () => ipcRenderer.invoke('select-game-executable'),
   checkFileExists: (filePath) => ipcRenderer.invoke('check-file-exists', filePath),
+  openFolder: (folderPath) => ipcRenderer.invoke('open-folder', folderPath),
 
   // System info
   getSystemInfo: () => ipcRenderer.invoke('get-system-info'),

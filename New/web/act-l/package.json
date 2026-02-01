@@ -1,6 +1,6 @@
 {
-  "name": "act-l",
-  "version": "0.1.0",
+  "name": "quark-launcher-web-act-l",
+  "version": "0.0.2 beta 02",
   "private": true,
   "scripts": {
     "dev": "next dev -p 30211",
@@ -17,8 +17,10 @@
     "@radix-ui/react-separator": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "appwrite": "^21.5.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.25.0",
     "lucide-react": "^0.562.0",
     "next": "16.1.1",
     "react": "19.2.3",

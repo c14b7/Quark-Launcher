@@ -9,7 +9,7 @@ export interface Game {
   sizeOnDisk?: number;
   lastUpdated?: number;
   lastPlayed?: string;
-  playtime?: number;
+  playtime?: number; // in minutes
   
   // Images
   image: string;        // Header (460x215)
@@ -29,7 +29,60 @@ export interface Game {
   isFavorite?: boolean;
   isHidden?: boolean;
   customCategories?: string[];
+  
+  // Steam-specific data
+  achievements?: GameAchievement[];
+  achievementProgress?: number; // percentage 0-100
 }
+
+// Steam User Profile
+export interface SteamUser {
+  steamId: string;
+  personaName: string;
+  avatarUrl: string;
+  avatarMediumUrl: string;
+  avatarFullUrl: string;
+  profileUrl: string;
+  isOnline: boolean;
+  lastLogoff?: number;
+  countryCode?: string;
+}
+
+// Steam Friend
+export interface SteamFriend {
+  steamId: string;
+  personaName: string;
+  avatarUrl: string;
+  isOnline: boolean;
+  currentGame?: string;
+  friendSince?: number;
+}
+
+// Game Achievement
+export interface GameAchievement {
+  id: string;
+  apiname?: string;
+  name: string;
+  description: string;
+  iconUrl: string;
+  iconGrayUrl: string;
+  icon?: string;
+  iconGray?: string;
+  achieved: boolean;
+  unlockTime?: number;
+  unlocktime?: number;
+}
+
+// AI Chat Message
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: number;
+}
+
+// Playtime badge type
+export type PlaytimeBadge = 'new-never' | 'new-beginner' | 'played' | null;
 
 export interface UserSettings {
   theme: 'dark' | 'light' | 'system';
@@ -60,7 +113,14 @@ export interface SteamInstallation {
 // Electron API types
 declare global {
   interface Window {
-    electronAPI: {
+    electronAPI?: {
+      // Steam API Proxy (fix CORS)
+      steamApiFetch: (endpoint: string, params: Record<string, string>) => Promise<{
+        success: boolean;
+        data?: any;
+        error?: string;
+      }>;
+      
       // Window controls
       windowMinimize: () => Promise<void>;
       windowMaximize: () => Promise<boolean>;
@@ -70,6 +130,19 @@ declare global {
       // Steam
       steamDetectInstallation: () => Promise<SteamInstallation>;
       steamGetInstalledGames: () => Promise<Game[]>;
+      steamGetOwnedGames: (steamApiKey: string, steamId: string) => Promise<{
+        success: boolean;
+        data?: Record<string, { playtime: number; playtime2weeks: number; lastPlayed: number }>;
+        error?: string;
+      }>;
+      steamGetAchievements: (steamApiKey: string, steamId: string, appId: string) => Promise<{
+        success: boolean;
+        data?: GameAchievement[];
+        error?: string;
+      }>;
+      
+      // Epic Games
+      epicGetInstalledGames: () => Promise<Game[]>;
       
       // Game launching
       launchGame: (gameData: { platform: string; gameId: string; gamePath?: string }) => Promise<LaunchResult>;
@@ -81,6 +154,7 @@ declare global {
       // File operations
       selectGameExecutable: () => Promise<string | null>;
       checkFileExists: (filePath: string) => Promise<boolean>;
+      openFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
       
       // System info
       getSystemInfo: () => Promise<{

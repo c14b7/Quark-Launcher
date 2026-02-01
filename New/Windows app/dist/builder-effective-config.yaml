@@ -1,0 +1,18 @@
+directories:
+  output: dist
+  buildResources: build
+appId: com.quark.launcher
+productName: Quark Launcher
+files:
+  - filter:
+      - main.js
+      - preload.js
+extraResources:
+  - from: ../web/act-l/out
+    to: app
+    filter:
+      - '**/*'
+win:
+  target: nsis
+  icon: assets/icon.ico
+electronVersion: 33.4.11
