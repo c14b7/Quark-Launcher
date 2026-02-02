@@ -47,7 +47,14 @@ export function Sidebar({ currentView, onNavigate, onGameSelect, onOpenSettings,
   const { games, searchQuery, setSearchQuery, filteredGames } = useGames();
   const [isGamesExpanded, setIsGamesExpanded] = useState(true);
 
-  const displayedGames = searchQuery ? filteredGames : games;
+  // Sortuj gry: ulubione na górze, potem reszta
+  const sortedGames = [...(searchQuery ? filteredGames : games)].sort((a, b) => {
+    if (a.isFavorite && !b.isFavorite) return -1;
+    if (!a.isFavorite && b.isFavorite) return 1;
+    return a.name.localeCompare(b.name);
+  });
+  // Filtruj ukryte gry
+  const displayedGames = sortedGames.filter(game => !game.isHidden);
 
   return (
     <aside className="w-[240px] bg-zinc-950/80 backdrop-blur-xl border-r border-white/5 flex flex-col h-full">
@@ -118,7 +125,7 @@ export function Sidebar({ currentView, onNavigate, onGameSelect, onOpenSettings,
         {isGamesExpanded && (
           <ScrollArea className="flex-1 px-2">
             <div className="space-y-0.5 pb-4">
-              {displayedGames.slice(0, 15).map((game) => (
+              {displayedGames.map((game) => (
                 <button
                   key={game.id}
                   className={cn(

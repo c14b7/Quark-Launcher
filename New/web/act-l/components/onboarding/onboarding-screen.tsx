@@ -106,12 +106,14 @@ export function OnboardingScreen() {
                 className="flex justify-center"
               >
                 <div className="relative">
-                  <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-purple-500/25">
-                    <Rocket className="w-12 h-12 text-white" />
-                  </div>
-                  <div className="absolute -right-2 -top-2 w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
-                    <Sparkles className="w-4 h-4 text-white" />
-                  </div>
+                    <div className="w-48 h-48  rounded-2xl flex items-center justify-center  ">
+                    <svg width="1462" height="360" viewBox="0 0 1462 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M166 322.5C239 322.5 283.5 268.5 283.5 180C283.5 91.5 239 37.5 166 37.5C93 37.5 48.5 91.5 48.5 180C48.5 268.5 93 322.5 166 322.5ZM166 360C66.5 360 2.08616e-07 288 2.08616e-07 180C2.08616e-07 72 66.5 -1.90735e-05 166 -1.90735e-05C265.5 -1.90735e-05 332 72 332 180C332 240 309.5 289.5 271 322.5C287 321 304.5 320 327 320H351V355H322C216.5 355 198 360 166 360ZM513.348 360C456.848 360 420.348 331 420.348 265V95H465.348V255C465.348 307 488.848 323.5 521.848 323.5C558.848 323.5 591.348 305 591.348 245.5V95H636.348V355H593.848V316.5C575.848 348 543.848 360 513.348 360ZM812.27 360C763.27 360 730.77 331 730.77 287.5C730.77 235 778.77 206 892.77 193V177.5C892.77 142.5 870.77 125 835.77 125C799.27 125 775.77 144.5 774.77 172.5H730.77C732.27 125 773.77 90 834.77 90C899.27 90 935.27 124 935.27 185.5V355H894.77V318.5C878.27 345 848.77 360 812.27 360ZM774.77 285.5C774.77 310.5 792.77 325 823.77 325C866.27 325 892.77 296.5 892.77 249.5V224.5C810.77 233.5 774.77 252 774.77 285.5ZM1038.78 355V95H1081.28V139.5C1089.78 107 1113.28 92.5 1144.28 92.5H1169.28V130H1141.78C1101.28 130 1083.78 156 1083.78 214V355H1038.78ZM1244.93 355V4.99998H1289.93V227.5L1406.93 95H1461.43L1363.43 202L1461.43 355H1408.43L1332.93 235.5L1289.93 282.5V355H1244.93Z" fill="white"/>
+</svg>
+
+            </div>
+                    
+          
                 </div>
               </motion.div>
 
@@ -122,17 +124,16 @@ export function OnboardingScreen() {
                 transition={{ delay: 0.4 }}
                 className="space-y-4"
               >
-                <h1 className="text-4xl font-bold text-white">
-                  Witaj w <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Quark Launcher</span>
-                </h1>
+   {/*              <h1 className="text-4xl font-bold text-white" id="font-logo">
+                  Quk <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">sdsdsdd</span>
+                </h1> */}
                 <p className="text-zinc-400 text-lg">
-                  Twoje centrum dowodzenia dla wszystkich gier. 
-                  Połącz platformy, śledź osiągnięcia i baw się bez granic.
+                  Launcher do gierek...
                 </p>
               </motion.div>
 
               {/* Features */}
-              <motion.div
+{/*               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6 }}
@@ -150,7 +151,7 @@ export function OnboardingScreen() {
                     <span className="text-sm text-zinc-500">{feature.label}</span>
                   </div>
                 ))}
-              </motion.div>
+              </motion.div> */}
 
               {/* CTA */}
               <motion.div
@@ -194,8 +195,8 @@ export function OnboardingScreen() {
                 </h2>
                 <p className="text-zinc-400">
                   {authMode === 'login' 
-                    ? 'Witaj ponownie! Zaloguj się do swojego konta.'
-                    : 'Dołącz do Quark Launcher i odkryj nowe możliwości.'}
+                    ? 'Witaj ponownie!'
+                    : 'Dołącz teraz!'}
                 </p>
               </div>
 

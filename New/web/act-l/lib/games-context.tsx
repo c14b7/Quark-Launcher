@@ -30,12 +30,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const [searchQuery, setSearchQuery] = useState('');
   const { settings } = useSettings();
 
-  // Get selected game from current games list (so it always has updated playtime)
-  const selectedGame = useMemo(() => {
-    if (!selectedGameId) return null;
-    return games.find(g => g.id === selectedGameId) || null;
-  }, [selectedGameId, games]);
-
   const setSelectedGame = useCallback((game: Game | null) => {
     setSelectedGameId(game?.id || null);
   }, []);
@@ -213,11 +207,18 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Compute derived state
+  // Compute derived state - add isFavorite to all games
   const gamesWithFavorites = games.map(game => ({
     ...game,
     isFavorite: favoriteIds.includes(game.id)
   }));
+
+  // Get selected game from current games list WITH favorites (so it always has updated data)
+  const selectedGame = useMemo(() => {
+    if (!selectedGameId) return null;
+    const game = gamesWithFavorites.find(g => g.id === selectedGameId);
+    return game || null;
+  }, [selectedGameId, gamesWithFavorites]);
 
   const favoriteGames = gamesWithFavorites.filter(g => g.isFavorite);
 

@@ -140,6 +140,37 @@ declare global {
         data?: GameAchievement[];
         error?: string;
       }>;
+      steamGetNews: (appIds: string[], count?: number) => Promise<{
+        success: boolean;
+        data?: Array<{
+          gid: string;
+          title: string;
+          url: string;
+          is_external_url: boolean;
+          author: string;
+          contents: string;
+          feedlabel: string;
+          date: number;
+          feedname: string;
+          appId: string;
+          feed_type: number;
+        }>;
+        error?: string;
+      }>;
+      steamGetRecentAchievements: (steamApiKey: string, steamId: string, appIds: string[]) => Promise<{
+        success: boolean;
+        data?: Array<{
+          apiname: string;
+          name: string;
+          description: string;
+          icon: string;
+          unlocktime: number;
+          appId: string;
+          gameName: string;
+        }>;
+        isRecent?: boolean;
+        error?: string;
+      }>;
       
       // Epic Games
       epicGetInstalledGames: () => Promise<Game[]>;

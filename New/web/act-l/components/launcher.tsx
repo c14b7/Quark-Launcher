@@ -26,6 +26,9 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 
+// Key for remembering if user has dismissed Steam prompt
+const STEAM_PROMPT_DISMISSED_KEY = 'quark_steam_prompt_dismissed';
+
 function LauncherContent() {
   const [currentView, setCurrentView] = useState('home');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -35,16 +38,36 @@ function LauncherContent() {
   const { settings } = useSettings();
   const { isAuthenticated, profile, isLoading } = useAuth();
 
-  // Show Steam integration modal after login if not connected
+  // Show Steam integration modal only if:
+  // 1. User is authenticated
+  // 2. Steam is NOT already connected (no API key or user ID)
+  // 3. User hasn't dismissed the prompt before
   useEffect(() => {
-    if (!isLoading && isAuthenticated && profile && profile.steamLinked === false) {
-      // Small delay to ensure the UI is ready
-      const timer = setTimeout(() => {
-        setIsSteamIntegrationOpen(true);
-      }, 500);
-      return () => clearTimeout(timer);
+    if (!isLoading && isAuthenticated) {
+      const hasApiKey = settings.steamApiKey && settings.steamApiKey.length > 0;
+      const hasUserId = settings.steamUserId && settings.steamUserId.length > 0;
+      const wasDismissed = localStorage.getItem(STEAM_PROMPT_DISMISSED_KEY) === 'true';
+      
+      // Only show if Steam is NOT connected AND user hasn't dismissed it
+      if (!hasApiKey || !hasUserId) {
+        if (!wasDismissed) {
+          const timer = setTimeout(() => {
+            setIsSteamIntegrationOpen(true);
+          }, 1000);
+          return () => clearTimeout(timer);
+        }
+      }
     }
-  }, [isLoading, isAuthenticated, profile]);
+  }, [isLoading, isAuthenticated, settings.steamApiKey, settings.steamUserId]);
+
+  // Handle Steam dialog close - remember dismissal
+  const handleSteamDialogClose = (open: boolean) => {
+    if (!open) {
+      // User closed the dialog, remember this choice
+      localStorage.setItem(STEAM_PROMPT_DISMISSED_KEY, 'true');
+    }
+    setIsSteamIntegrationOpen(open);
+  };
 
   const handleGameSelect = (game: Game) => {
     setSelectedGame(game);
@@ -131,7 +154,7 @@ function LauncherContent() {
       />
 
       {/* Steam Integration Modal */}
-      <Dialog open={isSteamIntegrationOpen} onOpenChange={setIsSteamIntegrationOpen}>
+      <Dialog open={isSteamIntegrationOpen} onOpenChange={handleSteamDialogClose}>
         <DialogContent className="sm:max-w-[600px] bg-zinc-900 border-zinc-800">
           <DialogHeader>
             <DialogTitle className="text-white">Połącz konto Steam</DialogTitle>

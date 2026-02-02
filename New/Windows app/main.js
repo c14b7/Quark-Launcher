@@ -173,13 +173,22 @@ class QuarkLauncher {
 
         const libraryFolders = await this.getSteamLibraryFolders(steamPath);
         const games = [];
+        const seenIds = new Set();
 
         for (const folder of libraryFolders) {
           const appsPath = path.join(folder, 'steamapps');
           const folderGames = await this.scanSteamAppsFolder(appsPath);
-          games.push(...folderGames);
+          
+          // Deduplicate games by ID
+          for (const game of folderGames) {
+            if (!seenIds.has(game.id)) {
+              seenIds.add(game.id);
+              games.push(game);
+            }
+          }
         }
 
+        console.log('[STEAM] Total unique games found:', games.length);
         return games;
       } catch (error) {
         console.error('Error getting Steam games:', error);
@@ -355,6 +364,166 @@ class QuarkLauncher {
         return { success: true, data: achievements };
       } catch (error) {
         console.error('[STEAM ACHIEVEMENTS] Error:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // ===== STEAM NEWS =====
+    ipcMain.handle('steam-get-news', async (event, { appIds, count = 5 }) => {
+      try {
+        console.log('[STEAM NEWS] Getting news for apps:', appIds.slice(0, 5), '...');
+        
+        if (!appIds || appIds.length === 0) {
+          return { success: true, data: [] };
+        }
+
+        const https = require('https');
+        const allNews = [];
+        
+        // Pobierz newsy dla max 10 gier żeby nie przeciążyć
+        const appsToFetch = appIds.slice(0, 10);
+        
+        const fetchNews = (appId) => new Promise((resolve) => {
+          const url = `https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid=${appId}&count=${count}&maxlength=300`;
+          
+          https.get(url, (resp) => {
+            let data = '';
+            resp.on('data', (chunk) => { data += chunk; });
+            resp.on('end', () => {
+              try {
+                const parsed = JSON.parse(data);
+                if (parsed?.appnews?.newsitems) {
+                  resolve(parsed.appnews.newsitems.map(item => ({
+                    ...item,
+                    appId: appId
+                  })));
+                } else {
+                  resolve([]);
+                }
+              } catch (err) {
+                resolve([]);
+              }
+            });
+          }).on('error', () => resolve([]));
+        });
+
+        const newsResults = await Promise.all(appsToFetch.map(fetchNews));
+        
+        for (const newsItems of newsResults) {
+          allNews.push(...newsItems);
+        }
+
+        // Sortuj po dacie (najnowsze pierwsze)
+        allNews.sort((a, b) => b.date - a.date);
+
+        console.log('[STEAM NEWS] Total news items:', allNews.length);
+        return { success: true, data: allNews.slice(0, 20) };
+      } catch (error) {
+        console.error('[STEAM NEWS] Error:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // ===== STEAM RECENT ACHIEVEMENTS =====
+    ipcMain.handle('steam-get-recent-achievements', async (event, { steamApiKey, steamId, appIds }) => {
+      try {
+        console.log('[STEAM RECENT ACH] Getting recent achievements for', appIds?.length || 0, 'games');
+        
+        if (!steamApiKey || !steamId || !appIds || appIds.length === 0) {
+          return { success: true, data: [] };
+        }
+
+        const https = require('https');
+        const twoWeeksAgo = Math.floor(Date.now() / 1000) - (14 * 24 * 60 * 60); // 2 tygodnie temu
+        const recentAchievements = [];
+        
+        // Pobierz osiągnięcia dla max 10 gier
+        const appsToFetch = appIds.slice(0, 10);
+        
+        const fetchAchievements = (appId) => new Promise((resolve) => {
+          const achievementsUrl = `https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v1/?key=${steamApiKey}&steamid=${steamId}&appid=${appId}`;
+          const schemaUrl = `https://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v2/?key=${steamApiKey}&appid=${appId}`;
+          
+          let achievementsData = null;
+          let schemaData = null;
+          let completed = 0;
+          
+          const checkDone = () => {
+            completed++;
+            if (completed < 2) return;
+            
+            if (!achievementsData?.playerstats?.achievements) {
+              resolve([]);
+              return;
+            }
+            
+            const schemaMap = new Map((schemaData?.game?.availableGameStats?.achievements || []).map(a => [a.name, a]));
+            
+            const recent = achievementsData.playerstats.achievements
+              .filter(a => a.achieved === 1 && a.unlocktime >= twoWeeksAgo)
+              .map(a => {
+                const schema = schemaMap.get(a.apiname);
+                return {
+                  apiname: a.apiname,
+                  name: schema?.displayName || a.apiname,
+                  description: schema?.description || '',
+                  icon: schema?.icon || '',
+                  unlocktime: a.unlocktime,
+                  appId: appId,
+                  gameName: achievementsData.playerstats.gameName || `App ${appId}`
+                };
+              });
+            
+            resolve(recent);
+          };
+          
+          https.get(achievementsUrl, (resp) => {
+            let data = '';
+            resp.on('data', (chunk) => { data += chunk; });
+            resp.on('end', () => {
+              try { achievementsData = JSON.parse(data); } catch {}
+              checkDone();
+            });
+          }).on('error', () => checkDone());
+          
+          https.get(schemaUrl, (resp) => {
+            let data = '';
+            resp.on('data', (chunk) => { data += chunk; });
+            resp.on('end', () => {
+              try { schemaData = JSON.parse(data); } catch {}
+              checkDone();
+            });
+          }).on('error', () => checkDone());
+        });
+
+        const results = await Promise.all(appsToFetch.map(fetchAchievements));
+        
+        for (const achievements of results) {
+          recentAchievements.push(...achievements);
+        }
+
+        // Sortuj po dacie (najnowsze pierwsze)
+        recentAchievements.sort((a, b) => b.unlocktime - a.unlocktime);
+
+        console.log('[STEAM RECENT ACH] Found', recentAchievements.length, 'recent achievements');
+        
+        // Jeśli nie ma z ostatnich 2 tygodni, zwróć 3 ostatnie ogólnie
+        if (recentAchievements.length === 0) {
+          console.log('[STEAM RECENT ACH] No recent, fetching last 3 overall...');
+          const allAchievements = [];
+          
+          for (const appId of appsToFetch) {
+            const result = await fetchAchievements(appId);
+            allAchievements.push(...result);
+          }
+          
+          allAchievements.sort((a, b) => b.unlocktime - a.unlocktime);
+          return { success: true, data: allAchievements.slice(0, 3), isRecent: false };
+        }
+
+        return { success: true, data: recentAchievements.slice(0, 10), isRecent: true };
+      } catch (error) {
+        console.error('[STEAM RECENT ACH] Error:', error);
         return { success: false, error: error.message };
       }
     });
