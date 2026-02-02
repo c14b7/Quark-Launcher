@@ -46,7 +46,7 @@ export function TitleBar() {
         <div className="w-5 h-5 rounded bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
           <span className="text-[10px] font-bold text-white">Q</span>
         </div>
-        <span className="text-xs font-semibold text-zinc-400">Quark Launcher</span>
+        <span className="text-sm font-logo text-zinc-300 tracking-wide">Quark</span>
       </div>
 
       {/* Window Controls */}

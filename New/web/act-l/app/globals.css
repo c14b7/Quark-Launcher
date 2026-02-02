@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+
 @custom-variant dark (&:is(.dark *));
 
 /* CommitMono Font */
@@ -34,6 +35,86 @@
   font-weight: 700;
   font-style: italic;
   font-display: swap;
+}
+
+/* Logo font class */
+.font-logo {
+    font-family: 'HedvigLettersSans', sans-serif;
+     src: url('./fonts/HedvigLettersSans-Regular.otf') format('opentype');
+}
+#font-logo {
+    font-family: 'HedvigLettersSans', sans-serif;
+     src: url('./fonts/HedvigLettersSans-Regular.otf') format('opentype');
+}
+
+/* Loading screen animations */
+@keyframes float-blob {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(30%, -20%) scale(1.1);
+  }
+  50% {
+    transform: translate(-20%, 30%) scale(0.9);
+  }
+  75% {
+    transform: translate(-30%, -10%) scale(1.05);
+  }
+}
+
+@keyframes float-blob-2 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(-25%, 25%) scale(1.15);
+  }
+  50% {
+    transform: translate(25%, -15%) scale(0.85);
+  }
+  75% {
+    transform: translate(15%, 20%) scale(1.1);
+  }
+}
+
+@keyframes float-blob-3 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(20%, 20%) scale(1.2);
+  }
+  66% {
+    transform: translate(-15%, -25%) scale(0.9);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.8;
+    text-shadow: 0 0 40px rgba(139, 92, 246, 0.5);
+  }
+  50% {
+    opacity: 1;
+    text-shadow: 0 0 80px rgba(139, 92, 246, 0.8), 0 0 120px rgba(99, 102, 241, 0.4);
+  }
+}
+
+.animate-float-blob {
+  animation: float-blob 20s ease-in-out infinite;
+}
+
+.animate-float-blob-2 {
+  animation: float-blob-2 25s ease-in-out infinite;
+}
+
+.animate-float-blob-3 {
+  animation: float-blob-3 18s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
 }
 
 @theme inline {

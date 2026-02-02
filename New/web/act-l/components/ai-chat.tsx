@@ -182,9 +182,9 @@ export function AIChatPanel({ isOpen, onClose }: AIChatPanelProps) {
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center mb-4">
               <Bot className="h-8 w-8 text-violet-400" />
             </div>
-            <h4 className="font-semibold text-white mb-2">Witaj w Quark AI!</h4>
+            <h4 className="font-semibold text-white mb-2">AI działa... ale nie tak jak powinno</h4>
             <p className="text-xs text-zinc-500 mb-4">
-              Jestem twoim asystentem gamingowym. Zapytaj mnie o gry, ustawienia launchera lub poproś o pomoc.
+              Jest w stanie odpowiadać na twoje pytania ale jak wykly chatbot, zamiast miec wgląd w gry.
             </p>
             {!isConfigured && (
               <div className="flex items-center gap-2 p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20">

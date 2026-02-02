@@ -36,6 +36,7 @@ interface FriendPlaying {
   name: string;
   avatar?: string;
   playtime?: number;
+  status: 'playing' | 'owns' | 'wishlist' | 'online' | 'offline';
 }
 
 export function GameDetails({ game, onClose }: GameDetailsProps) {
@@ -115,7 +116,7 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
     fetchAchievements();
   }, [game.id, game.platform, settings.steamApiKey, settings.steamUserId, profile?.steamId]);
   
-  // Fetch friends who own this game
+  // Fetch friends who are playing this game
   useEffect(() => {
     async function fetchFriendsWithGame() {
       if (
@@ -129,23 +130,23 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
         try {
           const appId = parseInt(game.id, 10);
           if (!isNaN(appId)) {
-            // Filter friends who might own this game
-            // We check if they're currently playing this game or we can infer ownership
             const friendsWithGame: FriendPlaying[] = [];
             
             for (const friend of steamFriends) {
-              // If friend is currently playing this game
-              if (friend.currentGame?.toLowerCase() === game.name.toLowerCase()) {
+              // Check if friend is currently playing this game
+              const isPlayingThis = friend.currentGame?.toLowerCase() === game.name.toLowerCase();
+              
+              // Only add friends who are actually playing this game
+              if (isPlayingThis) {
                 friendsWithGame.push({
                   name: friend.personaName,
                   avatar: friend.avatarUrl,
-                  playtime: undefined // We don't have their playtime for this specific game
+                  playtime: undefined,
+                  status: 'playing'
                 });
               }
             }
             
-            // For a more complete implementation, we would need to check owned games for each friend
-            // but that's expensive API-wise. For now, show friends currently playing.
             setFriendsPlaying(friendsWithGame);
           }
         } catch (error) {
@@ -379,7 +380,7 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
                         <div className="animate-spin w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full" />
                       </div>
                     ) : achievements.length > 0 ? (
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3 max-h-[70vh] overflow-y-auto pr-2">
                         {achievements.map(achievement => (
                           <div
                             key={achievement.apiname}
@@ -425,28 +426,50 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
 
                 {activeTab === 'friends' && (
                   <div className="space-y-4">
-                    <h2 className="text-lg font-semibold text-white">Znajomi grający w tę grę</h2>
+                    <h2 className="text-lg font-semibold text-white">Znajomi</h2>
                     {isLoadingFriends ? (
                       <div className="flex items-center justify-center py-8">
                         <div className="animate-spin w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full" />
                       </div>
                     ) : friendsPlaying.length > 0 ? (
-                      <div className="space-y-2">
+                      <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
                         {friendsPlaying.map(friend => (
                           <div
                             key={friend.name}
-                            className="flex items-center gap-3 p-3 rounded-xl bg-zinc-800/50 border border-white/5"
-                          >
-                            {friend.avatar ? (
-                              <img src={friend.avatar} alt="" className="w-10 h-10 rounded-full" />
-                            ) : (
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
-                                <span className="text-white font-bold">{friend.name[0]}</span>
-                              </div>
+                            className={cn(
+                              "flex items-center gap-3 p-3 rounded-xl border",
+                              friend.status === 'playing' 
+                                ? 'bg-green-500/10 border-green-500/30' 
+                                : friend.status === 'online'
+                                  ? 'bg-blue-500/10 border-blue-500/30'
+                                  : 'bg-zinc-800/50 border-white/5'
                             )}
+                          >
+                            <div className="relative">
+                              {friend.avatar ? (
+                                <img src={friend.avatar} alt="" className="w-10 h-10 rounded-full" />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
+                                  <span className="text-white font-bold">{friend.name[0]}</span>
+                                </div>
+                              )}
+                              {/* Status indicator */}
+                              <div className={cn(
+                                "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-zinc-900",
+                                friend.status === 'playing' ? 'bg-green-500' :
+                                friend.status === 'online' ? 'bg-blue-500' : 'bg-zinc-500'
+                              )} />
+                            </div>
                             <div className="flex-1">
                               <p className="font-medium text-white">{friend.name}</p>
-                              <p className="text-xs text-green-400">Aktualnie gra</p>
+                              <p className={cn(
+                                "text-xs",
+                                friend.status === 'playing' ? 'text-green-400' :
+                                friend.status === 'online' ? 'text-blue-400' : 'text-zinc-500'
+                              )}>
+                                {friend.status === 'playing' ? 'Aktualnie gra' :
+                                 friend.status === 'online' ? 'Online' : 'Offline'}
+                              </p>
                             </div>
                           </div>
                         ))}

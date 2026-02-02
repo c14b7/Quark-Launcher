@@ -16,6 +16,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   steamGetInstalledGames: () => ipcRenderer.invoke('steam-get-installed-games'),
   steamGetOwnedGames: (steamApiKey, steamId) => ipcRenderer.invoke('steam-get-owned-games', { steamApiKey, steamId }),
   steamGetAchievements: (steamApiKey, steamId, appId) => ipcRenderer.invoke('steam-get-achievements', { steamApiKey, steamId, appId }),
+  steamGetNews: (appIds, count) => ipcRenderer.invoke('steam-get-news', { appIds, count }),
+  steamGetRecentAchievements: (steamApiKey, steamId, appIds) => ipcRenderer.invoke('steam-get-recent-achievements', { steamApiKey, steamId, appIds }),
 
   // Epic Games
   epicGetInstalledGames: () => ipcRenderer.invoke('epic-get-installed-games'),
@@ -44,4 +46,4 @@ contextBridge.exposeInMainWorld('electronAPI', {
   }
 });
 
-console.log('🚀 Quark Launcher preload script loaded');
+console.log('🚀 Quark preload script loaded');
