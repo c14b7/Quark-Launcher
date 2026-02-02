@@ -1,7 +1,7 @@
 {
-  "name": "quark-launcher",
-  "version": "2.0.0",
-  "description": "Ultra-modern game launcher for Windows",
+  "name": "quark",
+  "version": "0.0.3 beta 04a",
+  "description": "game launcher for Windows",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -11,7 +11,7 @@
     "build": "npm run next:build && electron-builder",
     "pack": "npm run next:build && electron-builder --dir"
   },
-  "author": "Quark",
+  "author": "c14b7",
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^8.2.2",

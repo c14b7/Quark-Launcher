@@ -106,13 +106,13 @@ export function Sidebar({ currentView, onNavigate, onGameSelect, onOpenSettings,
       <Separator className="my-2 bg-white/5" />
 
       {/* Your Games Section */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <div
-          className="px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors"
+          className="px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors flex-shrink-0"
           onClick={() => setIsGamesExpanded(!isGamesExpanded)}
         >
           <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
-            Twoje gry
+            Twoje gry ({displayedGames.length})
           </span>
           <ChevronRight
             className={cn(
@@ -123,8 +123,9 @@ export function Sidebar({ currentView, onNavigate, onGameSelect, onOpenSettings,
         </div>
 
         {isGamesExpanded && (
-          <ScrollArea className="flex-1 px-2">
-            <div className="space-y-0.5 pb-4">
+          <div className="flex-1 overflow-hidden px-2">
+            <ScrollArea className="h-full">
+              <div className="space-y-0.5 pb-4 pr-2">
               {displayedGames.map((game) => (
                 <button
                   key={game.id}
@@ -147,7 +148,8 @@ export function Sidebar({ currentView, onNavigate, onGameSelect, onOpenSettings,
                 </button>
               ))}
             </div>
-          </ScrollArea>
+            </ScrollArea>
+          </div>
         )}
       </div>
 
