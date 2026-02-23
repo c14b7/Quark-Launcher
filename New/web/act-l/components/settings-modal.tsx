@@ -388,7 +388,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5 space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-zinc-500">Wersja aplikacji:</span>
-                      <span className="text-white font-mono">0.0.3 beta 04a</span>
+                      <span className="text-white font-mono">0.0.3-beta-04a</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-zinc-500">Next.js:</span>
