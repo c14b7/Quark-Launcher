@@ -5,6 +5,15 @@ const { spawn, exec } = require('child_process');
 
 const isDev = !app.isPackaged;
 
+// UWP package launch default application ID
+const DEFAULT_UWP_APP_ID = 'App';
+
+// System/framework package names to skip when listing UWP gaming packages
+const UWP_SKIP_KEYWORDS = [
+  'Framework', 'Runtime', 'VCLibs', 'DirectX', 'NET.Native',
+  'WindowsStore', 'AccountsControl', 'Narrator'
+];
+
 class QuarkLauncher {
   constructor() {
     this.mainWindow = null;
@@ -545,6 +554,48 @@ class QuarkLauncher {
       }
     });
 
+    // ===== XBOX APP / MS STORE DETECTION =====
+    ipcMain.handle('xbox-get-installed-games', async () => {
+      try {
+        const games = [];
+        const seenInstallDirs = new Set();
+
+        // Method 1: Use PowerShell Get-AppxPackage (most reliable - provides proper PackageFamilyName)
+        console.log('[XBOX] Querying installed UWP gaming packages via PowerShell...');
+        const psGames = await this.getXboxGamesViaPowerShell();
+        for (const game of psGames) {
+          games.push(game);
+          if (game.installDir) {
+            seenInstallDirs.add(game.installDir.toLowerCase());
+          }
+        }
+
+        // Method 2: Scan C:\XboxGames folder as fallback for games not found via PowerShell
+        const xboxGamesPath = 'C:\\XboxGames';
+        if (await this.fileExists(xboxGamesPath)) {
+          console.log('[XBOX] Scanning default Xbox games folder:', xboxGamesPath);
+          const folderGames = await this.scanXboxGamesFolder(xboxGamesPath);
+          for (const game of folderGames) {
+            // Skip games whose install directory was already covered by PowerShell results
+            const gameDir = game.installDir.toLowerCase();
+            const alreadyCovered = [...seenInstallDirs].some(
+              dir => dir.startsWith(gameDir) || gameDir.startsWith(dir)
+            );
+            if (!alreadyCovered) {
+              games.push(game);
+              seenInstallDirs.add(gameDir);
+            }
+          }
+        }
+
+        console.log('[XBOX] Total Xbox/MS Store games found:', games.length);
+        return games;
+      } catch (error) {
+        console.error('Error getting Xbox games:', error);
+        return [];
+      }
+    });
+
     // ===== GAME LAUNCHING =====
     ipcMain.handle('launch-game', async (event, { platform, gameId, gamePath }) => {
       try {
@@ -555,7 +606,17 @@ class QuarkLauncher {
             shell.openExternal(`steam://rungameid/${gameId}`);
             break;
           case 'xbox':
-            shell.openExternal(`ms-xbl-${gameId}://`);
+            // Support UWP package launch (packageFamilyName!AppId) and legacy Xbox title ID
+            if (gameId.includes('!')) {
+              // UWP package format: launch via explorer.exe shell:AppsFolder
+              const proc = spawn('explorer.exe', [`shell:AppsFolder\\${gameId}`], {
+                detached: true,
+                stdio: 'ignore'
+              });
+              proc.unref();
+            } else {
+              shell.openExternal(`ms-xbl-${gameId}://`);
+            }
             break;
           case 'epic':
             // Epic Games - try multiple launch methods
@@ -980,6 +1041,138 @@ class QuarkLauncher {
       console.log(`[EPIC] Error fetching images for ${displayName}:`, error);
       return defaultImages;
     }
+  }
+
+  // Scan C:\XboxGames folder for installed Xbox App / Game Pass games
+  async scanXboxGamesFolder(xboxGamesPath) {
+    const games = [];
+    try {
+      const entries = await fs.readdir(xboxGamesPath, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+
+        const gameFolderPath = path.join(xboxGamesPath, entry.name);
+        const contentPath = path.join(gameFolderPath, 'Content');
+        const manifestPath = path.join(contentPath, 'appxmanifest.xml');
+
+        let gameInfo = null;
+        if (await this.fileExists(manifestPath)) {
+          const content = await fs.readFile(manifestPath, 'utf-8');
+          gameInfo = this.parseAppxManifest(content);
+        }
+
+        const appId = gameInfo?.appId || DEFAULT_UWP_APP_ID;
+        const displayName = gameInfo?.displayName || entry.name;
+        // Use folder name as the ID for folder-scan fallback games
+        const id = entry.name;
+
+        console.log(`[XBOX] Found game in XboxGames folder: ${displayName} (${id})`);
+        games.push({
+          id,
+          name: displayName,
+          platform: 'xbox',
+          installDir: gameFolderPath,
+          installed: true,
+          image: '',
+          hero: '',
+          logo: '',
+          capsule: '',
+          background: ''
+        });
+      }
+    } catch (error) {
+      console.log('[XBOX] Error scanning XboxGames folder:', error);
+    }
+    return games;
+  }
+
+  // Parse appxmanifest.xml to extract game identity and display name
+  parseAppxManifest(content) {
+    try {
+      const displayNameMatch = content.match(/<DisplayName>([^<]+)<\/DisplayName>/);
+      const appIdMatch = content.match(/<Application\b[^>]*\bId="([^"]+)"/);
+
+      const displayName = displayNameMatch?.[1] || '';
+      const appId = appIdMatch?.[1] || DEFAULT_UWP_APP_ID;
+
+      return { displayName, appId };
+    } catch (error) {
+      console.log('[XBOX] Error parsing appxmanifest.xml:', error);
+      return null;
+    }
+  }
+
+  // Use PowerShell to detect installed UWP gaming packages (Xbox App / MS Store)
+  async getXboxGamesViaPowerShell() {
+    return new Promise((resolve) => {
+      // Query packages installed in XboxGames directories or with gaming-related names.
+      // The script is entirely static with no user input, avoiding injection risks.
+      const psScript = [
+        'Get-AppxPackage | Where-Object {',
+        '  ($_.InstallLocation -like "*XboxGames*") -or',
+        '  ($_.InstallLocation -like "*WindowsApps*" -and',
+        '   ($_.Name -like "*.Game*" -or $_.Name -like "*Xbox*" -or',
+        '    $_.Name -like "*GamePass*" -or $_.SignatureKind -eq "Store"))',
+        '} | Select-Object Name, PackageFamilyName, InstallLocation,',
+        '  @{N="AppId";E={(Get-AppxPackageManifest $_).Package.Applications.Application.Id}},',
+        '  @{N="DisplayName";E={(Get-AppxPackageManifest $_).Package.Properties.DisplayName}} |',
+        'Where-Object { $_.InstallLocation -and (Test-Path $_.InstallLocation) } |',
+        'ConvertTo-Json -Compress'
+      ].join(' ');
+
+      exec(`powershell -NoProfile -NonInteractive -Command "${psScript}"`, { timeout: 15000 }, (error, stdout) => {
+        if (error) {
+          console.log('[XBOX] PowerShell query error:', error.message);
+          resolve([]);
+          return;
+        }
+
+        try {
+          const raw = stdout.trim();
+          if (!raw) {
+            resolve([]);
+            return;
+          }
+
+          const parsed = JSON.parse(raw);
+          const packages = Array.isArray(parsed) ? parsed : [parsed];
+          const games = [];
+
+          for (const pkg of packages) {
+            if (!pkg.Name || !pkg.PackageFamilyName) continue;
+
+            // Skip system/framework packages and non-game apps
+            if (UWP_SKIP_KEYWORDS.some(kw => pkg.Name.includes(kw))) continue;
+
+            const appId = pkg.AppId || DEFAULT_UWP_APP_ID;
+            const id = `${pkg.PackageFamilyName}!${appId}`;
+            // Prefer the manifest DisplayName; fall back to deriving it from the package name
+            const displayName = pkg.DisplayName && !pkg.DisplayName.startsWith('ms-resource:')
+              ? pkg.DisplayName
+              : pkg.Name.replace(/^[^.]+\./, '').replace(/[_-]/g, ' ');
+
+            console.log(`[XBOX] PowerShell found package: ${pkg.Name} -> ${displayName}`);
+            games.push({
+              id,
+              name: displayName,
+              platform: 'xbox',
+              installDir: pkg.InstallLocation || '',
+              installed: true,
+              image: '',
+              hero: '',
+              logo: '',
+              capsule: '',
+              background: ''
+            });
+          }
+
+          resolve(games);
+        } catch (parseError) {
+          console.log('[XBOX] PowerShell output parse error:', parseError.message);
+          resolve([]);
+        }
+      });
+    });
   }
 }
 

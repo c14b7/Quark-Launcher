@@ -22,6 +22,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Epic Games
   epicGetInstalledGames: () => ipcRenderer.invoke('epic-get-installed-games'),
 
+  // Xbox App / MS Store
+  xboxGetInstalledGames: () => ipcRenderer.invoke('xbox-get-installed-games'),
+
   // Game launching
   launchGame: (gameData) => ipcRenderer.invoke('launch-game', gameData),
 

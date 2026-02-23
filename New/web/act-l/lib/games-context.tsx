@@ -148,14 +148,15 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     try {
       if (typeof window !== 'undefined' && window.electronAPI) {
         // Pobierz gry ze wszystkich platform
-        const [steamGames, epicGames] = await Promise.all([
+        const [steamGames, epicGames, xboxGames] = await Promise.all([
           window.electronAPI.steamGetInstalledGames(),
-          window.electronAPI.epicGetInstalledGames()
+          window.electronAPI.epicGetInstalledGames(),
+          window.electronAPI.xboxGetInstalledGames()
         ]);
         
         // Połącz gry z różnych platform
-        const allGames = [...steamGames, ...epicGames];
-        console.log('[GAMES] Loaded', allGames.length, 'games (Steam:', steamGames.length, ', Epic:', epicGames.length, ')');
+        const allGames = [...steamGames, ...epicGames, ...xboxGames];
+        console.log('[GAMES] Loaded', allGames.length, 'games (Steam:', steamGames.length, ', Epic:', epicGames.length, ', Xbox:', xboxGames.length, ')');
         setGames(allGames);
         
         // Note: enrichGamesWithSteamData will be called by the useEffect when games.length changes

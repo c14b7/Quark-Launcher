@@ -175,6 +175,9 @@ declare global {
       // Epic Games
       epicGetInstalledGames: () => Promise<Game[]>;
       
+      // Xbox App / MS Store
+      xboxGetInstalledGames: () => Promise<Game[]>;
+      
       // Game launching
       launchGame: (gameData: { platform: string; gameId: string; gamePath?: string }) => Promise<LaunchResult>;
       
