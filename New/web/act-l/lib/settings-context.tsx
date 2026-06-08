@@ -61,22 +61,22 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [steamUser, setSteamUser] = useState<SteamUser | null>(null);
   const [steamFriends, setSteamFriends] = useState<SteamFriend[]>([]);
 
-  // Load settings on mount
-  useEffect(() => {
-    loadSettings();
-    loadSteamUser();
-  }, []);
-
-  // Apply theme when settings change
-  useEffect(() => {
-    if (isLoaded) {
-      applyTheme(settings.theme);
-      applyScale(settings.uiScale);
-      saveSettings();
+  // Wykorzystujemy useCallback, żeby móc bezpiecznie wrzucić tę funkcję do zależności useEffect
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const saveSettings = useCallback(async () => {
+    try {
+      if (typeof window !== 'undefined' && window.electronAPI) {
+        await window.electronAPI.saveUserData('settings', settings);
+      } else {
+        localStorage.setItem('quark-settings', JSON.stringify(settings));
+      }
+    } catch (err) {
+      console.error('Failed to save settings:', err);
     }
-  }, [settings, isLoaded]);
+  }, [settings]);
 
-  const loadSteamUser = async () => {
+  // Tradycyjne funkcje (function) podlegają hoistingowi, dzięki czemu useEffect na górze widzi je bez błędu ESLinta
+  async function loadSteamUser() {
     try {
       if (typeof window !== 'undefined' && window.electronAPI) {
         const result = await window.electronAPI.loadUserData('steamUser');
@@ -100,9 +100,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error('Failed to load Steam user:', err);
     }
-  };
+  }
 
-  const saveSteamUser = async (user: SteamUser | null) => {
+  async function saveSteamUser(user: SteamUser | null) {
     try {
       if (typeof window !== 'undefined' && window.electronAPI) {
         await window.electronAPI.saveUserData('steamUser', user);
@@ -116,8 +116,54 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error('Failed to save Steam user:', err);
     }
-  };
+  }
 
+  async function loadSettings() {
+    try {
+      if (typeof window !== 'undefined' && window.electronAPI) {
+        const result = await window.electronAPI.loadUserData('settings');
+        if (result.success && result.data) {
+          setSettings({ ...defaultSettings, ...(result.data as AppSettings) });
+        }
+      } else {
+        const saved = localStorage.getItem('quark-settings');
+        if (saved) {
+          setSettings({ ...defaultSettings, ...JSON.parse(saved) });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load settings:', err);
+    }
+    setIsLoaded(true);
+  }
+
+  function applyTheme(theme: 'dark' | 'oled') {
+    const html = document.documentElement;
+    html.classList.remove('dark', 'oled');
+    html.classList.add(theme);
+  }
+
+  function applyScale(scale: number) {
+    document.documentElement.style.setProperty('--ui-scale', scale.toString());
+    document.body.style.fontSize = `${scale * 14}px`;
+  }
+
+  // Load settings on mount
+  useEffect(() => {
+    loadSettings();
+    loadSteamUser();
+  }, []);
+
+  // Apply theme when settings change
+  useEffect(() => {
+    if (isLoaded) {
+      applyTheme(settings.theme);
+      applyScale(settings.uiScale);
+      saveSettings();
+    }
+  }, [settings.theme, settings.uiScale, isLoaded, saveSettings]);
+
+  // Callbacki dla akcji użytkownika
   const handleSetSteamUser = useCallback((user: SteamUser | null) => {
     setSteamUser(user);
     saveSteamUser(user);
@@ -133,49 +179,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('quark-steam-friends');
     }
   }, []);
-
-  const loadSettings = async () => {
-    try {
-      if (typeof window !== 'undefined' && window.electronAPI) {
-        const result = await window.electronAPI.loadUserData('settings');
-        if (result.success && result.data) {
-          setSettings({ ...defaultSettings, ...(result.data as AppSettings) });
-        }
-      } else {
-        // Browser fallback
-        const saved = localStorage.getItem('quark-settings');
-        if (saved) {
-          setSettings({ ...defaultSettings, ...JSON.parse(saved) });
-        }
-      }
-    } catch (err) {
-      console.error('Failed to load settings:', err);
-    }
-    setIsLoaded(true);
-  };
-
-  const saveSettings = async () => {
-    try {
-      if (typeof window !== 'undefined' && window.electronAPI) {
-        await window.electronAPI.saveUserData('settings', settings);
-      } else {
-        localStorage.setItem('quark-settings', JSON.stringify(settings));
-      }
-    } catch (err) {
-      console.error('Failed to save settings:', err);
-    }
-  };
-
-  const applyTheme = (theme: 'dark' | 'oled') => {
-    const html = document.documentElement;
-    html.classList.remove('dark', 'oled');
-    html.classList.add(theme);
-  };
-
-  const applyScale = (scale: number) => {
-    document.documentElement.style.setProperty('--ui-scale', scale.toString());
-    document.body.style.fontSize = `${scale * 14}px`;
-  };
 
   const updateSettings = useCallback((updates: Partial<AppSettings>) => {
     setSettings(prev => ({ ...prev, ...updates }));

@@ -116,105 +116,97 @@ export interface UpdateInfo {
   releaseNotes: string;
 }
 
-// Electron API types
+// --- NAPRAWIONA SEKCJA ELECTRON API ---
+
+export interface IElectronAPI {
+  windowMinimize: () => Promise<void>;
+  windowMaximize: () => Promise<boolean>;
+  windowClose: () => Promise<void>;
+  windowIsMaximized: () => Promise<boolean>;
+  
+  // Steam
+  steamDetectInstallation: () => Promise<SteamInstallation>;
+  steamGetInstalledGames: () => Promise<Game[]>;
+  steamGetOwnedGames: (steamApiKey: string, steamId: string) => Promise<{
+    success: boolean;
+    data?: Record<string, { playtime: number; playtime2weeks: number; lastPlayed: number }>;
+    error?: string;
+  }>;
+  steamGetAchievements: (steamApiKey: string, steamId: string, appId: string) => Promise<{
+    success: boolean;
+    data?: GameAchievement[];
+    error?: string;
+  }>;
+  steamGetNews: (appIds: string[], count?: number) => Promise<{
+    success: boolean;
+    data?: Array<{
+      gid: string;
+      title: string;
+      url: string;
+      is_external_url: boolean;
+      author: string;
+      contents: string;
+      feedlabel: string;
+      date: number;
+      feedname: string;
+      appId: string;
+      feed_type: number;
+    }>;
+    error?: string;
+  }>;
+  steamGetRecentAchievements: (steamApiKey: string, steamId: string, appIds: string[]) => Promise<{
+    success: boolean;
+    data?: Array<{
+      apiname: string;
+      name: string;
+      description: string;
+      icon: string;
+      unlocktime: number;
+      appId: string;
+      gameName: string;
+    }>;
+    error?: string;
+  }>;
+  
+  // Epic Games
+  epicGetInstalledGames: () => Promise<Game[]>;
+  
+  // Game launching
+  launchGame: (gameData: { platform: string; gameId: string; gamePath?: string }) => Promise<LaunchResult>;
+  
+  // User data
+  saveUserData: (key: string, data: unknown) => Promise<{ success: boolean; error?: string }>;
+  loadUserData: (key: string) => Promise<{ success: boolean; data: unknown }>;
+  
+  // File operations
+  selectGameExecutable: () => Promise<string | null>;
+  checkFileExists: (filePath: string) => Promise<boolean>;
+  openFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
+  
+  // System info
+  getSystemInfo: () => Promise<{
+    platform: string;
+    arch: string;
+    electronVersion: string;
+    nodeVersion: string;
+  }>;
+  
+  // --- UPDATE MECHANISM ---
+  onUpdateAvailable: (callback: (info: UpdateInfo) => void) => () => void;
+  startInstallation: () => Promise<boolean>;
+  
+  // Platform & Versions
+  platform: string;
+  versions: {
+    node: string;
+    chrome: string;
+    electron: string;
+  };
+}
+
 declare global {
   interface Window {
-    electronAPI: {
-      // Steam API Proxy (fix CORS)
-      steamApiFetch: (endpoint: string, params: Record<string, string>) => Promise<{
-        success: boolean;
-        data?: any;
-        error?: string;
-      }>;
-      
-      // Window controls
-      windowMinimize: () => Promise<void>;
-      windowMaximize: () => Promise<boolean>;
-      windowClose: () => Promise<void>;
-      windowIsMaximized: () => Promise<boolean>;
-      
-      // Steam
-      steamDetectInstallation: () => Promise<SteamInstallation>;
-      steamGetInstalledGames: () => Promise<Game[]>;
-      steamGetOwnedGames: (steamApiKey: string, steamId: string) => Promise<{
-        success: boolean;
-        data?: Record<string, { playtime: number; playtime2weeks: number; lastPlayed: number }>;
-        error?: string;
-      }>;
-      steamGetAchievements: (steamApiKey: string, steamId: string, appId: string) => Promise<{
-        success: boolean;
-        data?: GameAchievement[];
-        error?: string;
-      }>;
-      steamGetNews: (appIds: string[], count?: number) => Promise<{
-        success: boolean;
-        data?: Array<{
-          gid: string;
-          title: string;
-          url: string;
-          is_external_url: boolean;
-          author: string;
-          contents: string;
-          feedlabel: string;
-          date: number;
-          feedname: string;
-          appId: string;
-          feed_type: number;
-        }>;
-        error?: string;
-      }>;
-      steamGetRecentAchievements: (steamApiKey: string, steamId: string, appIds: string[]) => Promise<{
-        success: boolean;
-        data?: Array<{
-          apiname: string;
-          name: string;
-          description: string;
-          icon: string;
-          unlocktime: number;
-          appId: string;
-          gameName: string;
-        }>;
-        isRecent?: boolean;
-        error?: string;
-      }>;
-      
-      // Epic Games
-      epicGetInstalledGames: () => Promise<Game[]>;
-      
-      // Game launching
-      launchGame: (gameData: { platform: string; gameId: string; gamePath?: string }) => Promise<LaunchResult>;
-      
-      // User data
-      saveUserData: (key: string, data: unknown) => Promise<{ success: boolean; error?: string }>;
-      loadUserData: (key: string) => Promise<{ success: boolean; data: unknown }>;
-      
-      // File operations
-      selectGameExecutable: () => Promise<string | null>;
-      checkFileExists: (filePath: string) => Promise<boolean>;
-      openFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
-      
-      // System info
-      getSystemInfo: () => Promise<{
-        platform: string;
-        arch: string;
-        electronVersion: string;
-        nodeVersion: string;
-      }>;
-      
-      // --- UPDATE MECHANISM ---
-      // Subskrypcja powiadomienia o nowej wersji (Zwraca funkcję czyszczącą)
-      onUpdateAvailable: (callback: (info: UpdateInfo) => void) => () => void;
-      // Wymuszenie pobierania i instalacji
-      startInstallation: () => Promise<boolean>;
-      
-      // Platform
-      platform: string;
-      versions: {
-        node: string;
-        chrome: string;
-        electron: string;
-      };
-    };
+    electronAPI: IElectronAPI;
   }
 }
 

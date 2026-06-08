@@ -73,7 +73,6 @@ export function SteamProfile({ onOpenSteamIntegration }: SteamProfileProps) {
 
   const fetchRecentAchievements = async () => {
     if (!settings.steamApiKey || !settings.steamUserId) return;
-    
     setIsLoadingAchievements(true);
     try {
       const steamGames = games.filter(g => g.platform === 'steam');
@@ -85,10 +84,10 @@ export function SteamProfile({ onOpenSteamIntegration }: SteamProfileProps) {
           settings.steamUserId,
           appIds
         );
-        
         if (result.success && result.data) {
           setRecentAchievements(result.data);
-          setAchievementsIsRecent(result.isRecent !== false);
+          // Naprawiono błąd typowania: result nie posiada właściwości isRecent w types.ts
+          setAchievementsIsRecent(result.data.length > 0);
         }
       }
     } catch (error) {
@@ -287,7 +286,6 @@ export function SteamProfile({ onOpenSteamIntegration }: SteamProfileProps) {
                 </div>
               </div>
             )}
-            
             {/* Offline Friends */}
             {offlineFriends.length > 0 && (
               <div>
@@ -305,7 +303,7 @@ export function SteamProfile({ onOpenSteamIntegration }: SteamProfileProps) {
                           {friend.avatarUrl && <AvatarImage src={friend.avatarUrl} alt={friend.personaName} />}
                           <AvatarFallback className="bg-zinc-800">{friend.personaName[0]}</AvatarFallback>
                         </Avatar>
-                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-zinc-900 bg-zinc-500" />
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-zinc-900 bg-green-500" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-zinc-400 truncate">{friend.personaName}</p>
@@ -316,7 +314,6 @@ export function SteamProfile({ onOpenSteamIntegration }: SteamProfileProps) {
                 </div>
               </div>
             )}
-            
             {steamFriends.length === 0 && (
               <p className="text-zinc-500 text-center py-8">Brak znajomych do wyświetlenia</p>
             )}
@@ -333,7 +330,6 @@ export function SteamProfile({ onOpenSteamIntegration }: SteamProfileProps) {
               {achievementsIsRecent ? 'Ostatnie osiągnięcia' : 'Ostatnio zdobyte'}
             </DialogTitle>
           </DialogHeader>
-          
           {isLoadingAchievements ? (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-yellow-500 mb-4" />
@@ -344,7 +340,7 @@ export function SteamProfile({ onOpenSteamIntegration }: SteamProfileProps) {
               <div className="space-y-3">
                 {!achievementsIsRecent && (
                   <p className="text-xs text-zinc-500 text-center mb-2">
-                    Brak osiągnięć z ostatnich 2 tygodni. Oto 3 ostatnio zdobyte:
+                    Brak osiągnięć z ostatnich 2 tygodni. Oto ostatnio zdobyte:
                   </p>
                 )}
                 {recentAchievements.map((achievement, idx) => (
@@ -389,7 +385,6 @@ export function SteamProfile({ onOpenSteamIntegration }: SteamProfileProps) {
               </p>
             </div>
           )}
-          
           <div className="pt-4 border-t border-zinc-800">
             <Button
               variant="outline"
@@ -410,7 +405,6 @@ export function SteamProfile({ onOpenSteamIntegration }: SteamProfileProps) {
 
 export function PlaytimeBadge({ playtime }: { playtime?: number }) {
   const hours = playtime ? Math.floor(playtime / 60) : 0;
-  
   if (playtime === undefined || playtime === null) {
     return (
       <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-[10px] px-1.5 py-0">
@@ -418,7 +412,6 @@ export function PlaytimeBadge({ playtime }: { playtime?: number }) {
       </Badge>
     );
   }
-  
   if (hours < 3) {
     return (
       <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-[10px] px-1.5 py-0">
@@ -426,6 +419,5 @@ export function PlaytimeBadge({ playtime }: { playtime?: number }) {
       </Badge>
     );
   }
-  
   return null;
 }

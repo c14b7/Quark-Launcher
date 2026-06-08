@@ -1,0 +1,230 @@
+
+> quark-launcher-web-act-l@0.0.3-beta-04a lint
+> eslint
+
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\app\page.tsx
+  9:28  warning  'isOnboardingComplete' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\components\accounts-view.tsx
+  77:17  warning  'profile' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  78:22  warning  'isLoggedIn' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  78:34  warning  'settings' is assigned a value but never used    @typescript-eslint/no-unused-vars
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\components\downloads-view.tsx
+  186:7  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\components\game-card.tsx
+   3:48  warning  'ExternalLink' is defined but never used                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+  93:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\components\game-details.tsx
+   27:46  warning  'SteamFriend' is defined but never used                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+   84:51  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  207:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  262:19  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  396:33  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  450:33  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\components\home-view.tsx
+  97:57  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  97:71  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\components\launcher.tsx
+  39:28  warning  'profile' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\components\library-view.tsx
+  270:7  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\components\news-view.tsx
+  125:6   warning  React Hook useEffect has a missing dependency: 'fetchNews'. Either include it or remove the dependency array                                                                                                                                                                             react-hooks/exhaustive-deps
+  210:17  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\components\onboarding\onboarding-screen.tsx
+   5:10  warning  'Rocket' is defined but never used    @typescript-eslint/no-unused-vars
+   5:69  warning  'Gamepad2' is defined but never used  @typescript-eslint/no-unused-vars
+  65:14  warning  'err' is defined but never used       @typescript-eslint/no-unused-vars
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\components\settings-modal.tsx
+  281:27  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\components\sidebar.tsx
+   7:3   warning  'User' is defined but never used          @typescript-eslint/no-unused-vars
+  13:3   warning  'Download' is defined but never used      @typescript-eslint/no-unused-vars
+  27:10  warning  'AIChatButton' is defined but never used  @typescript-eslint/no-unused-vars
+  47:82  warning  'onOpenChat' is defined but never used    @typescript-eslint/no-unused-vars
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\components\steam-integration-panel.tsx
+    7:3   warning  'Trophy' is defined but never used                                                                                @typescript-eslint/no-unused-vars
+   56:6   warning  React Hook useEffect has a missing dependency: 'loadSteamData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  160:14  warning  'err' is defined but never used                                                                                   @typescript-eslint/no-unused-vars
+  183:14  warning  'err' is defined but never used                                                                                   @typescript-eslint/no-unused-vars
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\components\steam-profile.tsx
+   11:3   warning  'X' is defined but never used                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+   36:10  warning  'cn' is defined but never used                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+   72:6   warning  React Hook useEffect has missing dependencies: 'fetchRecentAchievements', 'isSteamConnected', and 'recentAchievements.length'. Either include them or remove the dependency array                                                                                                        react-hooks/exhaustive-deps
+  356:23  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\lib\games-context.tsx
+   44:6  warning  React Hook useEffect has a missing dependency: 'refreshGames'. Either include it or remove the dependency array                                             react-hooks/exhaustive-deps
+   56:6  warning  React Hook useEffect has missing dependencies: 'enrichGamesWithSteamData' and 'games'. Either include them or remove the dependency array                   react-hooks/exhaustive-deps
+  172:6  warning  React Hook useCallback has unnecessary dependencies: 'settings.steamApiKey' and 'settings.steamUserId'. Either exclude them or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\lib\settings-context.tsx
+  66:5  error    Error: Cannot access variable before it is declared
+
+`loadSettings` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\lib\settings-context.tsx:66:5
+  64 |   // Load settings on mount
+  65 |   useEffect(() => {
+> 66 |     loadSettings();
+     |     ^^^^^^^^^^^^ `loadSettings` accessed before it is declared
+  67 |     loadSteamUser();
+  68 |   }, []);
+  69 |
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\lib\settings-context.tsx:137:3
+  135 |   }, []);
+  136 |
+> 137 |   const loadSettings = async () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 138 |     try {
+      | ^^^^^^^^^
+> 139 |       if (typeof window !== 'undefined' && window.electronAPI) {
+      ÔÇŽ
+      | ^^^^^^^^^
+> 154 |     setIsLoaded(true);
+      | ^^^^^^^^^
+> 155 |   };
+      | ^^^^^ `loadSettings` is declared here
+  156 |
+  157 |   const saveSettings = async () => {
+  158 |     try {                                                                                                                                                                                                                                                                             react-hooks/immutability
+  67:5  error    Error: Cannot access variable before it is declared
+
+`loadSteamUser` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\lib\settings-context.tsx:67:5
+  65 |   useEffect(() => {
+  66 |     loadSettings();
+> 67 |     loadSteamUser();
+     |     ^^^^^^^^^^^^^ `loadSteamUser` accessed before it is declared
+  68 |   }, []);
+  69 |
+  70 |   // Apply theme when settings change
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\lib\settings-context.tsx:79:3
+   77 |   }, [settings, isLoaded]);
+   78 |
+>  79 |   const loadSteamUser = async () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  80 |     try {
+      | ^^^^^^^^^
+>  81 |       if (typeof window !== 'undefined' && window.electronAPI) {
+      ÔÇŽ
+      | ^^^^^^^^^
+> 102 |     }
+      | ^^^^^^^^^
+> 103 |   };
+      | ^^^^^ `loadSteamUser` is declared here
+  104 |
+  105 |   const saveSteamUser = async (user: SteamUser | null) => {
+  106 |     try {                                                                                                                                                                                                                                      react-hooks/immutability
+  73:7  error    Error: Cannot access variable before it is declared
+
+`applyTheme` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\lib\settings-context.tsx:73:7
+  71 |   useEffect(() => {
+  72 |     if (isLoaded) {
+> 73 |       applyTheme(settings.theme);
+     |       ^^^^^^^^^^ `applyTheme` accessed before it is declared
+  74 |       applyScale(settings.uiScale);
+  75 |       saveSettings();
+  76 |     }
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\lib\settings-context.tsx:169:3
+  167 |   };
+  168 |
+> 169 |   const applyTheme = (theme: 'dark' | 'oled') => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 170 |     const html = document.documentElement;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 171 |     html.classList.remove('dark', 'oled');
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 172 |     html.classList.add(theme);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 173 |   };
+      | ^^^^^ `applyTheme` is declared here
+  174 |
+  175 |   const applyScale = (scale: number) => {
+  176 |     document.documentElement.style.setProperty('--ui-scale', scale.toString());                            react-hooks/immutability
+  74:7  error    Error: Cannot access variable before it is declared
+
+`applyScale` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\lib\settings-context.tsx:74:7
+  72 |     if (isLoaded) {
+  73 |       applyTheme(settings.theme);
+> 74 |       applyScale(settings.uiScale);
+     |       ^^^^^^^^^^ `applyScale` accessed before it is declared
+  75 |       saveSettings();
+  76 |     }
+  77 |   }, [settings, isLoaded]);
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\lib\settings-context.tsx:175:3
+  173 |   };
+  174 |
+> 175 |   const applyScale = (scale: number) => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 176 |     document.documentElement.style.setProperty('--ui-scale', scale.toString());
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 177 |     document.body.style.fontSize = `${scale * 14}px`;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 178 |   };
+      | ^^^^^ `applyScale` is declared here
+  179 |
+  180 |   const updateSettings = useCallback((updates: Partial<AppSettings>) => {
+  181 |     setSettings(prev => ({ ...prev, ...updates }));  react-hooks/immutability
+  75:7  error    Error: Cannot access variable before it is declared
+
+`saveSettings` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\lib\settings-context.tsx:75:7
+  73 |       applyTheme(settings.theme);
+  74 |       applyScale(settings.uiScale);
+> 75 |       saveSettings();
+     |       ^^^^^^^^^^^^ `saveSettings` accessed before it is declared
+  76 |     }
+  77 |   }, [settings, isLoaded]);
+  78 |
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\lib\settings-context.tsx:157:3
+  155 |   };
+  156 |
+> 157 |   const saveSettings = async () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 158 |     try {
+      | ^^^^^^^^^
+> 159 |       if (typeof window !== 'undefined' && window.electronAPI) {
+      ÔÇŽ
+      | ^^^^^^^^^
+> 166 |     }
+      | ^^^^^^^^^
+> 167 |   };
+      | ^^^^^ `saveSettings` is declared here
+  168 |
+  169 |   const applyTheme = (theme: 'dark' | 'oled') => {
+  170 |     const html = document.documentElement;                                                                                                                                                                                                                       react-hooks/immutability
+  77:6  warning  React Hook useEffect has a missing dependency: 'saveSettings'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 react-hooks/exhaustive-deps
+
+C:\Users\gpzin\Documents\GitHub\quark-l\Quark-Launcher\New\web\act-l\lib\steam-integration.ts
+  12:7   warning  'STEAM_API_BASE' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  95:89  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  97:51  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  98:37  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+
+Ôťľ 48 problems (11 errors, 37 warnings)
+

@@ -3,6 +3,10 @@ directories:
   buildResources: build
 appId: com.quark.launcher
 productName: Quark Launcher
+publish:
+  - provider: github
+    owner: c14b7
+    repo: Quark-Launcher
 files:
   - filter:
       - main.js
