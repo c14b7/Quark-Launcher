@@ -14,7 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pl" className="dark">
-      <body className="antialiased bg-zinc-950 font-mono">
+      <body className="antialiased bg-launcher-main font-mono">
         <UpdateBanner />
         {children}
       </body>

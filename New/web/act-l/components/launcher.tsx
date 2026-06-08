@@ -106,13 +106,11 @@ function LauncherContent() {
         />
 
         {/* Main View */}
-        <main className={cn(
-          "flex-1 flex flex-col overflow-hidden transition-all duration-300",
-          settings.theme === 'oled' 
-            ? 'bg-black' 
-            : 'bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950',
-          isChatOpen && 'mr-[400px]'
-        )}>
+          <main className={cn(
+            "flex-1 flex flex-col overflow-hidden transition-all duration-300",
+            "bg-launcher-main", // <-- Nasza nowa, stała klasa oparta na zmiennych CSS
+            isChatOpen && 'mr-[400px]'
+         )}>
           {currentView === 'home' && (
             <HomeView onGameSelect={handleGameSelect} />
           )}
@@ -168,7 +166,7 @@ function LauncherContent() {
     </div>
   );
 }
-
+  
 export function Launcher() {
   return (
     <TooltipProvider>

@@ -5,6 +5,10 @@ const { spawn, exec } = require('child_process');
 
 // --- update mechanism ---
 const { autoUpdater } = require('electron-updater');
+
+// Dodaj te dwie linijki pod importem:
+autoUpdater.autoDownload = false;
+autoUpdater.allowPrerelease = true;
 // const log = require('electron-log'); // Opcjonalnie, warto mieć do logów aktualizacji
 
 // Wyłączamy automatyczne pobieranie - chcemy najpierw pokazać banner użytkownikowi!
@@ -66,7 +70,9 @@ class QuarkLauncher {
       await this.ensureUserDataDir();
       this.createMainWindow();
       this.setupIpcHandlers();
+      this.setupAutoUpdater();
       this.registerProtocols();
+      
 
       app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
@@ -141,6 +147,37 @@ class QuarkLauncher {
     this.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
       shell.openExternal(url);
       return { action: 'deny' };
+    });
+  }
+  // Wklej tę metodę wewnątrz klasy QuarkLauncher:
+  setupAutoUpdater() {
+    // Sprawdzamy dostępność aktualizacji po załadowaniu okna Next.js
+    this.mainWindow.webContents.on('did-finish-load', () => {
+      console.log('[UPDATER] Checking for updates...');
+      autoUpdater.checkForUpdatesAndNotify().catch(err => {
+        console.error('[UPDATER] Pre-check error:', err);
+      });
+    });
+
+    // Reagujemy na znalezienie nowej wersji i wysyłamy info do frontendu
+    autoUpdater.on('update-available', (info) => {
+      console.log('[UPDATER] Update available:', info.version);
+      if (this.mainWindow) {
+        this.mainWindow.webContents.send('update-available-to-ui', {
+          version: info.version,
+          releaseNotes: info.releaseNotes || 'Poprawki błędów i usprawnienia stabilności.'
+        });
+      }
+    });
+
+    autoUpdater.on('error', (err) => {
+      console.error('[UPDATER] Błąd auto-updatera:', err);
+    });
+
+    // Kiedy paczka zostanie pobrana -> restart i automatyczna instalacja
+    autoUpdater.on('update-downloaded', () => {
+      console.log('[UPDATER] Update downloaded. Quark Launcher will restart now.');
+      autoUpdater.quitAndInstall();
     });
   }
 
@@ -722,6 +759,11 @@ class QuarkLauncher {
       electronVersion: process.versions.electron,
       nodeVersion: process.versions.node
     }));
+    ipcMain.handle('start-installation', async () => {
+    console.log('[UPDATER] Next.js requested installation start. Downloading update...');
+    autoUpdater.downloadUpdate(); // Uruchamia pobieranie, które potem wyzwie 'update-downloaded'
+    return true;
+  });
   }
 
   // ===== HELPER METHODS =====

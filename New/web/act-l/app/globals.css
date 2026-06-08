@@ -1,7 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-
 @custom-variant dark (&:is(.dark *));
 
 /* CommitMono Font */
@@ -45,84 +44,9 @@
   font-display: swap;
 }
 
-/* Logo font class */
-.font-logo {
-    font-family: 'Array', sans-serif;
-     src: url('./fonts/Array-Regular.otf') format('opentype');
-}
-#font-logo {
-    font-family: 'Array', sans-serif;
-     src: url('./fonts/Array-Regular.otf') format('opentype');
-}
-
-/* Loading screen animations */
-@keyframes float-blob {
-  0%, 100% {
-    transform: translate(0, 0) scale(1);
-  }
-  25% {
-    transform: translate(30%, -20%) scale(1.1);
-  }
-  50% {
-    transform: translate(-20%, 30%) scale(0.9);
-  }
-  75% {
-    transform: translate(-30%, -10%) scale(1.05);
-  }
-}
-
-@keyframes float-blob-2 {
-  0%, 100% {
-    transform: translate(0, 0) scale(1);
-  }
-  25% {
-    transform: translate(-25%, 25%) scale(1.15);
-  }
-  50% {
-    transform: translate(25%, -15%) scale(0.85);
-  }
-  75% {
-    transform: translate(15%, 20%) scale(1.1);
-  }
-}
-
-@keyframes float-blob-3 {
-  0%, 100% {
-    transform: translate(0, 0) scale(1);
-  }
-  33% {
-    transform: translate(20%, 20%) scale(1.2);
-  }
-  66% {
-    transform: translate(-15%, -25%) scale(0.9);
-  }
-}
-
-@keyframes pulse-glow {
-  0%, 100% {
-    opacity: 0.8;
-    text-shadow: 0 0 40px rgba(139, 92, 246, 0.5);
-  }
-  50% {
-    opacity: 1;
-    text-shadow: 0 0 80px rgba(139, 92, 246, 0.8), 0 0 120px rgba(99, 102, 241, 0.4);
-  }
-}
-
-.animate-float-blob {
-  animation: float-blob 20s ease-in-out infinite;
-}
-
-.animate-float-blob-2 {
-  animation: float-blob-2 25s ease-in-out infinite;
-}
-
-.animate-float-blob-3 {
-  animation: float-blob-3 18s ease-in-out infinite;
-}
-
-.animate-pulse-glow {
-  animation: pulse-glow 3s ease-in-out infinite;
+/* Logo font class - Wyczyszczone (src wywalamy z samych klas) */
+.font-logo, #font-logo {
+  font-family: 'Array', sans-serif;
 }
 
 @theme inline {
@@ -166,6 +90,41 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+
+  /* ANIMACJE DLA TAILWIND v4 (Wstrzykiwane bezpośrednio do kompilatora) */
+  --animate-float-blob: float-blob 20s ease-in-out infinite;
+  --animate-float-blob-2: float-blob-2 25s ease-in-out infinite;
+  --animate-float-blob-3: float-blob-3 18s ease-in-out infinite;
+  --animate-pulse-glow: pulse-glow 3s ease-in-out infinite;
+
+  /* KLATKI KLUCZOWE ANIMACJI DLA TAILWIND v4 */
+  @keyframes float-blob {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    25% { transform: translate(30%, -20%) scale(1.1); }
+    50% { transform: translate(-20%, 30%) scale(0.9); }
+    75% { transform: translate(-30%, -10%) scale(1.05); }
+  }
+  @keyframes float-blob-2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    25% { transform: translate(-25%, 25%) scale(1.15); }
+    50% { transform: translate(25%, -15%) scale(0.85); }
+    75% { transform: translate(15%, 20%) scale(1.1); }
+  }
+  @keyframes float-blob-3 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(20%, 20%) scale(1.2); }
+    66% { transform: translate(-15%, -25%) scale(0.9); }
+  }
+  @keyframes pulse-glow {
+    0%, 100% {
+      opacity: 0.8;
+      text-shadow: 0 0 40px rgba(139, 92, 246, 0.5);
+    }
+    50% {
+      opacity: 1;
+      text-shadow: 0 0 80px rgba(139, 92, 246, 0.8), 0 0 120px rgba(99, 102, 241, 0.4);
+    }
+  }
 }
 
 :root {
@@ -237,7 +196,7 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-/* OLED Mode - Pure black backgrounds */
+/* OLED Mode */
 .oled {
   --background: oklch(0 0 0);
   --foreground: oklch(0.985 0 0);
@@ -261,13 +220,15 @@
   --sidebar-border: oklch(1 0 0 / 8%);
 }
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+/* W v4 globalne style bazowe nadpisujemy czystym CSS, bez @layer base i @apply */
+* {
+  border-color: var(--border);
+  outline-color: color-mix(in srgb, var(--ring) 50%, transparent);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 /* Custom scrollbar */
@@ -289,7 +250,7 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* Remove outline on focus for better aesthetics */
+/* Remove outline on focus */
 *:focus {
   outline: none;
 }
@@ -299,21 +260,44 @@
   outline-offset: 2px;
 }
 
-/* Smooth transitions */
+/* Płynne przejścia */
 * {
   transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
 
-/* Image loading */
 img {
   transition: opacity 0.3s ease;
 }
 
-/* Selection color */
 ::selection {
   background: rgba(139, 92, 246, 0.3);
   color: white;
 }
 
+.hover-game-card {
+  /* Nadpisujemy globalny transition-duration dla super płynnego efektu uginania/uniesienia */
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), 
+              box-shadow 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), 
+              border-color 0.25s ease;
+  will-change: transform, box-shadow;
+}
+
+.hover-game-card:hover {
+  /* Podniesienie karty o 6 pikseli w górę i delikatne przeskalowanie */
+  transform: translateY(-6px) scale(1.02);
+  
+  /* Przestrzenny, mroczny cień nadający karcie głębię 3D */
+  box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.6), 
+              0 4px 12px -5px rgba(139, 92, 246, 0.15); /* Subtelny fioletowy glow */
+              
+  /* Rozjaśnienie krawędzi, żeby odcięła się od ciemnego tła */
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Kliknięcie karty - efekt fizycznego wciśnięcia (Active state) */
+.hover-game-card:active {
+  transform: translateY(-2px) scale(0.99);
+  box-shadow: 0 6px 12px -8px rgba(0, 0, 0, 0.8);
+}

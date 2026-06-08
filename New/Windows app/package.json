@@ -1,8 +1,8 @@
 {
   "name": "quark",
-  "version": "0.0.4-beta-01",
+  "version": "0.0.4-beta-01a",
   "description": "game launcher for Windows",
-  "main": "main.js",
+  "main": "main.js",              
   "scripts": {
     "start": "electron .",
     "dev": "concurrently \"npm run next:dev\" \"wait-on http://localhost:30211 && electron .\"",
@@ -11,7 +11,7 @@
     "build": "npm run next:build && electron-builder",
     "pack": "npm run next:build && electron-builder --dir",
     "release": "npm run next:build && electron-builder --publish always"
-  },
+  },              
   "author": "c14b7",
   "license": "MIT",
   "devDependencies": {
@@ -36,7 +36,9 @@
     ],
     "files": [
       "main.js",
-      "preload.js"
+        "preload.js",
+       "assets/**/*",
+       "package.json"
     ],
     "extraResources": [
       {

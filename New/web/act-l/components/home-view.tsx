@@ -80,6 +80,7 @@ export function HomeView({ onGameSelect }: HomeViewProps) {
                     game={game}
                     variant="large"
                     onClick={() => onGameSelect(game)}
+                    className="hover-game-card" // <-- Płynna animacja podnoszenia dla dużych kart
                   />
                 ))}
               </div>
@@ -104,6 +105,7 @@ export function HomeView({ onGameSelect }: HomeViewProps) {
                     game={game}
                     variant="medium"
                     onClick={() => onGameSelect(game)}
+                    className="hover-game-card" // <-- Płynna animacja podnoszenia dla reszty biblioteki
                   />
                 ))}
               </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { Play, Star, HardDrive, EyeOff, Store, ExternalLink } from 'lucide-react';
+import { Play, Star, HardDrive, EyeOff, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   ContextMenu,
@@ -20,9 +20,10 @@ interface GameCardProps {
   game: Game;
   variant?: 'large' | 'medium' | 'small';
   onClick?: () => void;
+  className?: string; // <-- Teraz interfejs oficjalnie akceptuje klasę zewnętrzną
 }
 
-export function GameCard({ game, variant = 'medium', onClick }: GameCardProps) {
+export function GameCard({ game, variant = 'medium', onClick, className }: GameCardProps) {
   const { toggleFavorite, launchGame } = useGames();
   const { hideGame } = useSettings();
   const [imageError, setImageError] = useState(false);
@@ -45,7 +46,6 @@ export function GameCard({ game, variant = 'medium', onClick }: GameCardProps) {
     if (game.platform === 'steam') {
       window.open(`https://store.steampowered.com/app/${game.id}`, '_blank');
     } else if (game.platform === 'epic') {
-      // Epic Games Store doesn't have direct links by AppName, but we can try the general store
       window.open('https://store.epicgames.com/browse', '_blank');
     } else if (game.platform === 'xbox') {
       window.open(`https://www.xbox.com/games/store/${game.id}`, '_blank');
@@ -62,14 +62,12 @@ export function GameCard({ game, variant = 'medium', onClick }: GameCardProps) {
     }
   };
 
-  // Mniejsze kafelki
   const sizeClasses = {
     large: 'aspect-[21/9] min-h-[140px]',
     medium: 'aspect-[16/9] min-h-[80px]',
     small: 'aspect-[16/9] min-h-[60px]'
   };
 
-  // Use header image for cards (better quality and always available)
   const imageUrl = imageError ? '' : (game.image || game.hero);
 
   return (
@@ -77,11 +75,19 @@ export function GameCard({ game, variant = 'medium', onClick }: GameCardProps) {
       <ContextMenuTrigger>
         <div
           className={cn(
-            'relative rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300',
+            'relative rounded-2xl overflow-hidden cursor-pointer group',
             'bg-zinc-800/80 border border-white/5 shadow-md',
-            'hover:border-violet-500/50 hover:shadow-[0_0_20px_rgba(139,92,246,0.3)]',
-            'hover:-translate-y-1 hover:z-10',
-            sizeClasses[variant]
+            
+            /* MAŚLANA ANIMACJA PODNOSZENIA (Bazuje na niestandardowym cubic-bezier) */
+            'transition-[transform,box-shadow,border-color] duration-300 [transition-timing-function:cubic-bezier(0.2,0.8,0.2,1)]',
+            'hover:-translate-y-1.5 hover:scale-[1.01] hover:z-10',
+            'hover:border-violet-500/40 hover:shadow-[0_15px_30px_-10px_rgba(0,0,0,0.6),0_5px_15px_-5px_rgba(139,92,246,0.2)]',
+            
+            /* EFEKT FIZYCZNEGO KLIKNIĘCIA (Wciśnięcie karty) */
+            'active:scale-[0.98] active:translate-y-0 active:duration-700',
+            
+            sizeClasses[variant],
+            className // <-- Wstrzyknięcie ewentualnej klasy nadrzędnej z zachowaniem specyfiki Tailwinda
           )}
           onClick={onClick}
           onMouseEnter={() => setIsHovered(true)}
@@ -127,7 +133,7 @@ export function GameCard({ game, variant = 'medium', onClick }: GameCardProps) {
             )}
           </div>
 
-          {/* Playtime Badge + Platform Badge - top left */}
+          {/* Playtime Badge + Platform Badge */}
           <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 flex-wrap max-w-[80%]">
             <PlaytimeBadge playtime={game.playtime} />
             
@@ -152,7 +158,7 @@ export function GameCard({ game, variant = 'medium', onClick }: GameCardProps) {
             </div>
           </div>
 
-          {/* Content - zawsze nazwa gry, nie logo */}
+          {/* Content */}
           <div className="absolute inset-x-0 bottom-0 p-4 flex flex-col justify-end">
             <div className={cn(
               "transition-transform duration-300",
@@ -165,7 +171,7 @@ export function GameCard({ game, variant = 'medium', onClick }: GameCardProps) {
                 {game.name}
               </h3>
 
-              {/* Play Button - appears on hover */}
+              {/* Play Button */}
               <div
                 className={cn(
                   'flex items-center gap-2 transition-all duration-300',

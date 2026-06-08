@@ -11,6 +11,8 @@ files:
   - filter:
       - main.js
       - preload.js
+      - assets/**/*
+      - package.json
 extraResources:
   - from: ../web/act-l/out
     to: app
