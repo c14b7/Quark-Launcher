@@ -77,10 +77,10 @@ export function GameCard({ game, variant = 'medium', onClick }: GameCardProps) {
       <ContextMenuTrigger>
         <div
           className={cn(
-            'relative rounded-xl overflow-hidden cursor-pointer group transition-all duration-300',
-            'bg-zinc-800/50 border border-white/5',
-            'hover:border-violet-500/50 hover:shadow-xl hover:shadow-violet-500/10',
-            'hover:scale-[1.02] hover:z-10',
+            'relative rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300',
+            'bg-zinc-800/80 border border-white/5 shadow-md',
+            'hover:border-violet-500/50 hover:shadow-[0_0_20px_rgba(139,92,246,0.3)]',
+            'hover:-translate-y-1 hover:z-10',
             sizeClasses[variant]
           )}
           onClick={onClick}
@@ -94,25 +94,30 @@ export function GameCard({ game, variant = 'medium', onClick }: GameCardProps) {
                 src={imageUrl}
                 alt={game.name}
                 className={cn(
-                  'w-full h-full object-cover transition-all duration-500',
-                  isHovered && 'scale-105 brightness-75'
+                  'w-full h-full object-cover transition-transform duration-700 ease-out',
+                  isHovered ? 'scale-110 brightness-[0.6]' : 'scale-105 brightness-90'
                 )}
                 onError={() => setImageError(true)}
                 loading="lazy"
               />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-violet-600/20 via-zinc-800 to-zinc-900 flex flex-col items-center justify-center p-6 text-center">
-                <div className="text-6xl font-black text-white/30 mb-3 tracking-tighter">{game.name[0]}</div>
-                <div className="text-sm font-semibold text-white/70 line-clamp-3 max-w-[80%]">{game.name}</div>
+              <div className="w-full h-full bg-gradient-to-br from-zinc-800 via-zinc-900 to-black flex flex-col items-center justify-center p-6 text-center">
+                <div className="text-5xl font-black text-white/20 mb-3 tracking-tighter drop-shadow-sm">{game.name.substring(0, 2).toUpperCase()}</div>
+                <div className="text-xs font-medium text-white/50 line-clamp-2 max-w-[80%]">{game.name}</div>
                 {game.platform === 'epic' && (
-                  <div className="mt-3 px-3 py-1 bg-violet-500/20 border border-violet-500/30 rounded-full">
-                    <span className="text-xs text-violet-300 font-medium">Epic Games</span>
+                  <div className="mt-3 px-2 py-0.5 bg-zinc-800/80 border border-zinc-700 rounded-md">
+                    <span className="text-[10px] text-white/70 font-semibold tracking-wider">EPIC GAMES</span>
                   </div>
                 )}
               </div>
             )}
             {/* Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+            <div className={cn(
+              "absolute inset-0 bg-gradient-to-t transition-opacity duration-300",
+              isHovered 
+                ? "from-black/95 via-black/40 to-transparent opacity-100" 
+                : "from-black/80 via-black/10 to-transparent opacity-80"
+            )} />
           </div>
 
           {/* Favorite Star */}
@@ -123,59 +128,62 @@ export function GameCard({ game, variant = 'medium', onClick }: GameCardProps) {
           </div>
 
           {/* Playtime Badge + Platform Badge - top left */}
-          <div className="absolute top-2 left-2 z-10 flex items-center gap-1">
+          <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 flex-wrap max-w-[80%]">
             <PlaytimeBadge playtime={game.playtime} />
             
             {/* Platform Badge */}
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-black/50 backdrop-blur-sm border border-white/10">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 shadow-sm">
               {game.platform === 'steam' && (
-                <svg className="h-3 w-3 text-white" viewBox="0 0 24 24" fill="currentColor">
+                <svg className="h-3 w-3 text-zinc-300" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
                 </svg>
               )}
               {game.platform === 'epic' && (
-                <svg className="h-3 w-3 text-white" viewBox="0 0 24 24" fill="currentColor">
+                <svg className="h-3 w-3 text-zinc-300" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18L19.82 8 12 11.82 4.18 8 12 4.18zM4 9.48l7 3.5v6.84l-7-3.5V9.48zm16 0v6.84l-7 3.5v-6.84l7-3.5z"/>
                 </svg>
               )}
               {game.platform === 'xbox' && (
-                <svg className="h-3 w-3 text-white" viewBox="0 0 24 24" fill="currentColor">
+                <svg className="h-3 w-3 text-zinc-300" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M4.102 21.033A11.947 11.947 0 0 0 12 24a11.96 11.96 0 0 0 7.902-2.967c1.877-1.912-4.316-8.709-7.902-11.417-3.582 2.708-9.779 9.505-7.898 11.417z"/>
                 </svg>
               )}
-              <span className="text-[10px] text-white/80 uppercase font-medium">{game.platform}</span>
+              <span className="text-[9px] text-zinc-300 font-bold tracking-wider">{game.platform}</span>
             </div>
           </div>
 
           {/* Content - zawsze nazwa gry, nie logo */}
-          <div className="absolute inset-0 p-3 flex flex-col justify-end">
-            <div className="mb-1">
+          <div className="absolute inset-x-0 bottom-0 p-4 flex flex-col justify-end">
+            <div className={cn(
+              "transition-transform duration-300",
+              isHovered ? "translate-y-0" : "translate-y-2"
+            )}>
               <h3 className={cn(
-                'font-bold text-white drop-shadow-lg line-clamp-2',
-                variant === 'large' ? 'text-xl' : 'text-xs'
+                'font-bold text-white drop-shadow-md line-clamp-2 leading-tight',
+                variant === 'large' ? 'text-2xl mb-3' : 'text-sm mb-2'
               )}>
                 {game.name}
               </h3>
-            </div>
 
-            {/* Play Button - appears on hover */}
-            <div
-              className={cn(
-                'flex items-center gap-2 transition-all duration-200',
-                isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-              )}
-            >
-              <Button
-                size="sm"
+              {/* Play Button - appears on hover */}
+              <div
                 className={cn(
-                  'bg-white text-black hover:bg-white/90 font-semibold shadow-lg gap-1.5 rounded-lg',
-                  variant === 'large' ? 'h-9 px-5' : 'h-6 px-3 text-xs'
+                  'flex items-center gap-2 transition-all duration-300',
+                  isHovered ? 'opacity-100' : 'opacity-0'
                 )}
-                onClick={handlePlay}
               >
-                <Play className={cn('fill-current', variant === 'large' ? 'h-4 w-4' : 'h-3 w-3')} />
-                Graj
-              </Button>
+                <Button
+                  size="sm"
+                  className={cn(
+                    'bg-white text-black hover:bg-zinc-200 font-bold shadow-[0_0_15px_rgba(255,255,255,0.3)] gap-1.5 rounded-xl border border-white/20',
+                    variant === 'large' ? 'h-10 px-6 text-sm' : 'h-8 px-4 text-xs'
+                  )}
+                  onClick={handlePlay}
+                >
+                  <Play className={cn('fill-current', variant === 'large' ? 'h-4 w-4' : 'h-3 w-3')} />
+                  Uruchom
+                </Button>
+              </div>
             </div>
           </div>
         </div>

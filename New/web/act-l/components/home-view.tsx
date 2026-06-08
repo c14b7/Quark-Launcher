@@ -6,7 +6,7 @@ import { useGames } from '@/lib/games-context';
 import { useSettings } from '@/lib/settings-context';
 import { Game } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RefreshCw, Gamepad2 } from 'lucide-react';
+import { RefreshCw, Gamepad2, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -15,17 +15,19 @@ interface HomeViewProps {
 }
 
 export function HomeView({ onGameSelect }: HomeViewProps) {
-  const { games, favoriteGames, isLoading, refreshGames } = useGames();
+  const { games, favoriteGames, isLoading, refreshGames, searchQuery, filteredGames } = useGames();
   const { settings } = useSettings();
 
   // Filtruj ukryte gry
-  const visibleGames = games.filter(g => !settings.hiddenGames.includes(g.id));
+  const visibleGames = (searchQuery ? filteredGames : games).filter(g => !settings.hiddenGames.includes(g.id));
   const visibleFavorites = favoriteGames.filter(g => !settings.hiddenGames.includes(g.id));
 
-  // Top 3 favorite games for featured section (max 3)
-  const featuredGames = visibleFavorites.length > 0 
-    ? visibleFavorites.slice(0, 3) 
-    : visibleGames.slice(0, 3);
+  // Top 3 favorite games for featured section (max 3) - only if not searching
+  const featuredGames = !searchQuery 
+    ? (visibleFavorites.length > 0 
+      ? visibleFavorites.slice(0, 3) 
+      : visibleGames.slice(0, 3))
+    : [];
 
   // Rest of the games
   const allGames = visibleGames.filter(g => !featuredGames.find(f => f.id === g.id));
@@ -61,13 +63,17 @@ export function HomeView({ onGameSelect }: HomeViewProps) {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col overflow-hidden bg-gradient-to-b from-black/20 to-transparent">
       <ScrollArea className="flex-1 h-full">
-        <div className="p-5 space-y-5 pb-24">
+        <div className="p-6 md:p-8 space-y-10 pb-24">
           {/* Featured Games - Large Cards - adaptacyjna szerokość */}
           {featuredGames.length > 0 && (
-            <section>
-              <div className={cn('grid gap-3', getBannerGridClass())}>
+            <section className="space-y-4">
+              <h2 className="text-xl font-bold tracking-tight text-white/90 flex items-center gap-2 drop-shadow-md">
+                <Star className="h-5 w-5 text-violet-500 fill-violet-500" />
+                {visibleFavorites.length > 0 ? "Ulubione gry" : "Proponowane dla Ciebie"}
+              </h2>
+              <div className={cn('grid gap-4', getBannerGridClass())}>
                 {featuredGames.map((game) => (
                   <GameCard
                     key={game.id}
@@ -81,17 +87,27 @@ export function HomeView({ onGameSelect }: HomeViewProps) {
           )}
 
           {/* All Games Grid - mniejsze kafelki */}
-          <section>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2">
-              {allGames.map((game, index) => (
-                <GameCard
-                  key={`home-${game.id}-${index}`}
-                  game={game}
-                  variant="medium"
-                  onClick={() => onGameSelect(game)}
-                />
-              ))}
-            </div>
+          <section className="space-y-4">
+            <h2 className="text-xl font-bold tracking-tight text-white/90 flex items-center gap-2 mt-4 drop-shadow-md">
+               <Gamepad2 className="h-5 w-5 text-zinc-400" />
+               {searchQuery ? "Wyniki wyszukiwania" : "Biblioteka gier"} <span className="text-xs font-medium bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full ml-1">{allGames.length}</span>
+            </h2>
+            {allGames.length === 0 && searchQuery ? (
+              <div className="flex flex-col items-center justify-center py-20 text-zinc-500">
+                <p className="text-lg">Brak wyników dla "{searchQuery}"</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3 md:gap-4">
+                {allGames.map((game, index) => (
+                  <GameCard
+                    key={`home-${game.id}-${index}`}
+                    game={game}
+                    variant="medium"
+                    onClick={() => onGameSelect(game)}
+                  />
+                ))}
+              </div>
+            )}
           </section>
         </div>
       </ScrollArea>

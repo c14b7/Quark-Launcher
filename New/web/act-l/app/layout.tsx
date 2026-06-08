@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import UpdateBanner from "../components/update/baner";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,6 +15,7 @@ export default function RootLayout({
   return (
     <html lang="pl" className="dark">
       <body className="antialiased bg-zinc-950 font-mono">
+        <UpdateBanner />
         {children}
       </body>
     </html>

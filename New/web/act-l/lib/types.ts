@@ -110,10 +110,16 @@ export interface SteamInstallation {
   path: string | null;
 }
 
+// Interfejs informacji o aktualizacji przekazywany do UI
+export interface UpdateInfo {
+  version: string;
+  releaseNotes: string;
+}
+
 // Electron API types
 declare global {
   interface Window {
-    electronAPI?: {
+    electronAPI: {
       // Steam API Proxy (fix CORS)
       steamApiFetch: (endpoint: string, params: Record<string, string>) => Promise<{
         success: boolean;
@@ -194,6 +200,12 @@ declare global {
         electronVersion: string;
         nodeVersion: string;
       }>;
+      
+      // --- UPDATE MECHANISM ---
+      // Subskrypcja powiadomienia o nowej wersji (Zwraca funkcję czyszczącą)
+      onUpdateAvailable: (callback: (info: UpdateInfo) => void) => () => void;
+      // Wymuszenie pobierania i instalacji
+      startInstallation: () => Promise<boolean>;
       
       // Platform
       platform: string;

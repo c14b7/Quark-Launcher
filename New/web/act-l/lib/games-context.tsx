@@ -80,7 +80,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     console.log('[GAMES] Steam User ID:', settings.steamUserId);
     
     try {
-      if (typeof window !== 'undefined' && window.electronAPI?.steamGetOwnedGames) {
+      if (typeof window !== 'undefined' && window.electronAPI.steamGetOwnedGames) {
         const result = await window.electronAPI.steamGetOwnedGames(
           settings.steamApiKey,
           settings.steamUserId

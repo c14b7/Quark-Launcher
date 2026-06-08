@@ -70,7 +70,7 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
         setIsLoadingAchievements(true);
         try {
           // Preferuj Electron API jeśli dostępne
-          if (typeof window !== 'undefined' && window.electronAPI?.steamGetAchievements) {
+          if (typeof window !== 'undefined' && window.electronAPI.steamGetAchievements) {
             console.log('[ACHIEVEMENTS] Using Electron API...');
             const result = await window.electronAPI.steamGetAchievements(
               settings.steamApiKey,
@@ -81,7 +81,7 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
             
             if (result.success && result.data) {
               // Dane z Electron API już mają poprawny format
-              setAchievements(result.data.map(a => ({
+              setAchievements(result.data.map((a: any) => ({
                 apiname: a.apiname || '',
                 name: a.name || a.apiname || '',
                 description: a.description || '',

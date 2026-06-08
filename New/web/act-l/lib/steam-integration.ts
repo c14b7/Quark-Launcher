@@ -94,7 +94,7 @@ export function getPersonaStateText(state: number): string {
 // Helper function to fetch Steam API with Electron proxy or direct
 async function fetchSteamAPI(endpoint: string, params: Record<string, string>): Promise<any> {
   // Check if running in Electron with proxy available
-  if (typeof window !== 'undefined' && (window as any).electronAPI?.steamApiFetch) {
+  if (typeof window !== 'undefined' && (window as any).electronAPI.steamApiFetch) {
     const result = await (window as any).electronAPI.steamApiFetch(endpoint, params);
     if (result.success) {
       return result.data;

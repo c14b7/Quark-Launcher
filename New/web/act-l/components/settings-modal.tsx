@@ -72,10 +72,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         <div className="flex gap-1 p-4 border-b border-white/5 overflow-x-auto">
           {[
             { id: 'general', label: 'Ogólne' },
-            { id: 'ai', label: 'Asystent AI' },
+            /* { id: 'ai', label: 'Asystent AI' }, */
             { id: 'hidden', label: 'Ukryte gry' },
             { id: 'categories', label: 'Kategorie' },
-            { id: 'admin', label: 'Admin' }
+            { id: 'admin', label: 'Dev settings' }
           ].map(tab => (
             <Button
               key={tab.id}
@@ -115,7 +115,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <Button
                       variant="outline"
                       className={cn(
-                        'flex-1 gap-2 rounded-xl border-white/10',
+                        'flex-1 gap-2 rounded-xl border-white/10  ',
                         settings.theme === 'oled' && 'bg-white/10 border-violet-500'
                       )}
                       onClick={() => updateSettings({ theme: 'oled' })}
@@ -372,10 +372,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <div className="p-4 rounded-xl bg-gradient-to-br from-red-500/10 to-orange-500/10 border border-red-500/20">
                   <div className="flex items-center gap-3 mb-2">
                     <Shield className="h-5 w-5 text-red-400" />
-                    <h3 className="font-semibold text-white">Panel Administratora</h3>
+                    <h3 className="font-semibold text-white">Panel administracyjny</h3>
                   </div>
                   <p className="text-xs text-zinc-400">
-                    Narzędzia deweloperskie i administracyjne. Używaj ostrożnie!
+                    DevTools
                   </p>
                 </div>
 
@@ -554,6 +554,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <div className="text-zinc-500">Screen: <span className="text-white">{typeof window !== 'undefined' ? `${window.screen.width}x${window.screen.height}` : 'N/A'}</span></div>
                   </div>
                 </div>
+                  <Button variant="secondary">Button</Button>
               </div>
             )}
           </div>

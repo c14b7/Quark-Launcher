@@ -37,14 +37,22 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'Array';
+  src: url('./fonts/Array-Regular.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Logo font class */
 .font-logo {
-    font-family: 'HedvigLettersSans', sans-serif;
-     src: url('./fonts/HedvigLettersSans-Regular.otf') format('opentype');
+    font-family: 'Array', sans-serif;
+     src: url('./fonts/Array-Regular.otf') format('opentype');
 }
 #font-logo {
-    font-family: 'HedvigLettersSans', sans-serif;
-     src: url('./fonts/HedvigLettersSans-Regular.otf') format('opentype');
+    font-family: 'Array', sans-serif;
+     src: url('./fonts/Array-Regular.otf') format('opentype');
 }
 
 /* Loading screen animations */

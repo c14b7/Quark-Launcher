@@ -25,8 +25,11 @@ export function TitleBar() {
 
   const handleMaximize = async () => {
     if (typeof window !== 'undefined' && window.electronAPI) {
-      const maximized = await window.electronAPI.windowMaximize();
-      setIsMaximized(maximized);
+      await window.electronAPI.windowMaximize();
+// Skoro funkcja się wykonała, pytamy Electrona o aktualny stan okna 
+// (widzę w Twoim preload.js, że masz do tego dedykowaną funkcję):
+const isNowMaximized = await window.electronAPI.windowIsMaximized();
+setIsMaximized(isNowMaximized);
     }
   };
 

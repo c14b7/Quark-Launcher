@@ -56,7 +56,7 @@ export function NewsView() {
       }
 
       // Używamy Electron API do pobrania newsów
-      if (typeof window !== 'undefined' && window.electronAPI?.steamGetNews) {
+      if (typeof window !== 'undefined' && window.electronAPI.steamGetNews) {
         const result = await window.electronAPI.steamGetNews(appIds, 5);
         
         if (result.success && result.data) {

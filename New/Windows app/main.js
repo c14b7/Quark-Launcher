@@ -3,6 +3,51 @@ const path = require('path');
 const fs = require('fs').promises;
 const { spawn, exec } = require('child_process');
 
+// --- update mechanism ---
+const { autoUpdater } = require('electron-updater');
+// const log = require('electron-log'); // Opcjonalnie, warto mieć do logów aktualizacji
+
+// Wyłączamy automatyczne pobieranie - chcemy najpierw pokazać banner użytkownikowi!
+autoUpdater.autoDownload = false;
+
+app.whenReady().then(() => {
+  const win = createWindow(); // Twoja funkcja tworząca okno
+
+  // Sprawdzamy dostępność aktualizacji chwile po uruchomieniu okna
+  win.webContents.on('did-finish-load', () => {
+    autoUpdater.checkForUpdates();
+  });
+
+  // Reagujemy na znalezienie nowej wersji
+  autoUpdater.on('update-available', (info) => {
+    // info.version -> string (np. "1.1.0")
+    // info.releaseNotes -> string/array (Twoje "What's new" wpisane na GitHubie)
+    win.webContents.send('update-available-to-ui', {
+      version: info.version,
+      releaseNotes: info.releaseNotes || 'Poprawki błędów i usprawnienia stabilności.'
+    });
+  });
+
+  // Błędy podczas sprawdzania aktualizacji
+  autoUpdater.on('error', (err) => {
+    console.error('Błąd auto-updatera:', err);
+  });
+
+  // Kiedy paczka zostanie pobrana -> restart i instalacja
+  autoUpdater.on('update-downloaded', () => {
+    autoUpdater.quitAndInstall();
+  });
+});
+
+// Obsługa kliknięcia przycisku w Next.js przez invoke
+ipcMain.handle('start-installation', async () => {
+  autoUpdater.downloadUpdate(); // Zaczyna pobieranie w tle
+  return true;
+});
+
+// --- koniec update mechanism ---
+
+
 const isDev = !app.isPackaged;
 
 class QuarkLauncher {
@@ -880,16 +925,57 @@ class QuarkLauncher {
       }
 
       console.log(`[EPIC] Fetching images for: ${displayName}`);
-
+      
       const https = require('https');
+      const cleanedName = displayName.replace(/[™®©:]/g, '').trim();
       
-      // Wyczyść nazwę gry do wyszukiwania
-      const cleanedName = displayName
-        .replace(/[™®©:]/g, '')
-        .replace(/\s+/g, '_')
-        .trim();
-      
-      // Spróbuj pobrać obrazek z Wikimedia Commons przez Wikipedia API
+      // Krok 1: Próba wyszukania w API Sklepu Steam
+      try {
+        const steamSearchUrl = `https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(cleanedName)}&l=english&cc=US`;
+        const steamImages = await new Promise((resolve, reject) => {
+          https.get(steamSearchUrl, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+              if (res.statusCode === 200) {
+                try {
+                  const json = JSON.parse(data);
+                  if (json.items && json.items.length > 0) {
+                    // Znajdź dokładne lub najlepsze dopasowanie
+                    const match = json.items.find(item => item.name.toLowerCase() === cleanedName.toLowerCase() && item.type === 'app') || json.items[0];
+                    if (match && match.id) {
+                      const appId = match.id;
+                      console.log(`[EPIC] Found Steam equivalent for ${displayName}: AppId ${appId}`);
+                      resolve({
+                        image: `https://steamcdn-a.akamaihd.net/steam/apps/${appId}/header.jpg`,
+                        hero: `https://steamcdn-a.akamaihd.net/steam/apps/${appId}/library_hero.jpg`,
+                        logo: `https://steamcdn-a.akamaihd.net/steam/apps/${appId}/logo.png`,
+                        capsule: `https://steamcdn-a.akamaihd.net/steam/apps/${appId}/library_600x900.jpg`,
+                        background: `https://steamcdn-a.akamaihd.net/steam/apps/${appId}/page_bg_generated_v6b.jpg`
+                      });
+                      return;
+                    }
+                  }
+                } catch (e) {}
+              }
+              resolve(null);
+            });
+          }).on('error', () => resolve(null));
+        });
+
+        if (steamImages) {
+          // Zapisz do cache
+          await fs.writeFile(cacheFile, JSON.stringify({
+            timestamp: Date.now(),
+            images: steamImages
+          }));
+          return steamImages;
+        }
+      } catch (err) {
+        console.log('[EPIC] Steam API search failed:', err.message);
+      }
+
+      // Krok 2: Fallback - Wikipedia API
       const searchQuery = encodeURIComponent(displayName.replace(/[™®©]/g, '').trim());
       const wikiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${searchQuery}_(video_game)`;
       

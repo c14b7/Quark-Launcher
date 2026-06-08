@@ -1,6 +1,6 @@
 {
   "name": "quark",
-  "version": "0.0.3-beta-04a",
+  "version": "0.0.4-beta-01",
   "description": "game launcher for Windows",
   "main": "main.js",
   "scripts": {
@@ -9,7 +9,8 @@
     "next:dev": "cd ../web/act-l && npm run dev -- -p 30211",
     "next:build": "cd ../web/act-l && npm run build",
     "build": "npm run next:build && electron-builder",
-    "pack": "npm run next:build && electron-builder --dir"
+    "pack": "npm run next:build && electron-builder --dir",
+    "release": "npm run next:build && electron-builder --publish always"
   },
   "author": "c14b7",
   "license": "MIT",
@@ -20,12 +21,19 @@
     "electron-packager": "^17.1.2",
     "wait-on": "^7.2.0"
   },
-  "build": {
+"build": {
     "appId": "com.quark.launcher",
     "productName": "Quark Launcher",
     "directories": {
       "output": "dist"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "c14b7",
+        "repo": "Quark-Launcher"
+      }
+    ],
     "files": [
       "main.js",
       "preload.js"
@@ -34,12 +42,17 @@
       {
         "from": "../web/act-l/out",
         "to": "app",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "win": {
       "target": "nsis",
       "icon": "assets/icon.ico"
     }
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
   }
 }

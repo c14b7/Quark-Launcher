@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Home,
   Library,
@@ -12,6 +12,7 @@ import {
   Star,
   Download,
   Bell,
+  Command,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -46,6 +47,19 @@ const navItems = [
 export function Sidebar({ currentView, onNavigate, onGameSelect, onOpenSettings, onOpenChat, onOpenSteamIntegration }: SidebarProps) {
   const { games, searchQuery, setSearchQuery, filteredGames } = useGames();
   const [isGamesExpanded, setIsGamesExpanded] = useState(true);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Keyboard shortcut to focus search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Sortuj gry: ulubione na górze, potem reszta
   const sortedGames = [...(searchQuery ? filteredGames : games)].sort((a, b) => {
@@ -67,14 +81,19 @@ export function Sidebar({ currentView, onNavigate, onGameSelect, onOpenSettings,
 
       {/* Search */}
       <div className="px-3 pt-3 pb-2">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+        <div className="relative group">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 transition-colors group-focus-within:text-violet-500" />
           <Input
+            ref={searchInputRef}
             placeholder="Szukaj gier..."
-            className="pl-8 h-8 bg-zinc-900/50 border-white/5 text-xs placeholder:text-zinc-600 focus-visible:ring-violet-500/50 rounded-xl"
+            className="pl-8 pr-12 h-9 bg-zinc-900/80 border-white/10 hover:border-white/20 text-xs placeholder:text-zinc-500 focus-visible:ring-1 focus-visible:ring-violet-500 focus-visible:border-violet-500 transition-all rounded-xl shadow-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+          <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-50 group-focus-within:opacity-0 transition-opacity pointer-events-none">
+            <Command className="h-3 w-3" />
+            <span className="text-[10px] font-medium tracking-tighter">K</span>
+          </div>
         </div>
       </div>
 
@@ -156,7 +175,7 @@ export function Sidebar({ currentView, onNavigate, onGameSelect, onOpenSettings,
       {/* Bottom Section */}
       <div className="p-3 border-t border-white/5 space-y-2">
         {/* AI Chat Button */}
-        <AIChatButton onClick={onOpenChat || (() => {})} />
+        {/* <AIChatButton onClick={onOpenChat || (() => {})} /> */}
         
         <Separator className="bg-white/5" />
         

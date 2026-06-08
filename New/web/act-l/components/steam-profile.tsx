@@ -79,7 +79,7 @@ export function SteamProfile({ onOpenSteamIntegration }: SteamProfileProps) {
       const steamGames = games.filter(g => g.platform === 'steam');
       const appIds = steamGames.map(g => g.id);
 
-      if (typeof window !== 'undefined' && window.electronAPI?.steamGetRecentAchievements) {
+      if (typeof window !== 'undefined' && window.electronAPI.steamGetRecentAchievements) {
         const result = await window.electronAPI.steamGetRecentAchievements(
           settings.steamApiKey,
           settings.steamUserId,
