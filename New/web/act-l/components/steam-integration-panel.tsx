@@ -108,11 +108,25 @@ export function SteamIntegrationPanel() {
     try {
       let steamId = steamIdInput.trim();
       
-      // Check if it's a URL
-      if (steamId.includes('steamcommunity.com')) {
-        const match = steamId.match(/(?:id|profiles)\/([^\/]+)/);
-        if (match) {
-          steamId = match[1];
+      // Check if it's a Steam Community profile URL
+      let parsedUrl: URL | null = null;
+      try {
+        parsedUrl = new URL(steamId);
+      } catch {
+        try {
+          parsedUrl = new URL(`https://${steamId}`);
+        } catch {
+          parsedUrl = null;
+        }
+      }
+
+      if (parsedUrl) {
+        const allowedHosts = new Set(['steamcommunity.com', 'www.steamcommunity.com']);
+        if (allowedHosts.has(parsedUrl.hostname.toLowerCase())) {
+          const match = parsedUrl.pathname.match(/^\/(?:id|profiles)\/([^/]+)/);
+          if (match) {
+            steamId = match[1];
+          }
         }
       }
 
