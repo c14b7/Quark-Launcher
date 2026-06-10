@@ -1,6 +1,6 @@
 {
   "name": "quark",
-  "version": "0.0.4-beta-01a",
+  "version": "v0.0.4-beta03c",
   "description": "game launcher for Windows",
   "main": "main.js",              
   "scripts": {

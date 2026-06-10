@@ -10,6 +10,10 @@ import { RefreshCw, Gamepad2, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
+// 1. POPRAWKA: Importujemy jako nazwę z Wielkiej Litery w nawiasach klamrowych {}
+// (Ponieważ w pliku baneru użyliśmy "export function UpBanner")
+import { UpBanner } from './up_banner'; 
+
 interface HomeViewProps {
   onGameSelect: (game: Game) => void;
 }
@@ -66,6 +70,10 @@ export function HomeView({ onGameSelect }: HomeViewProps) {
     <div className="flex-1 flex flex-col overflow-hidden bg-gradient-to-b from-black/20 to-transparent">
       <ScrollArea className="flex-1 h-full">
         <div className="p-6 md:p-8 space-y-10 pb-24">
+          
+          {/* 2. POPRAWKA: Wywołujemy komponent poprawnie z Wielkiej Litery */}
+          <UpBanner />
+
           {/* Featured Games - Large Cards - adaptacyjna szerokość */}
           {featuredGames.length > 0 && (
             <section className="space-y-4">
@@ -80,7 +88,7 @@ export function HomeView({ onGameSelect }: HomeViewProps) {
                     game={game}
                     variant="large"
                     onClick={() => onGameSelect(game)}
-                    className="hover-game-card" // <-- Płynna animacja podnoszenia dla dużych kart
+                    className="hover-game-card"
                   />
                 ))}
               </div>
@@ -105,7 +113,7 @@ export function HomeView({ onGameSelect }: HomeViewProps) {
                     game={game}
                     variant="medium"
                     onClick={() => onGameSelect(game)}
-                    className="hover-game-card" // <-- Płynna animacja podnoszenia dla reszty biblioteki
+                    className="hover-game-card"
                   />
                 ))}
               </div>
@@ -120,14 +128,12 @@ export function HomeView({ onGameSelect }: HomeViewProps) {
 function LoadingSkeleton() {
   return (
     <div className="flex-1 p-5 space-y-6">
-      {/* Featured skeleton */}
       <div className="grid grid-cols-3 gap-3">
         {[1, 2, 3].map((i) => (
           <Skeleton key={i} className="aspect-[21/9] rounded-xl bg-zinc-800" />
         ))}
       </div>
       
-      {/* Grid skeleton */}
       <div className="grid grid-cols-7 gap-2">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((i) => (
           <Skeleton key={i} className="aspect-[16/9] rounded-xl bg-zinc-800" />

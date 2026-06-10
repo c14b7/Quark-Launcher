@@ -1,6 +1,6 @@
 {
   "name": "quark-launcher-web-act-l",
-  "version": "0.0.4-beta-01a",
+  "version": "v0.0.4-beta03c",
   "private": true,
   "scripts": {
     "dev": "next dev -p 30211",
@@ -24,7 +24,7 @@
     "lucide-react": "^0.562.0",
     "next": "16.1.1",
     "react": "19.2.3",
-    "react-dom": "19.2.3",
+    "react-dom": "19.2.3",  
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {

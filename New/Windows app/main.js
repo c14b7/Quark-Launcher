@@ -3,10 +3,14 @@ const path = require('path');
 const fs = require('fs').promises;
 const { spawn, exec } = require('child_process');
 
+
+
 // --- update mechanism ---
 const { autoUpdater } = require('electron-updater');
 
+
 // Dodaj te dwie linijki pod importem:
+autoUpdater.forceDevUpdateConfig = true;
 autoUpdater.autoDownload = false;
 autoUpdater.allowPrerelease = true;
 // const log = require('electron-log'); // Opcjonalnie, warto mieć do logów aktualizacji
@@ -15,7 +19,7 @@ autoUpdater.allowPrerelease = true;
 autoUpdater.autoDownload = false;
 
 app.whenReady().then(() => {
-  const win = createWindow(); // Twoja funkcja tworząca okno
+  const win = this.createMainWindow(); // Twoja funkcja tworząca okno
 
   // Sprawdzamy dostępność aktualizacji chwile po uruchomieniu okna
   win.webContents.on('did-finish-load', () => {
@@ -151,6 +155,16 @@ class QuarkLauncher {
   }
   // Wklej tę metodę wewnątrz klasy QuarkLauncher:
   setupAutoUpdater() {
+
+    autoUpdater.logger = console;
+
+  // Sprawdzamy dostępność aktualizacji po załadowaniu okna Next.js
+  this.mainWindow.webContents.on('did-finish-load', () => {
+    console.log('[UPDATER] Checking for updates...');
+    autoUpdater.checkForUpdatesAndNotify().catch(err => {
+      console.error('[UPDATER] Pre-check error:', err);
+    });
+  });
     // Sprawdzamy dostępność aktualizacji po załadowaniu okna Next.js
     this.mainWindow.webContents.on('did-finish-load', () => {
       console.log('[UPDATER] Checking for updates...');
@@ -759,10 +773,12 @@ class QuarkLauncher {
       electronVersion: process.versions.electron,
       nodeVersion: process.versions.node
     }));
+    ipcMain.removeHandler('start-installation');
+
     ipcMain.handle('start-installation', async () => {
-    console.log('[UPDATER] Next.js requested installation start. Downloading update...');
-    autoUpdater.downloadUpdate(); // Uruchamia pobieranie, które potem wyzwie 'update-downloaded'
-    return true;
+      console.log('[UPDATER] Next.js requested installation start. Downloading update...');
+      autoUpdater.downloadUpdate();
+  return true;
   });
   }
 

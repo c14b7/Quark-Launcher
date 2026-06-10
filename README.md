@@ -4,7 +4,7 @@
 
 **🏳️‍🌈czerwcowa aktualizacja🏳️‍🌈**
 
-Obecna wersja: **0.0.4-beta01a**:
+Obecna wersja: **v0.0.4-beta03c**:
 
 **🚀Co nowego:**
 - Automatyczne aktualizacje (wersja zapoznawcza)

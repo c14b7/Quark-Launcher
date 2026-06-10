@@ -1,5 +1,5 @@
 // Appwrite configuration and client setup
-import { Client, Account, Databases, ID, Query, OAuthProvider } from 'appwrite';
+import { Client, Account, Databases, ID, Query, OAuthProvider, TablesDB } from 'appwrite';
 
 // Appwrite configuration
 export const APPWRITE_CONFIG = {
@@ -362,3 +362,5 @@ export interface SteamIntegration {
 }
 
 export { Query, OAuthProvider };
+
+export const tablesDB = new TablesDB(client);

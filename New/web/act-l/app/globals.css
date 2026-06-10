@@ -44,12 +44,50 @@
   font-display: swap;
 }
 
-/* Logo font class - Wyczyszczone (src wywalamy z samych klas) */
+/* Logo font class - WYCZYSZCZONE (w klasach nie podaje się właściwości 'src') */
 .font-logo, #font-logo {
   font-family: 'Array', sans-serif;
 }
 
+/* Loading screen animations */
+@keyframes float-blob {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(30%, -20%) scale(1.1); }
+  50% { transform: translate(-20%, 30%) scale(0.9); }
+  75% { transform: translate(-30%, -10%) scale(1.05); }
+}
+
+@keyframes float-blob-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(-25%, 25%) scale(1.15); }
+  50% { transform: translate(25%, -15%) scale(0.85); }
+  75% { transform: translate(15%, 20%) scale(1.1); }
+}
+
+@keyframes float-blob-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(20%, 20%) scale(1.2); }
+  66% { transform: translate(-15%, -25%) scale(0.9); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.8;
+    text-shadow: 0 0 40px rgba(139, 92, 246, 0.5);
+  }
+  50% {
+    opacity: 1;
+    text-shadow: 0 0 80px rgba(139, 92, 246, 0.8), 0 0 120px rgba(99, 102, 241, 0.4);
+  }
+}
+
+.animate-float-blob { animation: float-blob 20s ease-in-out infinite; }
+.animate-float-blob-2 { animation: float-blob-2 25s ease-in-out infinite; }
+.animate-float-blob-3 { animation: float-blob-3 18s ease-in-out infinite; }
+.animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+
 @theme inline {
+  --color-main-background: var(--main-background);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: 'CommitMono', monospace;
@@ -90,44 +128,10 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
-
-  /* ANIMACJE DLA TAILWIND v4 (Wstrzykiwane bezpośrednio do kompilatora) */
-  --animate-float-blob: float-blob 20s ease-in-out infinite;
-  --animate-float-blob-2: float-blob-2 25s ease-in-out infinite;
-  --animate-float-blob-3: float-blob-3 18s ease-in-out infinite;
-  --animate-pulse-glow: pulse-glow 3s ease-in-out infinite;
-
-  /* KLATKI KLUCZOWE ANIMACJI DLA TAILWIND v4 */
-  @keyframes float-blob {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    25% { transform: translate(30%, -20%) scale(1.1); }
-    50% { transform: translate(-20%, 30%) scale(0.9); }
-    75% { transform: translate(-30%, -10%) scale(1.05); }
-  }
-  @keyframes float-blob-2 {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    25% { transform: translate(-25%, 25%) scale(1.15); }
-    50% { transform: translate(25%, -15%) scale(0.85); }
-    75% { transform: translate(15%, 20%) scale(1.1); }
-  }
-  @keyframes float-blob-3 {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    33% { transform: translate(20%, 20%) scale(1.2); }
-    66% { transform: translate(-15%, -25%) scale(0.9); }
-  }
-  @keyframes pulse-glow {
-    0%, 100% {
-      opacity: 0.8;
-      text-shadow: 0 0 40px rgba(139, 92, 246, 0.5);
-    }
-    50% {
-      opacity: 1;
-      text-shadow: 0 0 80px rgba(139, 92, 246, 0.8), 0 0 120px rgba(99, 102, 241, 0.4);
-    }
-  }
 }
 
 :root {
+  --main-background: linear-gradient(135deg, #09090b, #18181b, #09090b);
   --radius: 1rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -163,6 +167,7 @@
 }
 
 .dark {
+  --main-background: linear-gradient(135deg, #09090b, #18181b, #09090b);
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -198,6 +203,7 @@
 
 /* OLED Mode */
 .oled {
+  --main-background: #000000; /* WYPROSTOWANE: OLED potrzebuje tu czystej czerni, a nie gradientu */
   --background: oklch(0 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.08 0 0);
@@ -220,7 +226,7 @@
   --sidebar-border: oklch(1 0 0 / 8%);
 }
 
-/* W v4 globalne style bazowe nadpisujemy czystym CSS, bez @layer base i @apply */
+/* W Tailwind v4 nie stosuje się @layer base do globalnych selektorów. Pisze się je czystym CSS */
 * {
   border-color: var(--border);
   outline-color: color-mix(in srgb, var(--ring) 50%, transparent);
@@ -250,7 +256,7 @@ body {
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* Remove outline on focus */
+/* Focus states */
 *:focus {
   outline: none;
 }
@@ -260,7 +266,7 @@ body {
   outline-offset: 2px;
 }
 
-/* Płynne przejścia */
+/* Globalne animacje/płynność przejść */
 * {
   transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
@@ -276,24 +282,33 @@ img {
   color: white;
 }
 
+/* Główna klasa tła korzystająca ze zmiennej */
+.bg-launcher-main {
+  background: var(--main-background);
+  transition: background 0.3s ease; 
+}
+
+/* Plik: globals.css (dodaj na samym końcu) */
+
+/* Efekt płynnego uniesienia karty gier (Card Hover Elevation) */
 .hover-game-card {
   /* Nadpisujemy globalny transition-duration dla super płynnego efektu uginania/uniesienia */
-  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), 
-              box-shadow 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), 
-              border-color 0.25s ease;
+  transition: transform 0.35s cubic-bezier(0.2, 0.5, 0.2, 1), 
+              box-shadow 0.35s cubic-bezier(0.2, 0.5, 0.2, 1), 
+              border-color 0.35s ease;
   will-change: transform, box-shadow;
 }
 
 .hover-game-card:hover {
   /* Podniesienie karty o 6 pikseli w górę i delikatne przeskalowanie */
-  transform: translateY(-6px) scale(1.02);
+  transform: translateY(-3px) scale(1.002);
   
   /* Przestrzenny, mroczny cień nadający karcie głębię 3D */
-  box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.6), 
-              0 4px 12px -5px rgba(139, 92, 246, 0.15); /* Subtelny fioletowy glow */
+  box-shadow: 0 12px 24px -10px rgba(65, 27, 90, 0.6), 
+              0 4px 12px -5px rgba(96, 42, 223, 0.815); /* Subtelny fioletowy glow */
               
   /* Rozjaśnienie krawędzi, żeby odcięła się od ciemnego tła */
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(138, 47, 223, 0.603);
 }
 
 /* Kliknięcie karty - efekt fizycznego wciśnięcia (Active state) */
