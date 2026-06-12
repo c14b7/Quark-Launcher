@@ -138,7 +138,7 @@ export function GameCard({ game, variant = 'medium', onClick, className }: GameC
             <PlaytimeBadge playtime={game.playtime} />
             
             {/* Platform Badge */}
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 shadow-sm">
+{/*             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 shadow-sm">
               {game.platform === 'steam' && (
                 <svg className="h-3 w-3 text-zinc-300" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
@@ -154,8 +154,8 @@ export function GameCard({ game, variant = 'medium', onClick, className }: GameC
                   <path d="M4.102 21.033A11.947 11.947 0 0 0 12 24a11.96 11.96 0 0 0 7.902-2.967c1.877-1.912-4.316-8.709-7.902-11.417-3.582 2.708-9.779 9.505-7.898 11.417z"/>
                 </svg>
               )}
-              <span className="text-[9px] text-zinc-300 font-bold tracking-wider">{game.platform}</span>
-            </div>
+              <span className="text-[9px] text-zinc-300 font-bold tracking-wider">{game.platform}</span> wyłączone tymczasowo/na stałe
+            </div> */}
           </div>
 
           {/* Content */}

@@ -25,6 +25,7 @@ import { useGames } from '@/lib/games-context';
 import { Game } from '@/lib/types';
 import { SteamProfile } from '@/components/steam-profile';
 import { AIChatButton } from '@/components/ai-chat';
+import { CardPost } from '@/components/side_banner'
 
 interface SidebarProps {
   currentView: string;
@@ -178,6 +179,7 @@ export function Sidebar({ currentView, onNavigate, onGameSelect, onOpenSettings,
         {/* <AIChatButton onClick={onOpenChat || (() => {})} /> */}
         
         <Separator className="bg-white/5" />
+        < CardPost />
         
         <div className="flex items-center justify-between">
           <Badge variant="secondary" className="bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 text-violet-400 border-0 text-[10px] font-semibold">
