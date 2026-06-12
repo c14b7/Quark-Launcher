@@ -14,3 +14,5 @@ New/Windows app/node_modules/electron/dist/electron.exe
 New/Windows app/node_modules/7zip-bin/win/arm64/7za.exe
 *.exe
 /New/Windows app/dist/win-unpacked
+Website/
+Website/
