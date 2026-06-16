@@ -6,7 +6,7 @@ import { Query, databases } from "../hooks/up_banner";
 
 // Zmieniamy nazwę na Wielką Literę: UpBanner
 export function UpBanner() {
-  const [banner, setBanner] = useState(null);
+  const [banner, setBanner] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -23,7 +23,7 @@ export function UpBanner() {
           const znalezionyBaner = response.documents[0];
           setBanner(znalezionyBaner);
           sprawdzCzyAktywny(znalezionyBaner);
-          console.info("Pobrany baner:", znalezionyBaner);
+          /* console.info("Pobrany baner:", znalezionyBaner); */
         }
       } catch (error) {
         console.error("Coś poszło nie tak:", error);
@@ -32,7 +32,7 @@ export function UpBanner() {
       }
     }
 
-    function sprawdzCzyAktywny(currentBanner) {
+    function sprawdzCzyAktywny(currentBanner: any) {
       if (!currentBanner.start_date || !currentBanner.end_date) {
         setIsVisible(false);
         return;
@@ -41,7 +41,7 @@ export function UpBanner() {
       const start = new Date(currentBanner.start_date);
       const koniec = new Date(currentBanner.end_date);
       setIsVisible(teraz >= start && teraz <= koniec);
-      console.info(`Baner "${currentBanner.title}" jest ${isVisible ? "aktywny" : "nieaktywny"}.`);
+      /* console.info(`Baner "${currentBanner.title}" jest ${isVisible ? "aktywny" : "nieaktywny"}.`); */
     }
 
     pobierzBanery();

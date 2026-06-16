@@ -1,14 +1,15 @@
-import { Client, Databases, Query } from 'appwrite';
+// 1. Dodajemy import "Models" z appwrite
+import { Client, Databases, Query, Models } from 'appwrite';
 
-// 1. Konfiguracja klienta Appwrite
 const client = new Client()
     .setEndpoint('https://fra.cloud.appwrite.io/v1')
     .setProject('680d15210002f3f65ea9');
 
 const databases = new Databases(client);
 
-// Definiujemy pełny typ danych z Appwrite
-interface BannerData {
+// 2. Modyfikujemy interfejs: dodajemy "extends Models.Document"
+// Dzięki temu TypeScript automatycznie dorzuci tu $id, $collectionId, $createdAt itd.
+interface BannerData extends Models.Document {
     title: string;
     body_text: string;
     action_text: string | null;
@@ -33,12 +34,12 @@ const FALLBACK_DATA: BannerResult = {
     display: false
 };
 
-// 2. Funkcja pobierająca baner i sprawdzająca daty
 export async function fetchLatestBanner(): Promise<BannerResult> {
     try {
         console.log('--- APPWRITE: Rozpoczynam pobieranie baneru ---');
         
-        const response = await databases.listDocuments<BannerData & { $createdAt: string }>(
+        // 3. Teraz czysto przekazujemy uproszczony generyk <BannerData>
+        const response = await databases.listDocuments<BannerData>(
             '6a297ad10013177be1ab', 
             'side_banner',          
             [
@@ -51,24 +52,13 @@ export async function fetchLatestBanner(): Promise<BannerResult> {
 
         if (response.documents.length > 0) {
             const doc = response.documents[0];
-
-            // 1. Pobieramy aktualny czas
             const now = new Date();
-
-            // 2. Parsujemy datę startu
             const startDate = new Date(doc.start_date);
-
-            // 3. Sprawdzamy, czy end_date w ogóle istnieje w dokumencie
             const hasEndDate = doc.end_date ? true : false;
             const endDate = doc.end_date ? new Date(doc.end_date) : null;
 
-            // 4. Nowy, bezpieczny warunek logiczny:
-            // Baner jest aktywny, jeśli:
-            // - czas teraz jest większy/równy startowi
-            // - ORAZ (baner nie ma daty końca ALBO czas teraz jest mniejszy/równy dacie końca)
             const isInsideTimeWindow = now >= startDate && (!hasEndDate || (endDate ? now <= endDate : true));
 
-            // --- ZAKTUALIZOWANY DEBUGER ---
             console.group('📊 DEBUG BANERU Appwrite');
             console.log('📌 Tytuł baneru:', doc.title);
             console.log('🕒 Czas teraz (lokalny): ', now.toString());

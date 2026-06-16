@@ -9,9 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw, Gamepad2, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-
-// 1. POPRAWKA: Importujemy jako nazwę z Wielkiej Litery w nawiasach klamrowych {}
-// (Ponieważ w pliku baneru użyliśmy "export function UpBanner")
+import { DialogBanner } from './dialog_banner';
 import { UpBanner } from './up_banner'; 
 
 interface HomeViewProps {
@@ -71,8 +69,10 @@ export function HomeView({ onGameSelect }: HomeViewProps) {
       <ScrollArea className="flex-1 h-full">
         <div className="p-6 md:p-8 space-y-10 pb-24">
           
-          {/* 2. POPRAWKA: Wywołujemy komponent poprawnie z Wielkiej Litery */}
+          
           <UpBanner />
+          <DialogBanner />
+          
 
           {/* Featured Games - Large Cards - adaptacyjna szerokość */}
           {featuredGames.length > 0 && (
