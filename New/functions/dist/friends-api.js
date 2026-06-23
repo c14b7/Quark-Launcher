@@ -8,6 +8,8 @@ const rate_limit_1 = require("./lib/rate-limit");
 const validators_1 = require("./lib/validators");
 const friend_code_1 = require("./lib/friend-code");
 const auth_api_1 = require("./auth-api");
+const runtime_1 = require("./lib/runtime");
+const noopLogger = { log: () => { }, error: console.error };
 function getDatabases() {
     const client = new node_appwrite_1.Client()
         .setEndpoint(config_1.APPWRITE_ENDPOINT)
@@ -35,13 +37,14 @@ async function hasPendingRequest(databases, fromId, toId) {
     ]);
     return docs.documents.length > 0;
 }
-async function handleFriendsApiRequest(req, res) {
+async function handleFriendsApiRequest(req, res, logger = noopLogger) {
     const rawBody = (0, middleware_1.parseBody)(req);
     const path = (0, middleware_1.resolveRoutePath)(req, rawBody);
     const body = (0, middleware_1.stripRouteMeta)(rawBody);
     const method = (req.method || 'POST').toUpperCase();
     const userId = await (0, middleware_1.verifyAuth)(req);
     const databases = getDatabases();
+    logger.log(`Friends ${method} ${path} user=${userId || 'none'}`);
     if (!(0, middleware_1.requireAuth)(res, userId))
         return;
     try {
@@ -257,7 +260,7 @@ async function handleFriendsApiRequest(req, res) {
         return (0, middleware_1.errorResponse)(res, 'NOT_FOUND', 'Friends endpoint not found', 404);
     }
     catch (error) {
-        console.error('Friends API error:', error);
+        logger.error(`Friends API error: ${(0, runtime_1.formatError)(error)}`);
         return (0, middleware_1.errorResponse)(res, 'INTERNAL_ERROR', 'Request failed', 500);
     }
 }

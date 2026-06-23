@@ -13,6 +13,11 @@ import { checkRateLimit } from './lib/rate-limit';
 import { validateFriendCode, normalizeFriendCode, validatePresence, validateCustomStatus } from './lib/validators';
 import { sortUserIds } from './lib/friend-code';
 import { toPublicProfile, getProfileByUserId } from './auth-api';
+import { formatError } from './lib/runtime';
+import type { FunctionRequest, FunctionResponse } from './lib/runtime';
+
+type Logger = { log: (msg: string) => void; error: (msg: string) => void };
+const noopLogger: Logger = { log: () => {}, error: console.error };
 
 function getDatabases(): Databases {
   const client = new Client()
@@ -45,8 +50,9 @@ async function hasPendingRequest(databases: Databases, fromId: string, toId: str
 }
 
 export async function handleFriendsApiRequest(
-  req: { path?: string; method?: string; payload?: string; headers?: Record<string, string> },
-  res: { json: (body: unknown, status?: number) => unknown }
+  req: FunctionRequest,
+  res: FunctionResponse,
+  logger: Logger = noopLogger
 ) {
   const rawBody = parseBody(req);
   const path = resolveRoutePath(req, rawBody);
@@ -54,6 +60,8 @@ export async function handleFriendsApiRequest(
   const method = (req.method || 'POST').toUpperCase();
   const userId = await verifyAuth(req);
   const databases = getDatabases();
+
+  logger.log(`Friends ${method} ${path} user=${userId || 'none'}`);
 
   if (!requireAuth(res, userId)) return;
 
@@ -299,7 +307,7 @@ export async function handleFriendsApiRequest(
 
     return errorResponse(res, 'NOT_FOUND', 'Friends endpoint not found', 404);
   } catch (error) {
-    console.error('Friends API error:', error);
+    logger.error(`Friends API error: ${formatError(error)}`);
     return errorResponse(res, 'INTERNAL_ERROR', 'Request failed', 500);
   }
 }

@@ -30,6 +30,11 @@ import {
   stripHtml,
 } from './lib/validators';
 import { generateUniqueFriendCode } from './lib/friend-code';
+import { formatError } from './lib/runtime';
+import type { FunctionRequest, FunctionResponse } from './lib/runtime';
+
+type Logger = { log: (msg: string) => void; error: (msg: string) => void };
+const noopLogger: Logger = { log: () => {}, error: console.error };
 
 function getServerClient(): Client {
   return new Client()
@@ -178,13 +183,19 @@ async function resolveVanityUrl(vanityUrl: string): Promise<string | null> {
   return null;
 }
 
-export async function handleAuthApiRequest(req: { path?: string; method?: string; payload?: string; headers?: Record<string, string> }, res: { json: (body: unknown, status?: number) => unknown }) {
+export async function handleAuthApiRequest(
+  req: FunctionRequest,
+  res: FunctionResponse,
+  logger: Logger = noopLogger
+) {
   const rawBody = parseBody(req);
   const path = resolveRoutePath(req, rawBody);
   const body = stripRouteMeta(rawBody);
   const method = (req.method || 'POST').toUpperCase();
   const ip = getClientIp(req);
   const databases = getDatabases();
+
+  logger.log(`Auth ${method} ${path}`);
 
   try {
     // POST /auth/register
@@ -255,9 +266,11 @@ export async function handleAuthApiRequest(req: { path?: string; method?: string
     // POST /auth/profile/init — create Quark profile after client-side account.create
     if (path === '/auth/profile/init' && method === 'POST') {
       if (!requireAuth(res, userId)) return;
+      logger.log(`Profile init for user ${userId}`);
 
       const existing = await getProfileByUserId(databases, userId!);
       if (existing) {
+        logger.log(`Profile already exists for ${userId}`);
         return jsonResponse(res, {
           success: true,
           profile: toPrivateProfile(existing as Record<string, unknown>),
@@ -271,8 +284,10 @@ export async function handleAuthApiRequest(req: { path?: string; method?: string
       const nameErr = validateName(name);
       if (nameErr) return errorResponse(res, nameErr, 'Invalid name');
 
+      logger.log(`Creating profile doc for ${userId} (${email})`);
       await createProfileForUser(databases, userId!, email, name);
       const profile = await getProfileByUserId(databases, userId!);
+      logger.log(`Profile created for ${userId}`);
       return jsonResponse(res, {
         success: true,
         profile: profile ? toPrivateProfile(profile as Record<string, unknown>) : null,
@@ -449,8 +464,8 @@ export async function handleAuthApiRequest(req: { path?: string; method?: string
     }
 
     return errorResponse(res, 'NOT_FOUND', 'Auth endpoint not found', 404);
-  } catch (error) {
-    console.error('Auth API error:', error);
+  } catch (err) {
+    logger.error(`Auth API error on ${method} ${path}: ${formatError(err)}`);
     return errorResponse(res, 'INTERNAL_ERROR', 'Request failed', 500);
   }
 }

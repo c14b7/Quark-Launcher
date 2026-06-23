@@ -321,7 +321,10 @@ export const steamApi = {
 };
 
 // Appwrite Function Handlers
-export async function handleSteamApiRequest(req: any, res: any) {
+export async function handleSteamApiRequest(req: any, res: any, logger?: { log: (m: string) => void; error: (m: string) => void }) {
+  const log = logger?.log || console.log;
+  const logError = logger?.error || console.error;
+  log('[Steam] handler invoked');
   const client = new Client()
     .setEndpoint(process.env.APPWRITE_ENDPOINT || APPWRITE_ENDPOINT)
     .setProject(process.env.APPWRITE_PROJECT_ID || APPWRITE_PROJECT_ID)

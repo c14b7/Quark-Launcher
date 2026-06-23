@@ -7,10 +7,19 @@ export interface RequestContext {
   ip: string;
 }
 
-export function parseBody(req: { payload?: string; body?: string; bodyRaw?: string }): Record<string, unknown> {
-  const raw = req.payload || req.body || req.bodyRaw || '{}';
+export function parseBody(req: {
+  payload?: string;
+  body?: string;
+  bodyRaw?: string;
+  bodyText?: string;
+  bodyJson?: unknown;
+}): Record<string, unknown> {
+  if (req.bodyJson && typeof req.bodyJson === 'object' && !Array.isArray(req.bodyJson)) {
+    return req.bodyJson as Record<string, unknown>;
+  }
+  const raw = req.payload || req.body || req.bodyRaw || req.bodyText || '{}';
   try {
-    return typeof raw === 'string' ? JSON.parse(raw) : raw;
+    return typeof raw === 'string' ? JSON.parse(raw) : (raw as Record<string, unknown>);
   } catch {
     return {};
   }
@@ -38,7 +47,12 @@ export function stripRouteMeta(body: Record<string, unknown>): Record<string, un
 }
 
 export function getHeaders(req: { headers?: Record<string, string> }): Record<string, string> {
-  return req.headers || {};
+  const headers = req.headers || {};
+  const normalized: Record<string, string> = {};
+  for (const [key, value] of Object.entries(headers)) {
+    normalized[key.toLowerCase()] = value;
+  }
+  return normalized;
 }
 
 export function getClientIp(req: { headers?: Record<string, string> }): string {
@@ -52,7 +66,7 @@ export function extractAuth(req: { headers?: Record<string, string> }): { userId
   const headers = getHeaders(req);
   return {
     userId: headers['x-appwrite-user-id'] || null,
-    jwt: headers['x-appwrite-jwt'] || null,
+    jwt: headers['x-appwrite-jwt'] || headers['x-appwrite-user-jwt'] || null,
   };
 }
 

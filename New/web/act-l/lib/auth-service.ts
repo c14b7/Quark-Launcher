@@ -110,7 +110,7 @@ export const authService = {
     );
 
     if (!init.success) {
-      console.warn('[AUTH] Profile init failed:', init.error, init.code);
+      console.warn('[AUTH] Profile init failed:', init.code, init.error);
       return { success: true, profile: null as UserProfile | null };
     }
 

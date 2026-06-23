@@ -39,39 +39,33 @@ export async function apiRequest<T = unknown>(
   requireAuth = true
 ): Promise<ApiResponse<T>> {
   if (!APPWRITE_CONFIG.functionId) {
-    console.warn('NEXT_PUBLIC_APPWRITE_FUNCTION_ID not set — API calls will fail');
+    console.warn('[API] NEXT_PUBLIC_APPWRITE_FUNCTION_ID not set');
     return { success: false, code: 'CONFIG_ERROR', error: 'Function ID not configured' };
   }
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
+  const httpMethod = method.toUpperCase();
+  const isGet = httpMethod === 'GET';
 
   if (requireAuth) {
     try {
-      const jwt = await account.createJWT();
-      headers['x-appwrite-jwt'] = jwt.jwt;
+      await account.get();
     } catch {
       return { success: false, code: 'UNAUTHORIZED', error: 'Not authenticated' };
     }
   }
 
   try {
-    const payload = { ...(body || {}), _route: path };
+    const routePayload = { ...(body || {}), _route: path };
     const execution = await functions.createExecution({
       functionId: APPWRITE_CONFIG.functionId,
-      body: JSON.stringify(payload),
+      body: isGet ? undefined : JSON.stringify(routePayload),
       async: false,
       xpath: path,
-      method: methodToEnum(method),
-      headers: {
-        ...headers,
-        'x-appwrite-path': path,
-      },
+      method: methodToEnum(httpMethod),
     });
 
     if (execution.status === 'failed') {
-      console.error('[API] Function execution failed:', execution.errors);
+      console.error(`[API] ${httpMethod} ${path} failed:`, execution.errors);
       return {
         success: false,
         code: 'FUNCTION_ERROR',
@@ -81,6 +75,7 @@ export async function apiRequest<T = unknown>(
 
     if (execution.responseStatusCode && execution.responseStatusCode >= 400) {
       const parsed = parseResponseBody(execution.responseBody);
+      console.warn(`[API] ${httpMethod} ${path} → ${execution.responseStatusCode}`, parsed);
       return {
         success: false,
         code: (parsed.code as string) || 'API_ERROR',
@@ -90,7 +85,8 @@ export async function apiRequest<T = unknown>(
 
     return parseResponseBody(execution.responseBody) as ApiResponse<T>;
   } catch (error: unknown) {
-    const err = error as { message?: string };
+    const err = error as { message?: string; code?: number; type?: string };
+    console.error(`[API] ${httpMethod} ${path} exception:`, err.message || error);
     return { success: false, code: 'NETWORK_ERROR', error: err.message || 'Network error' };
   }
 }

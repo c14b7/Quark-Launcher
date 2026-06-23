@@ -43,6 +43,8 @@ const middleware_1 = require("./lib/middleware");
 const rate_limit_1 = require("./lib/rate-limit");
 const validators_1 = require("./lib/validators");
 const friend_code_1 = require("./lib/friend-code");
+const runtime_1 = require("./lib/runtime");
+const noopLogger = { log: () => { }, error: console.error };
 function getServerClient() {
     return new node_appwrite_1.Client()
         .setEndpoint(config_1.APPWRITE_ENDPOINT)
@@ -175,13 +177,14 @@ async function resolveVanityUrl(vanityUrl) {
         return data.response.steamid || null;
     return null;
 }
-async function handleAuthApiRequest(req, res) {
+async function handleAuthApiRequest(req, res, logger = noopLogger) {
     const rawBody = (0, middleware_1.parseBody)(req);
     const path = (0, middleware_1.resolveRoutePath)(req, rawBody);
     const body = (0, middleware_1.stripRouteMeta)(rawBody);
     const method = (req.method || 'POST').toUpperCase();
     const ip = (0, middleware_1.getClientIp)(req);
     const databases = getDatabases();
+    logger.log(`Auth ${method} ${path}`);
     try {
         // POST /auth/register
         if (path === '/auth/register' && method === 'POST') {
@@ -249,8 +252,10 @@ async function handleAuthApiRequest(req, res) {
         if (path === '/auth/profile/init' && method === 'POST') {
             if (!(0, middleware_1.requireAuth)(res, userId))
                 return;
+            logger.log(`Profile init for user ${userId}`);
             const existing = await getProfileByUserId(databases, userId);
             if (existing) {
+                logger.log(`Profile already exists for ${userId}`);
                 return (0, middleware_1.jsonResponse)(res, {
                     success: true,
                     profile: toPrivateProfile(existing),
@@ -263,8 +268,10 @@ async function handleAuthApiRequest(req, res) {
             const nameErr = (0, validators_1.validateName)(name);
             if (nameErr)
                 return (0, middleware_1.errorResponse)(res, nameErr, 'Invalid name');
+            logger.log(`Creating profile doc for ${userId} (${email})`);
             await createProfileForUser(databases, userId, email, name);
             const profile = await getProfileByUserId(databases, userId);
+            logger.log(`Profile created for ${userId}`);
             return (0, middleware_1.jsonResponse)(res, {
                 success: true,
                 profile: profile ? toPrivateProfile(profile) : null,
@@ -433,8 +440,8 @@ async function handleAuthApiRequest(req, res) {
         }
         return (0, middleware_1.errorResponse)(res, 'NOT_FOUND', 'Auth endpoint not found', 404);
     }
-    catch (error) {
-        console.error('Auth API error:', error);
+    catch (err) {
+        logger.error(`Auth API error on ${method} ${path}: ${(0, runtime_1.formatError)(err)}`);
         return (0, middleware_1.errorResponse)(res, 'INTERNAL_ERROR', 'Request failed', 500);
     }
 }

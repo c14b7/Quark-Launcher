@@ -13,7 +13,10 @@ exports.requireAuth = requireAuth;
 const node_appwrite_1 = require("node-appwrite");
 const config_1 = require("./config");
 function parseBody(req) {
-    const raw = req.payload || req.body || req.bodyRaw || '{}';
+    if (req.bodyJson && typeof req.bodyJson === 'object' && !Array.isArray(req.bodyJson)) {
+        return req.bodyJson;
+    }
+    const raw = req.payload || req.body || req.bodyRaw || req.bodyText || '{}';
     try {
         return typeof raw === 'string' ? JSON.parse(raw) : raw;
     }
@@ -37,7 +40,12 @@ function stripRouteMeta(body) {
     return rest;
 }
 function getHeaders(req) {
-    return req.headers || {};
+    const headers = req.headers || {};
+    const normalized = {};
+    for (const [key, value] of Object.entries(headers)) {
+        normalized[key.toLowerCase()] = value;
+    }
+    return normalized;
 }
 function getClientIp(req) {
     const headers = getHeaders(req);
@@ -50,7 +58,7 @@ function extractAuth(req) {
     const headers = getHeaders(req);
     return {
         userId: headers['x-appwrite-user-id'] || null,
-        jwt: headers['x-appwrite-jwt'] || null,
+        jwt: headers['x-appwrite-jwt'] || headers['x-appwrite-user-jwt'] || null,
     };
 }
 async function verifyAuth(req) {
