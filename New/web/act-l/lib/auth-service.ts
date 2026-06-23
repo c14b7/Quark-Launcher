@@ -150,7 +150,7 @@ export const authService = {
       'GET'
     );
     if (!result.success) {
-      return { success: false, error: mapError(result.code, result.error) };
+      return { success: false, code: result.code, error: mapError(result.code, result.error) };
     }
     return {
       success: true,
@@ -165,6 +165,7 @@ export const authService = {
     cardTheme: string | CardTheme;
     customStatus: string;
     presence: string;
+    preferences: string;
   }>) {
     const payload: Record<string, unknown> = { ...data };
     if (data.cardTheme && typeof data.cardTheme !== 'string') {
@@ -205,7 +206,7 @@ export const authService = {
   },
 
   async linkSteam(steamId?: string, vanityUrl?: string) {
-    const result = await apiRequest<{ steamIntegration: SteamIntegration }>(
+    const result = await apiRequest<{ steamIntegration: SteamIntegration; profile?: UserProfile }>(
       '/auth/steam/link',
       'POST',
       { steamId, vanityUrl }
@@ -213,7 +214,11 @@ export const authService = {
     if (!result.success) {
       return { success: false, error: mapError(result.code, result.error) };
     }
-    return { success: true, integration: result.steamIntegration as SteamIntegration };
+    return {
+      success: true,
+      integration: result.steamIntegration as SteamIntegration,
+      profile: result.profile as UserProfile | undefined,
+    };
   },
 
   async unlinkSteam() {

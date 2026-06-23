@@ -5,7 +5,8 @@ import { SteamUser, SteamFriend } from '@/lib/types';
 
 export interface AppSettings {
   theme: 'dark' | 'oled';
-  uiScale: number; // 0.8 - 1.5
+  uiScale: number;
+  locale: 'pl' | 'en';
   hiddenGames: string[];
   customCategories: Category[];
   steamApiKey?: string;
@@ -48,6 +49,7 @@ interface SettingsContextType {
 const defaultSettings: AppSettings = {
   theme: 'dark',
   uiScale: 1,
+  locale: 'pl',
   hiddenGames: [],
   customCategories: [],
 };
@@ -154,14 +156,20 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     loadSteamUser();
   }, []);
 
-  // Apply theme when settings change
+  // Apply theme & scale when they change
   useEffect(() => {
     if (isLoaded) {
       applyTheme(settings.theme);
       applyScale(settings.uiScale);
-      saveSettings();
     }
-  }, [settings.theme, settings.uiScale, isLoaded, saveSettings]);
+  }, [settings.theme, settings.uiScale, isLoaded]);
+
+  // Persist all settings (categories, hidden games, etc.)
+  useEffect(() => {
+    if (!isLoaded) return;
+    const timer = setTimeout(() => saveSettings(), 400);
+    return () => clearTimeout(timer);
+  }, [settings, isLoaded, saveSettings]);
 
   // Callbacki dla akcji użytkownika
   const handleSetSteamUser = useCallback((user: SteamUser | null) => {
@@ -220,7 +228,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setSettings(prev => ({
       ...prev,
       customCategories: prev.customCategories.map(c =>
-        c.id === categoryId
+        c.id === categoryId && !c.gameIds.includes(gameId)
           ? { ...c, gameIds: [...c.gameIds, gameId] }
           : c
       )

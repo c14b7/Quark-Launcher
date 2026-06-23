@@ -30,7 +30,7 @@ import { Game } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 type SortOption = 'name' | 'lastPlayed' | 'playtime' | 'recent';
-type FilterOption = 'all' | 'favorites' | 'installed' | 'steam' | 'xbox' | 'epic';
+type FilterOption = 'all' | 'favorites' | 'installed' | 'steam' | 'xbox' | 'epic' | string;
 
 interface LibraryViewProps {
   onGameSelect: (game: Game) => void;
@@ -45,27 +45,32 @@ export function LibraryView({ onGameSelect }: LibraryViewProps) {
   const [filter, setFilter] = useState<FilterOption>('all');
   const [localSearch, setLocalSearch] = useState('');
 
-  const filteredAndSortedGames = useMemo(() => {
-    // Najpierw filtruj ukryte gry
-    let result = games.filter(g => !settings.hiddenGames.includes(g.id));
+  const categoryFilters = settings.customCategories.filter((c) => c.gameIds.length > 0);
 
-    // Apply filter
-    switch (filter) {
-      case 'favorites':
-        result = result.filter(g => g.isFavorite);
-        break;
-      case 'installed':
-        result = result.filter(g => g.installed);
-        break;
-      case 'steam':
-        result = result.filter(g => g.platform === 'steam');
-        break;
-      case 'xbox':
-        result = result.filter(g => g.platform === 'xbox');
-        break;
-      case 'epic':
-        result = result.filter(g => g.platform === 'epic');
-        break;
+  const filteredAndSortedGames = useMemo(() => {
+    let result = games.filter((g) => !settings.hiddenGames.includes(g.id));
+
+    const categoryMatch = settings.customCategories.find((c) => c.id === filter);
+    if (categoryMatch) {
+      result = result.filter((g) => categoryMatch.gameIds.includes(g.id));
+    } else {
+      switch (filter) {
+        case 'favorites':
+          result = result.filter((g) => g.isFavorite);
+          break;
+        case 'installed':
+          result = result.filter((g) => g.installed);
+          break;
+        case 'steam':
+          result = result.filter((g) => g.platform === 'steam');
+          break;
+        case 'xbox':
+          result = result.filter((g) => g.platform === 'xbox');
+          break;
+        case 'epic':
+          result = result.filter((g) => g.platform === 'epic');
+          break;
+      }
     }
 
     // Apply search
@@ -107,7 +112,7 @@ export function LibraryView({ onGameSelect }: LibraryViewProps) {
     });
 
     return result;
-  }, [games, filter, localSearch, sortBy, sortOrder, settings.hiddenGames]);
+  }, [games, filter, localSearch, sortBy, sortOrder, settings.hiddenGames, settings.customCategories]);
 
   const toggleSortOrder = () => {
     setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -167,6 +172,21 @@ export function LibraryView({ onGameSelect }: LibraryViewProps) {
               <DropdownMenuItem onClick={() => setFilter('epic')}>
                 Epic Games
               </DropdownMenuItem>
+              {categoryFilters.length > 0 && (
+                <>
+                  <DropdownMenuSeparator className="bg-white/10" />
+                  <DropdownMenuLabel>Kategorie</DropdownMenuLabel>
+                  {categoryFilters.map((category) => (
+                    <DropdownMenuItem key={category.id} onClick={() => setFilter(category.id)}>
+                      <span
+                        className="w-2 h-2 rounded-full mr-2"
+                        style={{ backgroundColor: category.color }}
+                      />
+                      {category.name}
+                    </DropdownMenuItem>
+                  ))}
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -222,6 +242,46 @@ export function LibraryView({ onGameSelect }: LibraryViewProps) {
           </div>
         </div>
       </div>
+
+      {/* Category chips */}
+      {categoryFilters.length > 0 && (
+        <div className="px-4 pb-3 flex gap-2 overflow-x-auto carousel-scroll flex-shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              'shrink-0 h-8 rounded-full text-xs border',
+              filter === 'all'
+                ? 'bg-violet-500/20 text-violet-300 border-violet-500/30'
+                : 'border-white/10 text-zinc-400 hover:text-white'
+            )}
+            onClick={() => setFilter('all')}
+          >
+            Wszystkie
+          </Button>
+          {categoryFilters.map((category) => (
+            <Button
+              key={category.id}
+              variant="ghost"
+              size="sm"
+              className={cn(
+                'shrink-0 h-8 rounded-full text-xs border gap-1.5',
+                filter === category.id
+                  ? 'bg-violet-500/20 text-violet-300 border-violet-500/30'
+                  : 'border-white/10 text-zinc-400 hover:text-white'
+              )}
+              onClick={() => setFilter(category.id)}
+            >
+              <span
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: category.color }}
+              />
+              {category.name}
+              <span className="opacity-60">({category.gameIds.length})</span>
+            </Button>
+          ))}
+        </div>
+      )}
 
       {/* Content */}
       <ScrollArea className="flex-1 h-full">

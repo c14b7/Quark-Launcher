@@ -14,15 +14,35 @@ export function parseBody(req: {
   bodyText?: string;
   bodyJson?: unknown;
 }): Record<string, unknown> {
-  if (req.bodyJson && typeof req.bodyJson === 'object' && !Array.isArray(req.bodyJson)) {
-    return req.bodyJson as Record<string, unknown>;
+  // bodyJson is a getter that throws on empty GET bodies — never read it bare
+  try {
+    const json = req.bodyJson;
+    if (json && typeof json === 'object' && !Array.isArray(json)) {
+      return json as Record<string, unknown>;
+    }
+  } catch {
+    // empty body (typical for GET)
   }
-  const raw = req.payload || req.body || req.bodyRaw || req.bodyText || '{}';
+
+  const raw = req.payload || req.body || req.bodyRaw || req.bodyText;
+  if (!raw || (typeof raw === 'string' && raw.trim() === '')) {
+    return {};
+  }
+
   try {
     return typeof raw === 'string' ? JSON.parse(raw) : (raw as Record<string, unknown>);
   } catch {
     return {};
   }
+}
+
+/** Safe path resolution without parsing body (for GET requests). */
+export function resolveRoutePathFromRequest(req: {
+  path?: string;
+  url?: string;
+  headers?: Record<string, string>;
+}): string {
+  return resolveRoutePath(req, {});
 }
 
 /** Resolve route path from Appwrite execution (path is often empty without fallbacks). */

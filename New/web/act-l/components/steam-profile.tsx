@@ -32,6 +32,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useSettings } from '@/lib/settings-context';
 import { useGames } from '@/lib/games-context';
+import { useAuth } from '@/lib/auth-context';
 import { SteamFriend } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -51,6 +52,7 @@ interface SteamProfileProps {
 
 export function SteamProfile({ onOpenSteamIntegration }: SteamProfileProps) {
   const { steamUser, steamFriends, settings, logout } = useSettings();
+  const { steamIntegration, profile } = useAuth();
   const { games } = useGames();
   const [isFriendsModalOpen, setIsFriendsModalOpen] = useState(false);
   const [isAchievementsModalOpen, setIsAchievementsModalOpen] = useState(false);
@@ -61,8 +63,9 @@ export function SteamProfile({ onOpenSteamIntegration }: SteamProfileProps) {
   const onlineFriends = steamFriends.filter((f: SteamFriend) => f.isOnline);
   const offlineFriends = steamFriends.filter((f: SteamFriend) => !f.isOnline);
 
-  // Sprawdź czy Steam jest połączony (przez lokalny system)
-  const isSteamConnected = !!(steamUser && settings.steamApiKey && settings.steamUserId);
+  const isSteamConnected = !!(steamIntegration?.steamId || profile?.steamLinked);
+  const personaName = steamIntegration?.personaName || steamUser?.personaName || 'Steam';
+  const avatarUrl = steamIntegration?.avatarUrl || steamUser?.avatarUrl;
 
   // Pobierz ostatnie osiągnięcia gdy modal się otworzy
   useEffect(() => {
@@ -126,17 +129,15 @@ export function SteamProfile({ onOpenSteamIntegration }: SteamProfileProps) {
       <DropdownMenuTrigger asChild>
         <button className="w-full flex items-center gap-2 p-2 rounded-xl hover:bg-white/5 transition-colors group">
           <Avatar className="h-8 w-8 border-2 border-green-500/50">
-            {steamUser?.avatarUrl && (
-              <AvatarImage src={steamUser.avatarUrl} alt={steamUser.personaName || 'Steam'} />
+            {avatarUrl && (
+              <AvatarImage src={avatarUrl} alt={personaName} />
             )}
             <AvatarFallback className="bg-violet-500/20 text-violet-400 text-xs">
-              {steamUser?.personaName?.[0] || 'S'}
+              {personaName[0] || 'S'}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 text-left min-w-0">
-            <p className="text-xs font-medium text-white truncate">
-              {steamUser?.personaName || 'Steam User'}
-            </p>
+            <p className="text-xs font-medium text-white truncate">{personaName}</p>
             <div className="flex items-center gap-1">
               <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
               <span className="text-[10px] text-zinc-500">Połączono</span>

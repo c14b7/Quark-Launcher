@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Moon, Monitor, EyeOff, FolderPlus, Trash2, Bot, Server, Key, Shield, RefreshCw, Trash, Database, Info, AlertTriangle } from 'lucide-react';
+import { X, Moon, Monitor, EyeOff, FolderPlus, Trash2, Bot, Server, Key, Shield, RefreshCw, Trash, Database, Info, AlertTriangle, ChevronDown, ChevronUp, Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -11,6 +11,7 @@ import { useSettings } from '@/lib/settings-context';
 import { useGames } from '@/lib/games-context';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -18,12 +19,15 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
-  const { settings, updateSettings, unhideGame, addCategory, removeCategory } = useSettings();
+  const ts = useTranslations('settings');
+  const { settings, updateSettings, unhideGame, addCategory, removeCategory, addGameToCategory, removeGameFromCategory } = useSettings();
   const { games } = useGames();
   const { logout } = useAuth();
   const [newCategoryName, setNewCategoryName] = useState('');
   const [activeTab, setActiveTab] = useState<'general' | 'hidden' | 'categories' | 'ai' | 'admin'>('general');
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [categoryGameSearch, setCategoryGameSearch] = useState('');
 
   if (!isOpen) return null;
 
@@ -57,7 +61,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       <div className="relative w-full max-w-2xl max-h-[80vh] bg-zinc-900 border border-white/10 rounded-3xl shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/10">
-          <h2 className="text-xl font-bold text-white">Ustawienia</h2>
+          <h2 className="text-xl font-bold text-white">{ts('title')}</h2>
           <Button
             variant="ghost"
             size="icon"
@@ -71,11 +75,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         {/* Tabs */}
         <div className="flex gap-1 p-4 border-b border-white/5 overflow-x-auto">
           {[
-            { id: 'general', label: 'Ogólne' },
-            /* { id: 'ai', label: 'Asystent AI' }, */
-            { id: 'hidden', label: 'Ukryte gry' },
-            { id: 'categories', label: 'Kategorie' },
-            { id: 'admin', label: 'Dev settings' }
+            { id: 'general', label: ts('tabs.general') },
+            { id: 'hidden', label: ts('tabs.hidden') },
+            { id: 'categories', label: ts('tabs.categories') },
+            { id: 'admin', label: ts('tabs.admin') }
           ].map(tab => (
             <Button
               key={tab.id}
@@ -97,9 +100,37 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           <div className="p-6 space-y-6">
             {activeTab === 'general' && (
               <>
-                {/* Theme */}
                 <div className="space-y-3">
-                  <label className="text-sm font-medium text-zinc-400">Motyw</label>
+                  <label className="text-sm font-medium text-zinc-400">{ts('language')}</label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'flex-1 rounded-xl border-white/10',
+                        settings.locale === 'pl' && 'bg-white/10 border-violet-500'
+                      )}
+                      onClick={() => updateSettings({ locale: 'pl' })}
+                    >
+                      {ts('polish')}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'flex-1 rounded-xl border-white/10',
+                        settings.locale === 'en' && 'bg-white/10 border-violet-500'
+                      )}
+                      onClick={() => updateSettings({ locale: 'en' })}
+                    >
+                      {ts('english')}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-zinc-500">{ts('languageDesc')}</p>
+                </div>
+
+                <Separator className="bg-white/5" />
+
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-zinc-400">{ts('theme')}</label>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
@@ -110,7 +141,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       onClick={() => updateSettings({ theme: 'dark' })}
                     >
                       <Moon className="h-4 w-4" />
-                      Ciemny
+                      {ts('themeDark')}
                     </Button>
                     <Button
                       variant="outline"
@@ -121,12 +152,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       onClick={() => updateSettings({ theme: 'oled' })}
                     >
                       <Monitor className="h-4 w-4" />
-                      OLED
+                      {ts('themeOled')}
                     </Button>
                   </div>
-                  <p className="text-xs text-zinc-500">
-                    Tryb OLED używa czystej czerni dla oszczędności energii na ekranach OLED
-                  </p>
+                  <p className="text-xs text-zinc-500">{ts('themeOledHint')}</p>
                 </div>
 
                 <Separator className="bg-white/5" />
@@ -134,7 +163,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 {/* UI Scale */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-zinc-400">Skala interfejsu</label>
+                    <label className="text-sm font-medium text-zinc-400">{ts('uiScale')}</label>
                     <span className="text-sm text-white">{Math.round(settings.uiScale * 100)}%</span>
                   </div>
                   <input
@@ -157,7 +186,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
                 {/* Steam Integration */}
                 <div className="space-y-3">
-                  <label className="text-sm font-medium text-zinc-400">Integracja Steam</label>
+                  <label className="text-sm font-medium text-zinc-400">{ts('steamIntegration')}</label>
                   <div className="space-y-2">
                     <Input
                       placeholder="Steam API Key"
@@ -172,9 +201,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       className="rounded-xl bg-zinc-800/50 border-white/5"
                     />
                   </div>
-                  <p className="text-xs text-zinc-500">
-                    Potrzebne do wyświetlania osiągnięć i statystyk gracza
-                  </p>
+                  <p className="text-xs text-zinc-500">{ts('steamHint')}</p>
                 </div>
               </>
             )}
@@ -309,7 +336,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
             {activeTab === 'categories' && (
               <div className="space-y-4">
-                {/* Add new category */}
+                <p className="text-xs text-zinc-500">
+                  Twórz kategorie i przypisuj gry. Możesz też użyć PPM na kafelku gry → Kategoria.
+                </p>
+
                 <div className="flex gap-2">
                   <Input
                     placeholder="Nazwa nowej kategorii..."
@@ -320,7 +350,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   />
                   <Button
                     onClick={handleAddCategory}
-                    className="gap-2 rounded-xl bg-violet-500 hover:bg-violet-600"
+                    className="gap-2 rounded-xl bg-violet-500 hover:bg-violet-600 shrink-0"
                   >
                     <FolderPlus className="h-4 w-4" />
                     Dodaj
@@ -329,7 +359,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
                 <Separator className="bg-white/5" />
 
-                {/* Categories list */}
                 {settings.customCategories.length === 0 ? (
                   <div className="text-center py-8 text-zinc-500">
                     <FolderPlus className="h-12 w-12 mx-auto mb-3 opacity-50" />
@@ -338,29 +367,120 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {settings.customCategories.map(category => (
-                      <div
-                        key={category.id}
-                        className="flex items-center gap-3 p-3 rounded-xl bg-zinc-800/50 border border-white/5"
-                      >
+                    {settings.customCategories.map((category) => {
+                      const isExpanded = expandedCategory === category.id;
+                      const categoryGames = games.filter((g) => category.gameIds.includes(g.id));
+                      const availableGames = games
+                        .filter((g) => !settings.hiddenGames.includes(g.id) && !category.gameIds.includes(g.id))
+                        .filter((g) =>
+                          !categoryGameSearch ||
+                          g.name.toLowerCase().includes(categoryGameSearch.toLowerCase())
+                        )
+                        .slice(0, 8);
+
+                      return (
                         <div
-                          className="w-4 h-4 rounded-full"
-                          style={{ backgroundColor: category.color }}
-                        />
-                        <span className="flex-1 text-sm font-medium">{category.name}</span>
-                        <Badge variant="secondary" className="text-xs">
-                          {category.gameIds.length} gier
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-zinc-500 hover:text-red-500"
-                          onClick={() => removeCategory(category.id)}
+                          key={category.id}
+                          className="rounded-xl bg-zinc-800/50 border border-white/5 overflow-hidden"
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
+                          <div className="flex items-center gap-3 p-3">
+                            <div
+                              className="w-4 h-4 rounded-full shrink-0"
+                              style={{ backgroundColor: category.color }}
+                            />
+                            <span className="flex-1 text-sm font-medium">{category.name}</span>
+                            <Badge variant="secondary" className="text-xs">
+                              {category.gameIds.length} gier
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-zinc-400"
+                              onClick={() => {
+                                setExpandedCategory(isExpanded ? null : category.id);
+                                setCategoryGameSearch('');
+                              }}
+                            >
+                              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-zinc-500 hover:text-red-500"
+                              onClick={() => removeCategory(category.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+
+                          {isExpanded && (
+                            <div className="px-3 pb-3 space-y-3 border-t border-white/5 pt-3">
+                              {categoryGames.length > 0 && (
+                                <div className="space-y-1">
+                                  {categoryGames.map((game) => (
+                                    <div
+                                      key={game.id}
+                                      className="flex items-center gap-2 p-2 rounded-lg bg-zinc-900/50"
+                                    >
+                                      {game.image ? (
+                                        <img src={game.image} alt="" className="w-10 h-5 object-cover rounded" />
+                                      ) : (
+                                        <div className="w-10 h-5 rounded bg-zinc-700" />
+                                      )}
+                                      <span className="flex-1 text-xs truncate">{game.name}</span>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6 text-zinc-500 hover:text-red-400"
+                                        onClick={() => removeGameFromCategory(category.id, game.id)}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+                                <Input
+                                  placeholder="Dodaj grę do kategorii..."
+                                  value={categoryGameSearch}
+                                  onChange={(e) => setCategoryGameSearch(e.target.value)}
+                                  className="pl-8 h-8 text-xs rounded-lg bg-zinc-900/50 border-white/5"
+                                />
+                              </div>
+
+                              {availableGames.length > 0 ? (
+                                <div className="space-y-1 max-h-40 overflow-y-auto">
+                                  {availableGames.map((game) => (
+                                    <button
+                                      key={game.id}
+                                      type="button"
+                                      className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-zinc-900/80 text-left transition-colors"
+                                      onClick={() => {
+                                        addGameToCategory(category.id, game.id);
+                                        setCategoryGameSearch('');
+                                      }}
+                                    >
+                                      {game.image ? (
+                                        <img src={game.image} alt="" className="w-10 h-5 object-cover rounded" />
+                                      ) : (
+                                        <div className="w-10 h-5 rounded bg-zinc-700" />
+                                      )}
+                                      <span className="flex-1 text-xs truncate text-zinc-300">{game.name}</span>
+                                      <Plus className="h-3.5 w-3.5 text-violet-400" />
+                                    </button>
+                                  ))}
+                                </div>
+                              ) : categoryGameSearch ? (
+                                <p className="text-xs text-zinc-500 text-center py-2">Brak wyników</p>
+                              ) : null}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -554,7 +674,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <div className="text-zinc-500">Screen: <span className="text-white">{typeof window !== 'undefined' ? `${window.screen.width}x${window.screen.height}` : 'N/A'}</span></div>
                   </div>
                 </div>
-                  <Button variant="secondary">Button</Button>
               </div>
             )}
           </div>

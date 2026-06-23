@@ -65,7 +65,8 @@ export async function apiRequest<T = unknown>(
     });
 
     if (execution.status === 'failed') {
-      console.error(`[API] ${httpMethod} ${path} failed:`, execution.errors);
+      const errMsg = execution.errors || execution.responseBody || 'Function execution failed';
+      console.error(`[API] ${httpMethod} ${path} failed (status=${execution.status}):`, errMsg);
       return {
         success: false,
         code: 'FUNCTION_ERROR',

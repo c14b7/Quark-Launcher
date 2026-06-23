@@ -188,10 +188,16 @@ export async function handleAuthApiRequest(
   res: FunctionResponse,
   logger: Logger = noopLogger
 ) {
-  const rawBody = parseBody(req);
+  const method = (req.method || 'POST').toUpperCase();
+  let rawBody: Record<string, unknown> = {};
+  try {
+    rawBody = method === 'GET' ? {} : parseBody(req);
+  } catch (err) {
+    logger.error(`parseBody failed: ${err}`);
+    rawBody = {};
+  }
   const path = resolveRoutePath(req, rawBody);
   const body = stripRouteMeta(rawBody);
-  const method = (req.method || 'POST').toUpperCase();
   const ip = getClientIp(req);
   const databases = getDatabases();
 
@@ -345,6 +351,15 @@ export async function handleAuthApiRequest(
         updates.presence = body.presence;
         updates.lastSeen = new Date().toISOString();
       }
+      if (body.preferences !== undefined) {
+        const prefs = String(body.preferences);
+        try {
+          JSON.parse(prefs);
+          updates.preferences = prefs;
+        } catch {
+          return errorResponse(res, 'INVALID_PREFERENCES', 'Invalid preferences JSON');
+        }
+      }
 
       if (Object.keys(updates).length === 0) {
         return errorResponse(res, 'NO_CHANGES', 'No valid fields to update');
@@ -443,7 +458,13 @@ export async function handleAuthApiRequest(
         steamId,
       });
 
-      return jsonResponse(res, { success: true, steamIntegration: integrationData });
+      const profile = await getProfileByUserId(databases, userId);
+      logger.log(`Steam linked for ${userId}: ${steamId}`);
+      return jsonResponse(res, {
+        success: true,
+        steamIntegration: integrationData,
+        profile: profile ? toPrivateProfile(profile as Record<string, unknown>) : null,
+      });
     }
 
     // POST /auth/steam/unlink

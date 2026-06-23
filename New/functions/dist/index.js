@@ -12,7 +12,7 @@ const config_1 = require("./lib/config");
 const runtime_1 = require("./lib/runtime");
 async function default_1({ req, res, log, error }) {
     const logger = (0, runtime_1.createLogger)(log, error);
-    const path = (0, middleware_1.resolveRoutePath)(req, (0, middleware_1.parseBody)(req));
+    const path = (0, middleware_1.resolveRoutePathFromRequest)(req);
     const method = (req.method || 'POST').toUpperCase();
     logger.log(`${method} ${path} (raw path: ${req.path || 'empty'})`);
     try {

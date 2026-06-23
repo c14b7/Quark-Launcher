@@ -54,10 +54,16 @@ export async function handleFriendsApiRequest(
   res: FunctionResponse,
   logger: Logger = noopLogger
 ) {
-  const rawBody = parseBody(req);
+  const method = (req.method || 'POST').toUpperCase();
+  let rawBody: Record<string, unknown> = {};
+  try {
+    rawBody = method === 'GET' ? {} : parseBody(req);
+  } catch (err) {
+    logger.error(`parseBody failed: ${err}`);
+    rawBody = {};
+  }
   const path = resolveRoutePath(req, rawBody);
   const body = stripRouteMeta(rawBody);
-  const method = (req.method || 'POST').toUpperCase();
   const userId = await verifyAuth(req);
   const databases = getDatabases();
 

@@ -293,29 +293,65 @@ img {
 
 /* Plik: globals.css (dodaj na samym końcu) */
 
-/* Efekt płynnego uniesienia karty gier (Card Hover Elevation) */
+/* Efekt płynnego uniesienia karty gier — subtelny */
 .hover-game-card {
-  /* Nadpisujemy globalny transition-duration dla super płynnego efektu uginania/uniesienia */
-  transition: transform 0.35s cubic-bezier(0.2, 0.5, 0.2, 1), 
-              box-shadow 0.35s cubic-bezier(0.2, 0.5, 0.2, 1), 
-              border-color 0.35s ease;
-  will-change: transform, box-shadow;
+  transition: transform 0.22s ease-out, box-shadow 0.22s ease-out, border-color 0.22s ease-out;
 }
 
 .hover-game-card:hover {
-  /* Podniesienie karty o 6 pikseli w górę i delikatne przeskalowanie */
-  transform: translateY(-3px) scale(1.002);
-  
-  /* Przestrzenny, mroczny cień nadający karcie głębię 3D */
-  box-shadow: 0 12px 24px -10px rgba(65, 27, 90, 0.6), 
-              0 4px 12px -5px rgba(96, 42, 223, 0.815); /* Subtelny fioletowy glow */
-              
-  /* Rozjaśnienie krawędzi, żeby odcięła się od ciemnego tła */
-  border-color: rgba(138, 47, 223, 0.603);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -10px rgba(0, 0, 0, 0.5),
+    0 2px 8px -4px rgba(139, 92, 246, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+  z-index: 5;
 }
 
-/* Kliknięcie karty - efekt fizycznego wciśnięcia (Active state) */
 .hover-game-card:active {
-  transform: translateY(-2px) scale(0.99);
-  box-shadow: 0 6px 12px -8px rgba(0, 0, 0, 0.8);
+  transform: translateY(0);
+  box-shadow: 0 2px 8px -4px rgba(0, 0, 0, 0.4);
+}
+
+/* Banery featured — 3 kolumny, ograniczona wysokość */
+.featured-banner {
+  aspect-ratio: 21 / 9;
+  min-height: 0;
+}
+
+@media (min-width: 1280px) {
+  .featured-banner {
+    
+  }
+}
+
+/* Horizontal carousel — hide scrollbar, keep drag scroll */
+.carousel-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  scroll-behavior: auto;
+}
+.carousel-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Design tokens */
+:root {
+  --section-gap: 2.5rem;
+  --card-radius: 0.75rem;
+  --surface-elevated: rgba(24, 24, 27, 0.8);
+  --text-muted: #a1a1aa;
+  --text-faint: #71717a;
+}
+
+.content-shell {
+  padding: 1.5rem 2rem;
+}
+
+@media (min-width: 768px) {
+  .content-shell {
+    padding: 2rem;
+  }
+}
+
+.section-gap {
+  margin-bottom: var(--section-gap);
 }

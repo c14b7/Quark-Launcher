@@ -1,12 +1,15 @@
 'use client';
 
-import { Play, Star, HardDrive, EyeOff, Store } from 'lucide-react';
+import { Play, Star, HardDrive, EyeOff, Store, FolderPlus, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { cn } from '@/lib/utils';
@@ -25,7 +28,7 @@ interface GameCardProps {
 
 export function GameCard({ game, variant = 'medium', onClick, className }: GameCardProps) {
   const { toggleFavorite, launchGame } = useGames();
-  const { hideGame } = useSettings();
+  const { hideGame, settings, addGameToCategory, removeGameFromCategory } = useSettings();
   const [imageError, setImageError] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -63,9 +66,9 @@ export function GameCard({ game, variant = 'medium', onClick, className }: GameC
   };
 
   const sizeClasses = {
-    large: 'aspect-[21/9] min-h-[140px]',
-    medium: 'aspect-[16/9] min-h-[80px]',
-    small: 'aspect-[16/9] min-h-[60px]'
+    large: 'aspect-[21/9]',
+    medium: 'aspect-[16/9]',
+    small: 'aspect-[16/9]'
   };
 
   const imageUrl = imageError ? '' : (game.image || game.hero);
@@ -76,18 +79,10 @@ export function GameCard({ game, variant = 'medium', onClick, className }: GameC
         <div
           className={cn(
             'relative rounded-2xl overflow-hidden cursor-pointer group',
-            'bg-zinc-800/80 border border-white/5 shadow-md',
-            
-            /* MAŚLANA ANIMACJA PODNOSZENIA (Bazuje na niestandardowym cubic-bezier) */
-            'transition-[transform,box-shadow,border-color] duration-300 [transition-timing-function:cubic-bezier(0.2,0.8,0.2,1)]',
-            'hover:-translate-y-1.5 hover:scale-[1.01] hover:z-10',
-            'hover:border-violet-500/40 hover:shadow-[0_15px_30px_-10px_rgba(0,0,0,0.6),0_5px_15px_-5px_rgba(139,92,246,0.2)]',
-            
-            /* EFEKT FIZYCZNEGO KLIKNIĘCIA (Wciśnięcie karty) */
-            'active:scale-[0.98] active:translate-y-0 active:duration-700',
-            
+            'bg-zinc-800/80 border border-white/5 shadow-sm',
+            'transition-[transform,box-shadow,border-color] duration-200 ease-out',
             sizeClasses[variant],
-            className // <-- Wstrzyknięcie ewentualnej klasy nadrzędnej z zachowaniem specyfiki Tailwinda
+            className
           )}
           onClick={onClick}
           onMouseEnter={() => setIsHovered(true)}
@@ -100,8 +95,8 @@ export function GameCard({ game, variant = 'medium', onClick, className }: GameC
                 src={imageUrl}
                 alt={game.name}
                 className={cn(
-                  'w-full h-full object-cover transition-transform duration-700 ease-out',
-                  isHovered ? 'scale-110 brightness-[0.6]' : 'scale-105 brightness-90'
+                  'w-full h-full object-cover transition-transform duration-500 ease-out',
+                  isHovered ? 'scale-[1.03] brightness-[0.65]' : 'scale-100 brightness-90'
                 )}
                 onError={() => setImageError(true)}
                 loading="lazy"
@@ -225,6 +220,42 @@ export function GameCard({ game, variant = 'medium', onClick, className }: GameC
           <HardDrive className="h-4 w-4" />
           Pokaż pliki
         </ContextMenuItem>
+        <ContextMenuSeparator className="bg-white/10" />
+        {settings.customCategories.length > 0 ? (
+          <ContextMenuSub>
+            <ContextMenuSubTrigger className="gap-2 text-sm cursor-pointer rounded-lg">
+              <FolderPlus className="h-4 w-4" />
+              Kategoria
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent className="bg-zinc-900/95 backdrop-blur-xl border-white/10 rounded-xl">
+              {settings.customCategories.map((category) => {
+                const inCategory = category.gameIds.includes(game.id);
+                return (
+                  <ContextMenuItem
+                    key={category.id}
+                    className="gap-2 text-sm cursor-pointer rounded-lg"
+                    onClick={() => {
+                      if (inCategory) removeGameFromCategory(category.id, game.id);
+                      else addGameToCategory(category.id, game.id);
+                    }}
+                  >
+                    <span
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: category.color }}
+                    />
+                    <span className="flex-1">{category.name}</span>
+                    {inCategory && <Check className="h-3.5 w-3.5 text-violet-400" />}
+                  </ContextMenuItem>
+                );
+              })}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
+        ) : (
+          <ContextMenuItem disabled className="gap-2 text-sm text-zinc-500 rounded-lg">
+            <FolderPlus className="h-4 w-4" />
+            Brak kategorii (Ustawienia)
+          </ContextMenuItem>
+        )}
         <ContextMenuSeparator className="bg-white/10" />
         <ContextMenuItem 
           className="gap-2 text-sm cursor-pointer rounded-lg text-red-400 focus:text-red-400"

@@ -38,10 +38,17 @@ async function hasPendingRequest(databases, fromId, toId) {
     return docs.documents.length > 0;
 }
 async function handleFriendsApiRequest(req, res, logger = noopLogger) {
-    const rawBody = (0, middleware_1.parseBody)(req);
+    const method = (req.method || 'POST').toUpperCase();
+    let rawBody = {};
+    try {
+        rawBody = method === 'GET' ? {} : (0, middleware_1.parseBody)(req);
+    }
+    catch (err) {
+        logger.error(`parseBody failed: ${err}`);
+        rawBody = {};
+    }
     const path = (0, middleware_1.resolveRoutePath)(req, rawBody);
     const body = (0, middleware_1.stripRouteMeta)(rawBody);
-    const method = (req.method || 'POST').toUpperCase();
     const userId = await (0, middleware_1.verifyAuth)(req);
     const databases = getDatabases();
     logger.log(`Friends ${method} ${path} user=${userId || 'none'}`);

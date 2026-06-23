@@ -1,0 +1,72 @@
+{
+  "common": {
+    "search": "Szukaj gier...",
+    "refresh": "Odśwież",
+    "settings": "Ustawienia",
+    "soon": "Wkrótce dostępny"
+  },
+  "nav": {
+    "home": "Home",
+    "library": "Biblioteka",
+    "news": "Aktualności",
+    "store": "Sklep",
+    "account": "Konto",
+    "yourGames": "Twoje gry ({count})",
+    "friends": "Znajomi",
+    "online": "{count} online"
+  },
+  "home": {
+    "noGames": "Nie znaleziono gier",
+    "steamHint": "Upewnij się, że Steam jest zainstalowany",
+    "favorites": "Ulubione gry",
+    "featured": "Proponowane dla Ciebie",
+    "searchResults": "Wyniki wyszukiwania",
+    "library": "Biblioteka gier",
+    "noSearchResults": "Brak wyników dla \"{query}\""
+  },
+  "profile": {
+    "guest": "Użytkownik",
+    "myAccount": "Moje konto",
+    "editProfile": "Edytuj profil",
+    "settings": "Ustawienia",
+    "presence": "Status",
+    "presence_online": "Online",
+    "presence_idle": "Zaraz wracam",
+    "presence_dnd": "Nie przeszkadzać",
+    "presence_offline": "Offline",
+    "integrations": "Integracje",
+    "connectSteam": "Połącz Steam",
+    "steamConnected": "Steam połączony",
+    "logout": "Wyloguj"
+  },
+  "notifications": {
+    "title": "Powiadomienia",
+    "empty": "Brak nowych powiadomień"
+  },
+  "launcher": {
+    "storeTitle": "Sklep",
+    "steamDialogTitle": "Połącz konto Steam",
+    "steamDialogDesc": "Połącz swoje konto Steam, aby synchronizować znajomych, osiągnięcia i statystyki.",
+    "apiUnavailable": "Nie można połączyć z serwerem Quark. Niektóre funkcje mogą być niedostępne."
+  },
+  "settings": {
+    "title": "Ustawienia",
+    "tabs": {
+      "general": "Ogólne",
+      "hidden": "Ukryte gry",
+      "categories": "Kategorie",
+      "admin": "Dev settings"
+    },
+    "language": "Język",
+    "languageDesc": "Wybierz język interfejsu aplikacji",
+    "polish": "Polski",
+    "english": "English",
+    "theme": "Motyw",
+    "themeDark": "Ciemny",
+    "themeOled": "OLED",
+    "themeOledHint": "Tryb OLED używa czystej czerni dla oszczędności energii na ekranach OLED",
+    "uiScale": "Skala interfejsu",
+    "steamIntegration": "Integracja Steam",
+    "steamHint": "Potrzebne do wyświetlania osiągnięć i statystyk gracza"
+  }
+}

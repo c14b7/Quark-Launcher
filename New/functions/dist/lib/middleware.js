@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parseBody = parseBody;
+exports.resolveRoutePathFromRequest = resolveRoutePathFromRequest;
 exports.resolveRoutePath = resolveRoutePath;
 exports.stripRouteMeta = stripRouteMeta;
 exports.getHeaders = getHeaders;
@@ -13,16 +14,30 @@ exports.requireAuth = requireAuth;
 const node_appwrite_1 = require("node-appwrite");
 const config_1 = require("./config");
 function parseBody(req) {
-    if (req.bodyJson && typeof req.bodyJson === 'object' && !Array.isArray(req.bodyJson)) {
-        return req.bodyJson;
+    // bodyJson is a getter that throws on empty GET bodies — never read it bare
+    try {
+        const json = req.bodyJson;
+        if (json && typeof json === 'object' && !Array.isArray(json)) {
+            return json;
+        }
     }
-    const raw = req.payload || req.body || req.bodyRaw || req.bodyText || '{}';
+    catch {
+        // empty body (typical for GET)
+    }
+    const raw = req.payload || req.body || req.bodyRaw || req.bodyText;
+    if (!raw || (typeof raw === 'string' && raw.trim() === '')) {
+        return {};
+    }
     try {
         return typeof raw === 'string' ? JSON.parse(raw) : raw;
     }
     catch {
         return {};
     }
+}
+/** Safe path resolution without parsing body (for GET requests). */
+function resolveRoutePathFromRequest(req) {
+    return resolveRoutePath(req, {});
 }
 /** Resolve route path from Appwrite execution (path is often empty without fallbacks). */
 function resolveRoutePath(req, body) {

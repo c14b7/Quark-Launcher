@@ -178,10 +178,17 @@ async function resolveVanityUrl(vanityUrl) {
     return null;
 }
 async function handleAuthApiRequest(req, res, logger = noopLogger) {
-    const rawBody = (0, middleware_1.parseBody)(req);
+    const method = (req.method || 'POST').toUpperCase();
+    let rawBody = {};
+    try {
+        rawBody = method === 'GET' ? {} : (0, middleware_1.parseBody)(req);
+    }
+    catch (err) {
+        logger.error(`parseBody failed: ${err}`);
+        rawBody = {};
+    }
     const path = (0, middleware_1.resolveRoutePath)(req, rawBody);
     const body = (0, middleware_1.stripRouteMeta)(rawBody);
-    const method = (req.method || 'POST').toUpperCase();
     const ip = (0, middleware_1.getClientIp)(req);
     const databases = getDatabases();
     logger.log(`Auth ${method} ${path}`);
@@ -334,6 +341,16 @@ async function handleAuthApiRequest(req, res, logger = noopLogger) {
                 updates.presence = body.presence;
                 updates.lastSeen = new Date().toISOString();
             }
+            if (body.preferences !== undefined) {
+                const prefs = String(body.preferences);
+                try {
+                    JSON.parse(prefs);
+                    updates.preferences = prefs;
+                }
+                catch {
+                    return (0, middleware_1.errorResponse)(res, 'INVALID_PREFERENCES', 'Invalid preferences JSON');
+                }
+            }
             if (Object.keys(updates).length === 0) {
                 return (0, middleware_1.errorResponse)(res, 'NO_CHANGES', 'No valid fields to update');
             }
@@ -419,7 +436,13 @@ async function handleAuthApiRequest(req, res, logger = noopLogger) {
                 steamLinked: true,
                 steamId,
             });
-            return (0, middleware_1.jsonResponse)(res, { success: true, steamIntegration: integrationData });
+            const profile = await getProfileByUserId(databases, userId);
+            logger.log(`Steam linked for ${userId}: ${steamId}`);
+            return (0, middleware_1.jsonResponse)(res, {
+                success: true,
+                steamIntegration: integrationData,
+                profile: profile ? toPrivateProfile(profile) : null,
+            });
         }
         // POST /auth/steam/unlink
         if (path === '/auth/steam/unlink' && method === 'POST') {

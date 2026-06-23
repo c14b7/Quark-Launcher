@@ -7,12 +7,13 @@ import { HomeView } from '@/components/home-view';
 import { LibraryView } from '@/components/library-view';
 import { GameDetails } from '@/components/game-details';
 import { SettingsModal } from '@/components/settings-modal';
-import { AIChatPanel } from '@/components/ai-chat';
 import { DownloadsView } from '@/components/downloads-view';
 import { NewsView } from '@/components/news-view';
 import { AccountsView } from '@/components/accounts-view';
 import { FriendsSidebar } from '@/components/friends-sidebar';
 import { SteamIntegrationPanel } from '@/components/steam-integration-panel';
+import { SteamSync } from '@/components/steam-sync';
+import { IntlProvider } from '@/components/intl-provider';
 import { GamesProvider, useGames } from '@/lib/games-context';
 import { SettingsProvider, useSettings } from '@/lib/settings-context';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
@@ -29,39 +30,46 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { AlertCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { ProfileQuickSheet } from '@/components/user/profile-quick-sheet';
+import { isSteamPromptSkipped, mergeProfilePreferences } from '@/lib/profile-preferences';
 
-// Key for remembering if user has dismissed Steam prompt
 const STEAM_PROMPT_DISMISSED_KEY = 'quark_steam_prompt_dismissed';
 
 function LauncherContent() {
+  const t = useTranslations('launcher');
+  const tc = useTranslations('common');
   const [currentView, setCurrentView] = useState('home');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSteamIntegrationOpen, setIsSteamIntegrationOpen] = useState(false);
-  
-  // Stan widoczności prawego sidebaru (znajomych) z pamięcią podręczną
+  const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
+
   const [isFriendsOpen, setIsFriendsOpen] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('quark_friends_sidebar_open');
-      return saved !== null ? saved === 'true' : true; // Domyślnie otwarty
+      return saved !== null ? saved === 'true' : true;
     }
     return true;
   });
 
   const { selectedGame, setSelectedGame } = useGames();
   const { settings } = useSettings();
-  const { isAuthenticated, steamIntegration, isLoading } = useAuth();
+  const { isAuthenticated, profile, steamIntegration, isLoading, meLoaded, apiUnavailable, updateProfile } = useAuth();
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      const hasSteam = !!steamIntegration?.steamId;
-      const wasDismissed = localStorage.getItem(STEAM_PROMPT_DISMISSED_KEY) === 'true';
+    if (!isLoading && isAuthenticated && meLoaded && !apiUnavailable) {
+      const hasSteam = profile?.steamLinked || !!steamIntegration?.steamId;
+      const wasDismissed =
+        isSteamPromptSkipped(profile?.preferences) ||
+        localStorage.getItem(STEAM_PROMPT_DISMISSED_KEY) === 'true';
 
       if (!hasSteam && !wasDismissed) {
         const timer = setTimeout(() => setIsSteamIntegrationOpen(true), 1000);
         return () => clearTimeout(timer);
       }
     }
-  }, [isLoading, isAuthenticated, steamIntegration]);
+  }, [isLoading, isAuthenticated, steamIntegration, profile, meLoaded, apiUnavailable]);
 
   if (isLoading) {
     return <LoadingScreen minDuration={0} />;
@@ -71,7 +79,6 @@ function LauncherContent() {
     return <OnboardingScreen />;
   }
 
-  // Funkcja do zamykania/otwierania sidebaru
   const toggleFriendsSidebar = () => {
     setIsFriendsOpen((prev) => {
       localStorage.setItem('quark_friends_sidebar_open', (!prev).toString());
@@ -82,6 +89,11 @@ function LauncherContent() {
   const handleSteamDialogClose = (open: boolean) => {
     if (!open) {
       localStorage.setItem(STEAM_PROMPT_DISMISSED_KEY, 'true');
+      if (profile) {
+        updateProfile({
+          preferences: mergeProfilePreferences(profile.preferences, { steamPromptSkipped: true }),
+        });
+      }
     }
     setIsSteamIntegrationOpen(open);
   };
@@ -99,29 +111,37 @@ function LauncherContent() {
   };
 
   return (
-    <div 
+    <div
       className={cn(
-        "h-screen flex flex-col bg-zinc-950 text-white overflow-hidden",
+        'h-screen flex flex-col bg-zinc-950 text-white overflow-hidden',
         settings.theme === 'oled' && 'oled'
       )}
       style={scaleStyle}
     >
-      {/* Title Bar */}
-      <TitleBar />
+      <TitleBar
+        onNavigate={setCurrentView}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenSteamIntegration={() => setIsSteamIntegrationOpen(true)}
+        onOpenProfileEdit={() => setIsProfileEditOpen(true)}
+      />
 
-      {/* Main Content Container */}
+      {apiUnavailable && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border-b border-amber-500/20 text-amber-200 text-xs">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>{t('apiUnavailable')}</span>
+        </div>
+      )}
+
       <div className="flex-1 flex overflow-hidden w-full relative">
-        {/* Sidebar (Lewy) */}
         <Sidebar
           currentView={currentView}
           onNavigate={setCurrentView}
           onGameSelect={handleGameSelect}
           onOpenSettings={() => setIsSettingsOpen(true)}
-          onOpenChat={toggleFriendsSidebar} // <--- PRZYPISUJEMY PRZYCISK CZATU DO OTWIERANIA/ZAMYKANIA ZNAJOMYCH!
-          onOpenSteamIntegration={() => setIsSteamIntegrationOpen(true)}
+          onToggleFriends={toggleFriendsSidebar}
+          isFriendsOpen={isFriendsOpen}
         />
 
-        {/* Główny widok (Środek) */}
         <main className="flex-1 flex flex-col overflow-hidden bg-launcher-main">
           {currentView === 'home' && <HomeView onGameSelect={handleGameSelect} />}
           {currentView === 'library' && <LibraryView onGameSelect={handleGameSelect} />}
@@ -131,14 +151,13 @@ function LauncherContent() {
           {currentView === 'store' && (
             <div className="flex-1 flex items-center justify-center text-zinc-500">
               <div className="text-center">
-                <p className="text-lg font-medium mb-2">Sklep</p>
-                <p className="text-sm">Wkrótce dostępny</p>
+                <p className="text-lg font-medium mb-2">{t('storeTitle')}</p>
+                <p className="text-sm text-zinc-600">{tc('soon')}</p>
               </div>
             </div>
           )}
         </main>
 
-        {/* PRAWY SIDEBAR — Znajomi Quark */}
         <aside
           className={cn(
             'h-full border-l border-zinc-800 bg-zinc-900/30 flex flex-col shrink-0 transition-all duration-300 ease-in-out w-72',
@@ -149,17 +168,15 @@ function LauncherContent() {
         </aside>
       </div>
 
-      {/* Modale globalne */}
       {selectedGame && <GameDetails game={selectedGame} onClose={handleCloseDetails} />}
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      <ProfileQuickSheet open={isProfileEditOpen} onOpenChange={setIsProfileEditOpen} />
 
       <Dialog open={isSteamIntegrationOpen} onOpenChange={handleSteamDialogClose}>
         <DialogContent className="sm:max-w-[600px] bg-zinc-900 border-zinc-800">
           <DialogHeader>
-            <DialogTitle className="text-white">Połącz konto Steam</DialogTitle>
-            <DialogDescription className="text-zinc-400">
-              Połącz swoje konto Steam, aby synchronizować znajomych, osiągnięcia i statystyki.
-            </DialogDescription>
+            <DialogTitle className="text-white">{t('steamDialogTitle')}</DialogTitle>
+            <DialogDescription className="text-zinc-400">{t('steamDialogDesc')}</DialogDescription>
           </DialogHeader>
           <SteamIntegrationPanel />
         </DialogContent>
@@ -167,16 +184,19 @@ function LauncherContent() {
     </div>
   );
 }
-  
+
 export function Launcher() {
   return (
     <TooltipProvider>
       <AuthProvider>
         <FriendsProvider>
           <SettingsProvider>
-            <GamesProvider>
-              <LauncherContent />
-            </GamesProvider>
+            <IntlProvider>
+              <GamesProvider>
+                <SteamSync />
+                <LauncherContent />
+              </GamesProvider>
+            </IntlProvider>
           </SettingsProvider>
         </FriendsProvider>
       </AuthProvider>

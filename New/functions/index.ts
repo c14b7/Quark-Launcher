@@ -5,13 +5,13 @@
 import { handleSteamApiRequest } from './steam-api';
 import { handleAuthApiRequest } from './auth-api';
 import { handleFriendsApiRequest } from './friends-api';
-import { parseBody, resolveRoutePath } from './lib/middleware';
+import { parseBody, resolveRoutePathFromRequest } from './lib/middleware';
 import { APPWRITE_API_KEY } from './lib/config';
 import { createLogger, formatError, type FunctionContext } from './lib/runtime';
 
 export default async function ({ req, res, log, error }: FunctionContext) {
   const logger = createLogger(log, error);
-  const path = resolveRoutePath(req, parseBody(req));
+  const path = resolveRoutePathFromRequest(req);
   const method = (req.method || 'POST').toUpperCase();
 
   logger.log(`${method} ${path} (raw path: ${req.path || 'empty'})`);

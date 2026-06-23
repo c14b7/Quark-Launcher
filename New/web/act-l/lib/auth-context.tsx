@@ -5,6 +5,40 @@ import { authService, UserProfile, SteamIntegration, CardTheme, parseCardTheme }
 import { apiRequest } from './api-client';
 import { Models } from 'appwrite';
 
+const PROFILE_CACHE_KEY = 'quark_profile_cache';
+
+interface ProfileCache {
+  profile: UserProfile;
+  steamIntegration: SteamIntegration | null;
+}
+
+async function saveProfileCache(data: ProfileCache) {
+  try {
+    if (typeof window !== 'undefined' && window.electronAPI) {
+      await window.electronAPI.saveUserData('quarkProfileCache', data);
+    } else {
+      localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(data));
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+async function loadProfileCache(): Promise<ProfileCache | null> {
+  try {
+    if (typeof window !== 'undefined' && window.electronAPI) {
+      const result = await window.electronAPI.loadUserData('quarkProfileCache');
+      if (result.success && result.data) return result.data as ProfileCache;
+    } else {
+      const raw = localStorage.getItem(PROFILE_CACHE_KEY);
+      if (raw) return JSON.parse(raw) as ProfileCache;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
 interface AuthContextType {
   user: Models.User<Models.Preferences> | null;
   profile: UserProfile | null;
@@ -13,6 +47,8 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   isOnboardingComplete: boolean;
+  meLoaded: boolean;
+  apiUnavailable: boolean;
   error: string | null;
 
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
@@ -40,6 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [steamIntegration, setSteamIntegration] = useState<SteamIntegration | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [meLoaded, setMeLoaded] = useState(false);
+  const [apiUnavailable, setApiUnavailable] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
 
@@ -51,6 +89,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadUser = useCallback(async () => {
     setIsLoading(true);
+    setMeLoaded(false);
+    setApiUnavailable(false);
     try {
       const userResult = await authService.getCurrentUser();
       if (userResult.success && userResult.user) {
@@ -59,8 +99,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (meResult.success && meResult.profile) {
           setProfile(meResult.profile);
           setSteamIntegration(meResult.steamIntegration || null);
-        } else if (!meResult.success) {
-          // Logged in but no Quark profile yet — try to init
+          setMeLoaded(true);
+          await saveProfileCache({
+            profile: meResult.profile,
+            steamIntegration: meResult.steamIntegration || null,
+          });
+        } else if (meResult.code === 'FUNCTION_ERROR' || meResult.code === 'NETWORK_ERROR') {
+          setApiUnavailable(true);
+          const cached = await loadProfileCache();
+          if (cached?.profile) {
+            setProfile(cached.profile);
+            setSteamIntegration(cached.steamIntegration);
+            setMeLoaded(true);
+          }
+        } else if (meResult.code === 'PROFILE_NOT_FOUND' || meResult.code === 'API_ERROR') {
           const init = await apiRequest<{ profile: UserProfile }>(
             '/auth/profile/init',
             'POST',
@@ -69,6 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           );
           if (init.success && init.profile) {
             setProfile(init.profile as UserProfile);
+            setMeLoaded(true);
           }
         }
       } else {
@@ -78,6 +131,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (err) {
       console.error('Failed to load user:', err);
+      setApiUnavailable(true);
+      const cached = await loadProfileCache();
+      if (cached?.profile) {
+        setProfile(cached.profile);
+        setSteamIntegration(cached.steamIntegration);
+        setMeLoaded(true);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -135,6 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setProfile(null);
       setSteamIntegration(null);
+      setMeLoaded(false);
     } finally {
       setIsLoading(false);
     }
@@ -144,6 +205,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const result = await authService.updateProfile(data as Parameters<typeof authService.updateProfile>[0]);
     if (result.success && result.profile) {
       setProfile(result.profile);
+      await saveProfileCache({
+        profile: result.profile,
+        steamIntegration: steamIntegration,
+      });
     }
     return result;
   };
@@ -156,7 +221,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const linkSteam = async (steamId?: string, vanityUrl?: string) => {
     const result = await authService.linkSteam(steamId, vanityUrl);
-    if (result.success) await loadUser();
+    if (result.success) {
+      if ('integration' in result && result.integration) {
+        setSteamIntegration(result.integration);
+      }
+      if ('profile' in result && result.profile) {
+        setProfile(result.profile);
+      }
+      await loadUser();
+    }
     return result;
   };
 
@@ -184,6 +257,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
     isAuthenticated: !!user,
     isOnboardingComplete,
+    meLoaded,
+    apiUnavailable,
     error,
     login,
     register,

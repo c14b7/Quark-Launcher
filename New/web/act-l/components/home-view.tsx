@@ -1,46 +1,40 @@
 'use client';
 
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { GameCard } from '@/components/game-card';
+import { GameRow, CarouselItem, CARD_WIDTH } from '@/components/game-row';
 import { useGames } from '@/lib/games-context';
 import { useSettings } from '@/lib/settings-context';
 import { Game } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw, Gamepad2, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import { DialogBanner } from './dialog_banner';
-import { UpBanner } from './up_banner'; 
+import { UpBanner } from './up_banner';
+import { useTranslations } from 'next-intl';
 
 interface HomeViewProps {
   onGameSelect: (game: Game) => void;
 }
 
 export function HomeView({ onGameSelect }: HomeViewProps) {
+  const t = useTranslations('home');
+  const tc = useTranslations('common');
   const { games, favoriteGames, isLoading, refreshGames, searchQuery, filteredGames } = useGames();
   const { settings } = useSettings();
 
-  // Filtruj ukryte gry
-  const visibleGames = (searchQuery ? filteredGames : games).filter(g => !settings.hiddenGames.includes(g.id));
-  const visibleFavorites = favoriteGames.filter(g => !settings.hiddenGames.includes(g.id));
+  const visibleGames = (searchQuery ? filteredGames : games).filter(
+    (g) => !settings.hiddenGames.includes(g.id)
+  );
+  const visibleFavorites = favoriteGames.filter((g) => !settings.hiddenGames.includes(g.id));
 
-  // Top 3 favorite games for featured section (max 3) - only if not searching
-  const featuredGames = !searchQuery 
-    ? (visibleFavorites.length > 0 
-      ? visibleFavorites.slice(0, 3) 
-      : visibleGames.slice(0, 3))
+  const featuredGames = !searchQuery
+    ? visibleFavorites.length > 0
+      ? visibleFavorites.slice(0, 3)
+      : visibleGames.slice(0, 3)
     : [];
 
-  // Rest of the games
-  const allGames = visibleGames.filter(g => !featuredGames.find(f => f.id === g.id));
-
-  // Dynamiczna siatka dla banerów - adaptacyjna szerokość
-  const getBannerGridClass = () => {
-    const count = featuredGames.length;
-    if (count === 1) return 'grid-cols-1';
-    if (count === 2) return 'grid-cols-2';
-    return 'grid-cols-3';
-  };
+  const featuredIds = new Set(featuredGames.map((g) => g.id));
+  const allGames = visibleGames.filter((g) => !featuredIds.has(g.id));
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -50,77 +44,100 @@ export function HomeView({ onGameSelect }: HomeViewProps) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 text-zinc-500">
         <Gamepad2 className="h-16 w-16 text-zinc-700" />
-        <p className="text-lg">Nie znaleziono gier</p>
-        <p className="text-sm text-zinc-600">Upewnij się, że Steam jest zainstalowany</p>
-        <Button 
-          onClick={refreshGames} 
-          variant="outline" 
+        <p className="text-lg">{t('noGames')}</p>
+        <p className="text-sm text-zinc-600">{t('steamHint')}</p>
+        <Button
+          onClick={refreshGames}
+          variant="outline"
           className="gap-2 mt-4 border-zinc-700 hover:bg-zinc-800 rounded-xl"
         >
           <RefreshCw className="h-4 w-4" />
-          Odśwież
+          {tc('refresh')}
         </Button>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-gradient-to-b from-black/20 to-transparent">
-      <ScrollArea className="flex-1 h-full">
-        <div className="p-6 md:p-8 space-y-10 pb-24">
-          
-          
-          <UpBanner />
-          <DialogBanner />
-          
+    <div className="flex-1 overflow-y-auto overflow-x-hidden bg-gradient-to-b from-black/20 to-transparent">
+      <div className="content-shell space-y-8 pb-24">
+        <UpBanner />
+        <DialogBanner />
 
-          {/* Featured Games - Large Cards - adaptacyjna szerokość */}
-          {featuredGames.length > 0 && (
-            <section className="space-y-4">
-              <h2 className="text-xl font-bold tracking-tight text-white/90 flex items-center gap-2 drop-shadow-md">
-                <Star className="h-5 w-5 text-violet-500 fill-violet-500" />
-                {visibleFavorites.length > 0 ? "Ulubione gry" : "Proponowane dla Ciebie"}
-              </h2>
-              <div className={cn('grid gap-4', getBannerGridClass())}>
-                {featuredGames.map((game) => (
-                  <GameCard
-                    key={game.id}
-                    game={game}
-                    variant="large"
-                    onClick={() => onGameSelect(game)}
-                    className="hover-game-card"
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* All Games Grid - mniejsze kafelki */}
-          <section className="space-y-4">
-            <h2 className="text-xl font-bold tracking-tight text-white/90 flex items-center gap-2 mt-4 drop-shadow-md">
-               <Gamepad2 className="h-5 w-5 text-zinc-400" />
-               {searchQuery ? "Wyniki wyszukiwania" : "Biblioteka gier"} <span className="text-xs font-medium bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full ml-1">{allGames.length}</span>
+        {featuredGames.length > 0 && (
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold tracking-tight text-white/90 flex items-center gap-2">
+              <Star className="h-4 w-4 text-violet-500 fill-violet-500" />
+              {visibleFavorites.length > 0 ? t('favorites') : t('featured')}
             </h2>
-            {allGames.length === 0 && searchQuery ? (
-              <div className="flex flex-col items-center justify-center py-20 text-zinc-500">
-                <p className="text-lg">Brak wyników dla "{searchQuery}"</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3 md:gap-4">
-                {allGames.map((game, index) => (
-                  <GameCard
-                    key={`home-${game.id}-${index}`}
-                    game={game}
-                    variant="medium"
-                    onClick={() => onGameSelect(game)}
-                    className="hover-game-card"
-                  />
-                ))}
-              </div>
-            )}
+            <div className="grid grid-cols-3 gap-3">
+              {featuredGames.map((game) => (
+                <GameCard
+                  key={game.id}
+                  game={game}
+                  variant="large"
+                  onClick={() => onGameSelect(game)}
+                  className="hover-game-card featured-banner"
+                />
+              ))}
+            </div>
           </section>
-        </div>
-      </ScrollArea>
+        )}
+
+        {settings.customCategories
+          .filter((cat) => cat.gameIds.length > 0)
+          .map((category) => {
+            const catGames = visibleGames.filter((g) => category.gameIds.includes(g.id));
+            if (catGames.length === 0) return null;
+            return (
+              <GameRow
+                key={category.id}
+                title={category.name}
+                icon={
+                  <Gamepad2
+                    className="h-5 w-5 shrink-0"
+                    style={{ color: category.color || '#a1a1aa' }}
+                  />
+                }
+                count={catGames.length}
+              >
+                {catGames.map((game) => (
+                  <CarouselItem key={game.id} className={CARD_WIDTH}>
+                    <GameCard
+                      game={game}
+                      variant="medium"
+                      onClick={() => onGameSelect(game)}
+                      className="hover-game-card w-full"
+                    />
+                  </CarouselItem>
+                ))}
+              </GameRow>
+            );
+          })}
+
+        <GameRow
+          title={searchQuery ? t('searchResults') : t('library')}
+          icon={<Gamepad2 className="h-5 w-5 text-zinc-400" />}
+          count={allGames.length}
+        >
+          {allGames.length === 0 && searchQuery ? (
+            <div className="flex flex-col items-center justify-center py-20 text-zinc-500 w-full min-w-full">
+              <p className="text-lg">{t('noSearchResults', { query: searchQuery })}</p>
+            </div>
+          ) : (
+            allGames.map((game, index) => (
+              <CarouselItem key={`home-${game.id}-${index}`} className={CARD_WIDTH}>
+                <GameCard
+                  game={game}
+                  variant="medium"
+                  onClick={() => onGameSelect(game)}
+                  className="hover-game-card w-full"
+                />
+              </CarouselItem>
+            ))
+          )}
+        </GameRow>
+      </div>
     </div>
   );
 }
@@ -130,13 +147,12 @@ function LoadingSkeleton() {
     <div className="flex-1 p-5 space-y-6">
       <div className="grid grid-cols-3 gap-3">
         {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="aspect-[21/9] rounded-xl bg-zinc-800" />
+          <Skeleton key={i} className="aspect-[21/9] max-h-[120px] rounded-xl bg-zinc-800" />
         ))}
       </div>
-      
-      <div className="grid grid-cols-7 gap-2">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((i) => (
-          <Skeleton key={i} className="aspect-[16/9] rounded-xl bg-zinc-800" />
+      <div className="flex gap-3 overflow-hidden">
+        {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+          <Skeleton key={i} className="w-44 aspect-[16/9] rounded-xl bg-zinc-800 shrink-0" />
         ))}
       </div>
     </div>
