@@ -10,7 +10,7 @@ import { GRADIENT_PRESETS } from '@/lib/friends-service';
 import type { CardTheme } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Camera, Loader2, Sparkles, User, Palette } from 'lucide-react';
-import { uploadAvatar, deleteAvatar, getAvatarUrl } from '@/lib/avatar-service';
+import { uploadAvatar, getAvatarUrl, fileToPreviewUrl } from '@/lib/avatar-service';
 import { useTranslations } from 'next-intl';
 
 const GRADIENT_OPTIONS = Object.keys(GRADIENT_PRESETS);
@@ -44,7 +44,7 @@ function SettingSection({
 
 export function ProfileEditor() {
   const t = useTranslations('profile');
-  const { profile, updateProfile, cardTheme } = useAuth();
+  const { profile, updateProfile, cardTheme, applyProfile } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [customStatus, setCustomStatus] = useState('');
@@ -81,33 +81,32 @@ export function ProfileEditor() {
 
     setUploading(true);
     setMessage(null);
-    const localPreview = URL.createObjectURL(file);
-    setAvatarPreview(localPreview);
 
-    const upload = await uploadAvatar(file);
-    if (!upload.success || !upload.fileId) {
-      setUploading(false);
-      setAvatarPreview(getAvatarUrl(profile.avatarFileId));
-      setMessage(upload.error || t('avatarUploadError'));
-      return;
-    }
+    try {
+      const localPreview = await fileToPreviewUrl(file);
+      setAvatarPreview(localPreview);
 
-    if (profile.avatarFileId) {
-      await deleteAvatar(profile.avatarFileId);
-    }
+      const upload = await uploadAvatar(file);
+      if (!upload.success || !upload.fileId) {
+        setAvatarPreview(getAvatarUrl(profile.avatarFileId));
+        setMessage(upload.error || t('avatarUploadError'));
+        return;
+      }
 
-    const result = await updateProfile({ avatarFileId: upload.fileId });
-    setUploading(false);
+      if (upload.profile) {
+        applyProfile(upload.profile);
+      }
 
-    if (result.success) {
       setAvatarFileId(upload.fileId);
+      setAvatarPreview(upload.avatarUrl || getAvatarUrl(upload.fileId));
       setMessage(t('avatarSaved'));
-    } else {
+    } catch {
       setAvatarPreview(getAvatarUrl(profile.avatarFileId));
-      setMessage(result.error || t('saveError'));
+      setMessage(t('avatarUploadError'));
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
-
-    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleSave = async () => {

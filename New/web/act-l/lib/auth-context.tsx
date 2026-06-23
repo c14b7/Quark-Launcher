@@ -56,6 +56,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
 
   updateProfile: (data: Record<string, unknown>) => Promise<{ success: boolean; error?: string }>;
+  applyProfile: (profile: UserProfile) => void;
   updatePassword: (newPassword: string, oldPassword: string) => Promise<{ success: boolean; error?: string }>;
   updateName: (name: string) => Promise<{ success: boolean; error?: string }>;
   regenerateFriendCode: () => Promise<{ success: boolean; friendCode?: string; error?: string }>;
@@ -213,6 +214,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return result;
   };
 
+  const applyProfile = (nextProfile: UserProfile) => {
+    setProfile(nextProfile);
+    void saveProfileCache({
+      profile: nextProfile,
+      steamIntegration,
+    });
+  };
+
   const regenerateFriendCode = async () => {
     const result = await authService.regenerateFriendCode();
     if (result.success) await loadUser();
@@ -264,6 +273,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     register,
     logout,
     updateProfile,
+    applyProfile,
     updatePassword: authService.updatePassword,
     updateName: async (name) => {
       const result = await authService.updateName(name);

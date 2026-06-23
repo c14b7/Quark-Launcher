@@ -1,10 +1,11 @@
-import { Client, Users, Databases, Query, ID } from 'node-appwrite';
+import { Client, Users, Databases, Query, ID, Storage, InputFile, Permission, Role } from 'node-appwrite';
 import {
   APPWRITE_ENDPOINT,
   APPWRITE_PROJECT_ID,
   APPWRITE_API_KEY,
   DATABASE_ID,
   COLLECTIONS,
+  BUCKETS,
   STEAM_API_KEY,
 } from './lib/config';
 import {
@@ -49,6 +50,17 @@ function getDatabases(): Databases {
 
 function getUsers(): Users {
   return new Users(getServerClient());
+}
+
+function getStorage(): Storage {
+  return new Storage(getServerClient());
+}
+
+const ALLOWED_AVATAR_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif']);
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+
+function buildAvatarViewUrl(fileId: string): string {
+  return `${APPWRITE_ENDPOINT}/storage/buckets/${BUCKETS.userMedia}/files/${fileId}/view?project=${APPWRITE_PROJECT_ID}`;
 }
 
 function defaultPreferences() {
@@ -313,6 +325,78 @@ export async function handleAuthApiRequest(
       });
     }
 
+    // POST /auth/avatar
+    if (path === '/auth/avatar' && method === 'POST') {
+      if (!requireAuth(res, userId)) return;
+      const rate = await checkRateLimit('avatar/upload', userId);
+      if (!rate.allowed) return errorResponse(res, rate.code || 'RATE_LIMITED', 'Too many avatar uploads', 429);
+
+      const mimeType = String(body.mimeType || '').toLowerCase();
+      const data = String(body.data || '');
+
+      if (!ALLOWED_AVATAR_TYPES.has(mimeType)) {
+        return errorResponse(res, 'INVALID_AVATAR', 'Unsupported image type');
+      }
+      if (!data) {
+        return errorResponse(res, 'INVALID_AVATAR', 'No image data provided');
+      }
+
+      let buffer: Buffer;
+      try {
+        buffer = Buffer.from(data, 'base64');
+      } catch {
+        return errorResponse(res, 'INVALID_AVATAR', 'Invalid image data');
+      }
+
+      if (buffer.length > MAX_AVATAR_BYTES) {
+        return errorResponse(res, 'AVATAR_TOO_LARGE', 'Image too large (max 5 MB)');
+      }
+      if (buffer.length < 32) {
+        return errorResponse(res, 'INVALID_AVATAR', 'Image file is too small');
+      }
+
+      const profileDoc = await getProfileByUserId(databases, userId);
+      if (!profileDoc) return errorResponse(res, 'PROFILE_NOT_FOUND', 'Profile not found', 404);
+
+      const storage = getStorage();
+      const fileId = ID.unique();
+      const ext =
+        mimeType === 'image/png' ? 'png'
+        : mimeType === 'image/webp' ? 'webp'
+        : mimeType === 'image/gif' ? 'gif'
+        : 'jpg';
+
+      if (profileDoc.avatarFileId) {
+        try {
+          await storage.deleteFile(BUCKETS.userMedia, String(profileDoc.avatarFileId));
+        } catch {
+          // previous file may already be gone
+        }
+      }
+
+      await storage.createFile(
+        BUCKETS.userMedia,
+        fileId,
+        InputFile.fromBuffer(buffer, `avatar.${ext}`),
+        [
+          Permission.read(Role.any()),
+          Permission.update(Role.user(userId)),
+          Permission.delete(Role.user(userId)),
+        ]
+      );
+
+      const updated = await databases.updateDocument(DATABASE_ID, COLLECTIONS.userProfiles, userId, {
+        avatarFileId: fileId,
+      });
+
+      return jsonResponse(res, {
+        success: true,
+        fileId,
+        avatarUrl: buildAvatarViewUrl(fileId),
+        profile: toPrivateProfile(updated as Record<string, unknown>),
+      });
+    }
+
     // PATCH /auth/profile
     if (path === '/auth/profile' && method === 'PATCH') {
       if (!requireAuth(res, userId)) return;
@@ -360,17 +444,7 @@ export async function handleAuthApiRequest(
           return errorResponse(res, 'INVALID_PREFERENCES', 'Invalid preferences JSON');
         }
       }
-      if (body.avatarFileId !== undefined) {
-        if (body.avatarFileId === null || body.avatarFileId === '') {
-          updates.avatarFileId = null;
-        } else {
-          const fileId = String(body.avatarFileId).trim();
-          if (!/^[a-zA-Z0-9_-]{1,36}$/.test(fileId)) {
-            return errorResponse(res, 'INVALID_AVATAR', 'Invalid avatar file id');
-          }
-          updates.avatarFileId = fileId;
-        }
-      }
+      // avatarFileId — tylko przez POST /auth/avatar (upload przez serwer)
 
       if (Object.keys(updates).length === 0) {
         return errorResponse(res, 'NO_CHANGES', 'No valid fields to update');

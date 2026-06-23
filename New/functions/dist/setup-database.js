@@ -216,12 +216,20 @@ async function setupDatabase() {
     }
     try {
         await storage.createBucket('user_media', 'User Media', [], true, true, 5242880, undefined, undefined, undefined);
-        console.log('\n📦 Bucket user_media created');
+        console.log('\n📦 Bucket user_media created (server-only upload)');
     }
     catch (error) {
         const e = error;
-        if (e.code === 409)
-            console.log('\n📦 Bucket user_media already exists');
+        if (e.code === 409) {
+            console.log('\n📦 Bucket user_media already exists — removing client create permission...');
+            try {
+                await storage.updateBucket('user_media', 'User Media', []);
+                console.log('   ✅ user_media bucket locked to server-only create');
+            }
+            catch (updateError) {
+                console.error('   ⚠️  Could not update user_media permissions:', updateError);
+            }
+        }
     }
     console.log('\n🎉 Setup complete!');
 }

@@ -57,6 +57,14 @@ function getDatabases() {
 function getUsers() {
     return new node_appwrite_1.Users(getServerClient());
 }
+function getStorage() {
+    return new node_appwrite_1.Storage(getServerClient());
+}
+const ALLOWED_AVATAR_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif']);
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+function buildAvatarViewUrl(fileId) {
+    return `${config_1.APPWRITE_ENDPOINT}/storage/buckets/${config_1.BUCKETS.userMedia}/files/${fileId}/view?project=${config_1.APPWRITE_PROJECT_ID}`;
+}
 function defaultPreferences() {
     return JSON.stringify({ theme: 'dark', notifications: true, autoLogin: false });
 }
@@ -298,6 +306,66 @@ async function handleAuthApiRequest(req, res, logger = noopLogger) {
                 steamIntegration: steam || null,
             });
         }
+        // POST /auth/avatar
+        if (path === '/auth/avatar' && method === 'POST') {
+            if (!(0, middleware_1.requireAuth)(res, userId))
+                return;
+            const rate = await (0, rate_limit_1.checkRateLimit)('avatar/upload', userId);
+            if (!rate.allowed)
+                return (0, middleware_1.errorResponse)(res, rate.code || 'RATE_LIMITED', 'Too many avatar uploads', 429);
+            const mimeType = String(body.mimeType || '').toLowerCase();
+            const data = String(body.data || '');
+            if (!ALLOWED_AVATAR_TYPES.has(mimeType)) {
+                return (0, middleware_1.errorResponse)(res, 'INVALID_AVATAR', 'Unsupported image type');
+            }
+            if (!data) {
+                return (0, middleware_1.errorResponse)(res, 'INVALID_AVATAR', 'No image data provided');
+            }
+            let buffer;
+            try {
+                buffer = Buffer.from(data, 'base64');
+            }
+            catch {
+                return (0, middleware_1.errorResponse)(res, 'INVALID_AVATAR', 'Invalid image data');
+            }
+            if (buffer.length > MAX_AVATAR_BYTES) {
+                return (0, middleware_1.errorResponse)(res, 'AVATAR_TOO_LARGE', 'Image too large (max 5 MB)');
+            }
+            if (buffer.length < 32) {
+                return (0, middleware_1.errorResponse)(res, 'INVALID_AVATAR', 'Image file is too small');
+            }
+            const profileDoc = await getProfileByUserId(databases, userId);
+            if (!profileDoc)
+                return (0, middleware_1.errorResponse)(res, 'PROFILE_NOT_FOUND', 'Profile not found', 404);
+            const storage = getStorage();
+            const fileId = node_appwrite_1.ID.unique();
+            const ext = mimeType === 'image/png' ? 'png'
+                : mimeType === 'image/webp' ? 'webp'
+                    : mimeType === 'image/gif' ? 'gif'
+                        : 'jpg';
+            if (profileDoc.avatarFileId) {
+                try {
+                    await storage.deleteFile(config_1.BUCKETS.userMedia, String(profileDoc.avatarFileId));
+                }
+                catch {
+                    // previous file may already be gone
+                }
+            }
+            await storage.createFile(config_1.BUCKETS.userMedia, fileId, node_appwrite_1.InputFile.fromBuffer(buffer, `avatar.${ext}`), [
+                node_appwrite_1.Permission.read(node_appwrite_1.Role.any()),
+                node_appwrite_1.Permission.update(node_appwrite_1.Role.user(userId)),
+                node_appwrite_1.Permission.delete(node_appwrite_1.Role.user(userId)),
+            ]);
+            const updated = await databases.updateDocument(config_1.DATABASE_ID, config_1.COLLECTIONS.userProfiles, userId, {
+                avatarFileId: fileId,
+            });
+            return (0, middleware_1.jsonResponse)(res, {
+                success: true,
+                fileId,
+                avatarUrl: buildAvatarViewUrl(fileId),
+                profile: toPrivateProfile(updated),
+            });
+        }
         // PATCH /auth/profile
         if (path === '/auth/profile' && method === 'PATCH') {
             if (!(0, middleware_1.requireAuth)(res, userId))
@@ -349,18 +417,6 @@ async function handleAuthApiRequest(req, res, logger = noopLogger) {
                 }
                 catch {
                     return (0, middleware_1.errorResponse)(res, 'INVALID_PREFERENCES', 'Invalid preferences JSON');
-                }
-            }
-            if (body.avatarFileId !== undefined) {
-                if (body.avatarFileId === null || body.avatarFileId === '') {
-                    updates.avatarFileId = null;
-                }
-                else {
-                    const fileId = String(body.avatarFileId).trim();
-                    if (!/^[a-zA-Z0-9_-]{1,36}$/.test(fileId)) {
-                        return (0, middleware_1.errorResponse)(res, 'INVALID_AVATAR', 'Invalid avatar file id');
-                    }
-                    updates.avatarFileId = fileId;
                 }
             }
             if (Object.keys(updates).length === 0) {

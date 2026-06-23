@@ -166,7 +166,6 @@ export const authService = {
     customStatus: string;
     presence: string;
     preferences: string;
-    avatarFileId: string | null;
   }>) {
     const payload: Record<string, unknown> = { ...data };
     if (data.cardTheme && typeof data.cardTheme !== 'string') {

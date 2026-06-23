@@ -259,11 +259,32 @@ async function setupDatabase() {
   }
 
   try {
-    await storage.createBucket('user_media', 'User Media', [], true, true, 5242880, undefined, undefined, undefined);
-    console.log('\n📦 Bucket user_media created');
+    // Bucket bez create dla users — upload tylko przez Function (API key).
+    // Odczyt plików: Permission.read(Role.any()) na każdym pliku przy uploadzie.
+    await storage.createBucket(
+      'user_media',
+      'User Media',
+      [],
+      true,
+      true,
+      5242880,
+      undefined,
+      undefined,
+      undefined
+    );
+    console.log('\n📦 Bucket user_media created (server-only upload)');
   } catch (error: unknown) {
     const e = error as { code?: number };
-    if (e.code === 409) console.log('\n📦 Bucket user_media already exists');
+    if (e.code === 409) {
+      console.log('\n📦 Bucket user_media already exists — removing client create permission...');
+      try {
+        await storage.updateBucket('user_media', 'User Media', []);
+        console.log('   ✅ user_media bucket locked to server-only create');
+      } catch (updateError) {
+        console.error('   ⚠️  Could not update user_media permissions:', updateError);
+        console.error('   → W konsoli Appwrite usuń ręcznie create:users z bucketa user_media');
+      }
+    }
   }
 
   console.log('\n🎉 Setup complete!');

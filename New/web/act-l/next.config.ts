@@ -21,7 +21,7 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // unsafe-eval wymagany dla Next.js dev
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: https: http:",
+              "img-src 'self' data: blob: https: http:",
               "font-src 'self' data:",
               "connect-src 'self' https: http: ws: wss:",
               "media-src 'self' https: http:",

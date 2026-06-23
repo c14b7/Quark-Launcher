@@ -3,6 +3,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import type { QuarkFriend } from '@/lib/types';
+import { getAvatarUrl } from '@/lib/avatar-service';
 
 interface FriendRowProps {
   friend: QuarkFriend;
@@ -21,6 +22,7 @@ function presenceColor(presence?: string) {
 
 export function FriendRow({ friend, onClick, className }: FriendRowProps) {
   const initials = friend.displayName.slice(0, 2).toUpperCase();
+  const avatarUrl = getAvatarUrl(friend.avatarFileId);
 
   return (
     <button
@@ -33,7 +35,7 @@ export function FriendRow({ friend, onClick, className }: FriendRowProps) {
     >
       <div className="relative shrink-0">
         <Avatar className="h-8 w-8 border border-zinc-700">
-          <AvatarImage src="" alt={friend.displayName} />
+          {avatarUrl && <AvatarImage src={avatarUrl} alt={friend.displayName} />}
           <AvatarFallback className="text-xs bg-zinc-800">{initials}</AvatarFallback>
         </Avatar>
         <span
