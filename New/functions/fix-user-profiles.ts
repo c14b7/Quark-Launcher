@@ -13,7 +13,12 @@ import { Client, Databases } from 'node-appwrite';
 // Appwrite configuration
 const APPWRITE_ENDPOINT = 'https://fra.cloud.appwrite.io/v1';
 const APPWRITE_PROJECT_ID = '680d15210002f3f65ea9';
-const APPWRITE_API_KEY = 'standard_65abd8b00f9266bb409bbd853a93d65a9f60f18f791bf44a24bda306254a113b928cd67bcda714120cf02fd0b50af4d47500ec3da9cc1e1d49d7ba5c52ee46bbb927bb10182754d82b18b37910ed168ecb3f5417a307efa954a776decabcba5022f66dddff7b67376c41754af06edc58717e23bdbb17eec45d065b427a4adc0f';
+const APPWRITE_API_KEY = process.env.APPWRITE_API_KEY;
+
+if (!APPWRITE_API_KEY) {
+  console.error('APPWRITE_API_KEY required');
+  process.exit(1);
+}
 
 const DATABASE_ID = 'quark_launcher_db';
 const COLLECTION_ID = 'user_profiles';
@@ -24,7 +29,7 @@ async function fixUserProfiles() {
   const client = new Client()
     .setEndpoint(APPWRITE_ENDPOINT)
     .setProject(APPWRITE_PROJECT_ID)
-    .setKey(APPWRITE_API_KEY);
+    .setKey(APPWRITE_API_KEY!);
 
   const databases = new Databases(client);
 

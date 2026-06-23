@@ -22,6 +22,9 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/lib/auth-context';
 import { useSettings } from '@/lib/settings-context';
 import { SteamIntegrationPanel } from '@/components/steam-integration-panel';
+import { ProfileEditor } from '@/components/user/profile-editor';
+import { FriendCodeDisplay } from '@/components/user/friend-code-display';
+import { UserCard } from '@/components/user/user-card';
 import { cn } from '@/lib/utils';
 
 interface AccountConnection {
@@ -74,7 +77,7 @@ const availableAccounts: AccountConnection[] = [
 ];
 
 export function AccountsView() {
-  const { user, profile, logout, isLoading } = useAuth();
+  const { user, profile, logout, isLoading, regenerateFriendCode } = useAuth();
   const { steamUser, isLoggedIn, settings } = useSettings();
   
   const [accounts, setAccounts] = useState<AccountConnection[]>(() => 
@@ -174,73 +177,30 @@ export function AccountsView() {
         <div className="p-6">
           {/* Profile Tab */}
           {activeTab === 'profile' && (
-            <div className="space-y-6 max-w-2xl">
-              {/* User Card - pokazuj dane Steam jeśli połączono lub dane Appwrite jeśli zalogowano */}
-              <div className="p-6 rounded-2xl bg-gradient-to-br from-zinc-900/80 to-zinc-800/50 border border-zinc-700/50">
-                <div className="flex items-start gap-4">
-                  <Avatar className="w-20 h-20 border-2 border-purple-500/30">
-                    <AvatarImage src={steamUser?.avatarUrl || ''} />
-                    <AvatarFallback className="bg-gradient-to-br from-purple-600 to-blue-600 text-white text-2xl">
-                      {steamUser?.personaName?.[0]?.toUpperCase() || user?.name?.[0]?.toUpperCase() || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <h2 className="text-xl font-bold text-white">{steamUser?.personaName || user?.name || 'Użytkownik'}</h2>
-                    <div className="flex items-center gap-2 mt-1 text-zinc-400">
-                      {steamUser ? (
-                        <>
-                          <div className="w-2 h-2 rounded-full bg-green-500" />
-                          <span className="text-sm">Steam ID: {steamUser.steamId?.slice(-8)}</span>
-                        </>
-                      ) : user?.email ? (
-                        <>
-                          <Mail className="w-4 h-4" />
-                          <span className="text-sm">{user.email}</span>
-                        </>
-                      ) : (
-                        <span className="text-sm text-zinc-500">Połącz konto Steam w zakładce Integracje</span>
-                      )}
-                    </div>
-                    {steamUser && (
-                      <Badge variant="secondary" className="mt-2 bg-blue-500/10 text-blue-400 border-blue-500/20">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        Steam połączony
-                      </Badge>
-                    )}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-zinc-400 hover:text-white"
-                  >
-                    <Settings className="w-5 h-5" />
-                  </Button>
+            <div className="space-y-6 max-w-4xl">
+              {profile && !profile.emailVerified && (
+                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-sm">
+                  Zweryfikuj adres email, aby móc dodawać znajomych Quark.
                 </div>
+              )}
 
-                <Separator className="my-6 bg-zinc-700/50" />
+              {profile && (
+                <>
+                  <UserCard profile={profile} />
+                  {profile.friendCode && (
+                    <FriendCodeDisplay
+                      code={profile.friendCode}
+                      onRegenerate={async () => { await regenerateFriendCode(); }}
+                    />
+                  )}
+                </>
+              )}
 
-                {/* Account Stats */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center p-3 rounded-xl bg-zinc-800/50">
-                    <p className="text-2xl font-bold text-white">
-                      {user?.$createdAt ? new Date(user.$createdAt).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' }) : steamUser ? 'Lokalnie' : '-'}
-                    </p>
-                    <p className="text-xs text-zinc-500 mt-1">Data dołączenia</p>
-                  </div>
-                  <div className="text-center p-3 rounded-xl bg-zinc-800/50">
-                    <p className="text-2xl font-bold text-white">
-                      {steamUser ? '1' : '0'}
-                    </p>
-                    <p className="text-xs text-zinc-500 mt-1">Integracji</p>
-                  </div>
-                  <div className="text-center p-3 rounded-xl bg-zinc-800/50">
-                    <p className="text-2xl font-bold text-white">0</p>
-                    <p className="text-xs text-zinc-500 mt-1">Gier zsync.</p>
-                  </div>
-                </div>
+              <div className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-700/30">
+                <h3 className="text-lg font-semibold text-white mb-4">Edytuj kartę profilu</h3>
+                <ProfileEditor />
               </div>
 
-              {/* Security Section */}
               <div className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-700/30">
                 <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                   <Shield className="w-5 h-5 text-purple-400" />

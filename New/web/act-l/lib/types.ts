@@ -1,3 +1,23 @@
+// Quark Friend (in-app social)
+export interface QuarkFriend {
+  userId: string;
+  displayName: string;
+  bio?: string;
+  avatarFileId?: string | null;
+  bannerFileId?: string | null;
+  presence: 'online' | 'idle' | 'dnd' | 'offline';
+  customStatus?: string;
+  cardTheme?: string;
+  lastSeen?: string | null;
+  createdAt?: string;
+}
+
+export interface CardTheme {
+  accentColor: string;
+  gradientPreset?: string;
+  glowEnabled?: boolean;
+}
+
 // Types for the Quark Launcher
 
 export interface Game {
