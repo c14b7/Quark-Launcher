@@ -11,6 +11,12 @@ import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, APPWRITE_API_KEY, DATABASE_ID, 
 
 const STEAM_API_BASE = 'https://api.steampowered.com';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchSteamJson(url: string): Promise<any> {
+  const response = await fetch(url);
+  return response.json();
+}
+
 // Configuration - DATABASE_ID imported from config
 
 async function verifySteamAccess(
@@ -91,8 +97,7 @@ export const steamApi = {
   async getPlayerSummary(steamApiKey: string, steamId: string): Promise<SteamPlayer | null> {
     try {
       const url = `${STEAM_API_BASE}/ISteamUser/GetPlayerSummaries/v2/?key=${steamApiKey}&steamids=${steamId}`;
-      const response = await fetch(url);
-      const data = await response.json();
+      const data = await fetchSteamJson(url);
       
       if (data.response?.players?.length > 0) {
         return data.response.players[0];
@@ -110,8 +115,7 @@ export const steamApi = {
   async getFriendsList(steamApiKey: string, steamId: string): Promise<SteamFriend[]> {
     try {
       const url = `${STEAM_API_BASE}/ISteamUser/GetFriendList/v1/?key=${steamApiKey}&steamid=${steamId}&relationship=friend`;
-      const response = await fetch(url);
-      const data = await response.json();
+      const data = await fetchSteamJson(url);
       
       return data.friendslist?.friends || [];
     } catch (error) {
@@ -135,8 +139,7 @@ export const steamApi = {
       // Get summaries for all friends (Steam API accepts up to 100 steamids)
       const steamIds = friends.map(f => f.steamid).join(',');
       const url = `${STEAM_API_BASE}/ISteamUser/GetPlayerSummaries/v2/?key=${steamApiKey}&steamids=${steamIds}`;
-      const response = await fetch(url);
-      const data = await response.json();
+      const data = await fetchSteamJson(url);
       
       return data.response?.players || [];
     } catch (error) {
@@ -151,8 +154,7 @@ export const steamApi = {
   async getOwnedGames(steamApiKey: string, steamId: string, includeAppInfo: boolean = true): Promise<SteamGame[]> {
     try {
       const url = `${STEAM_API_BASE}/IPlayerService/GetOwnedGames/v1/?key=${steamApiKey}&steamid=${steamId}&include_appinfo=${includeAppInfo ? 1 : 0}&include_played_free_games=1`;
-      const response = await fetch(url);
-      const data = await response.json();
+      const data = await fetchSteamJson(url);
       
       return data.response?.games || [];
     } catch (error) {
@@ -167,8 +169,7 @@ export const steamApi = {
   async getRecentlyPlayedGames(steamApiKey: string, steamId: string, count: number = 10): Promise<SteamGame[]> {
     try {
       const url = `${STEAM_API_BASE}/IPlayerService/GetRecentlyPlayedGames/v1/?key=${steamApiKey}&steamid=${steamId}&count=${count}`;
-      const response = await fetch(url);
-      const data = await response.json();
+      const data = await fetchSteamJson(url);
       
       return data.response?.games || [];
     } catch (error) {
@@ -183,8 +184,7 @@ export const steamApi = {
   async getPlayerAchievements(steamApiKey: string, steamId: string, appId: number): Promise<SteamAchievement[]> {
     try {
       const url = `${STEAM_API_BASE}/ISteamUserStats/GetPlayerAchievements/v1/?key=${steamApiKey}&steamid=${steamId}&appid=${appId}`;
-      const response = await fetch(url);
-      const data = await response.json();
+      const data = await fetchSteamJson(url);
       
       if (data.playerstats?.success) {
         return data.playerstats.achievements || [];
@@ -202,8 +202,7 @@ export const steamApi = {
   async getGameAchievementSchema(steamApiKey: string, appId: number): Promise<SteamAchievementSchema[]> {
     try {
       const url = `${STEAM_API_BASE}/ISteamUserStats/GetSchemaForGame/v2/?key=${steamApiKey}&appid=${appId}`;
-      const response = await fetch(url);
-      const data = await response.json();
+      const data = await fetchSteamJson(url);
       
       return data.game?.availableGameStats?.achievements || [];
     } catch (error) {
@@ -247,8 +246,7 @@ export const steamApi = {
   async getSteamLevel(steamApiKey: string, steamId: string): Promise<number> {
     try {
       const url = `${STEAM_API_BASE}/IPlayerService/GetSteamLevel/v1/?key=${steamApiKey}&steamid=${steamId}`;
-      const response = await fetch(url);
-      const data = await response.json();
+      const data = await fetchSteamJson(url);
       
       return data.response?.player_level || 0;
     } catch (error) {
@@ -271,8 +269,7 @@ export const steamApi = {
   async resolveVanityUrl(steamApiKey: string, vanityUrl: string): Promise<string | null> {
     try {
       const url = `${STEAM_API_BASE}/ISteamUser/ResolveVanityURL/v1/?key=${steamApiKey}&vanityurl=${vanityUrl}`;
-      const response = await fetch(url);
-      const data = await response.json();
+      const data = await fetchSteamJson(url);
       
       if (data.response?.success === 1) {
         return data.response.steamid;
