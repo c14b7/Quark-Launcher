@@ -6,11 +6,26 @@
  */
 
 import { Client, Databases, Query } from 'node-appwrite';
+import { verifyAuth } from './lib/middleware';
+import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, APPWRITE_API_KEY, DATABASE_ID, COLLECTIONS } from './lib/config';
 
 const STEAM_API_BASE = 'https://api.steampowered.com';
 
-// Configuration
-const DATABASE_ID = 'quark_launcher_db';
+// Configuration - DATABASE_ID imported from config
+
+async function verifySteamAccess(
+  databases: Databases,
+  authUserId: string | null,
+  steamId: string
+): Promise<boolean> {
+  if (!authUserId) return false;
+  const docs = await databases.listDocuments(DATABASE_ID, COLLECTIONS.steamIntegrations, [
+    Query.equal('userId', authUserId),
+    Query.equal('steamId', steamId),
+    Query.limit(1),
+  ]);
+  return docs.documents.length > 0;
+}
 
 interface SteamPlayer {
   steamid: string;
@@ -311,14 +326,29 @@ export const steamApi = {
 // Appwrite Function Handlers
 export async function handleSteamApiRequest(req: any, res: any) {
   const client = new Client()
-    .setEndpoint(process.env.APPWRITE_ENDPOINT || '')
-    .setProject(process.env.APPWRITE_PROJECT_ID || '')
-    .setKey(process.env.APPWRITE_API_KEY || '');
+    .setEndpoint(process.env.APPWRITE_ENDPOINT || APPWRITE_ENDPOINT)
+    .setProject(process.env.APPWRITE_PROJECT_ID || APPWRITE_PROJECT_ID)
+    .setKey(process.env.APPWRITE_API_KEY || APPWRITE_API_KEY);
 
   const databases = new Databases(client);
   const steamApiKey = process.env.STEAM_API_KEY || '';
 
-  const { action, steamId, userId, appId } = JSON.parse(req.payload || '{}');
+  const body = JSON.parse(req.payload || req.body || '{}');
+  const { action, steamId, userId: bodyUserId, appId } = body;
+  const authUserId = await verifyAuth(req);
+  const userId = authUserId || bodyUserId;
+
+  const requiresAuth = ['getFriends', 'getAchievements', 'getStatsSummary', 'getCachedFriends'];
+  if (requiresAuth.includes(action) && !authUserId) {
+    return res.json({ success: false, code: 'UNAUTHORIZED', error: 'Authentication required' }, 401);
+  }
+
+  if (requiresAuth.includes(action) && steamId) {
+    const allowed = await verifySteamAccess(databases, authUserId, steamId);
+    if (!allowed) {
+      return res.json({ success: false, code: 'FORBIDDEN', error: 'Steam account not linked' }, 403);
+    }
+  }
 
   try {
     switch (action) {
@@ -329,12 +359,11 @@ export async function handleSteamApiRequest(req: any, res: any) {
 
       case 'getFriends': {
         const data = await steamApi.getFriendsWithSummaries(steamApiKey, steamId);
-        
-        // Cache friends data if userId provided
-        if (userId) {
-          await cacheFriendsData(databases, userId, steamId, data);
+
+        if (authUserId) {
+          await cacheFriendsData(databases, authUserId, steamId, data);
         }
-        
+
         return res.json({ success: true, data });
       }
 
@@ -376,6 +405,21 @@ export async function handleSteamApiRequest(req: any, res: any) {
       case 'resolveVanityUrl': {
         const resolvedSteamId = await steamApi.resolveVanityUrl(steamApiKey, steamId);
         return res.json({ success: true, data: { steamId: resolvedSteamId } });
+      }
+
+      case 'getCachedFriends': {
+        if (!authUserId) {
+          return res.json({ success: false, code: 'UNAUTHORIZED', error: 'Authentication required' }, 401);
+        }
+        const docs = await databases.listDocuments(DATABASE_ID, COLLECTIONS.steamFriendsCache, [
+          Query.equal('userId', authUserId),
+          Query.limit(1),
+        ]);
+        if (docs.documents.length === 0) {
+          return res.json({ success: true, data: null });
+        }
+        const friendsData = docs.documents[0].friendsData as string;
+        return res.json({ success: true, data: JSON.parse(friendsData || '[]') });
       }
 
       default:

@@ -11,13 +11,17 @@ import { AIChatPanel } from '@/components/ai-chat';
 import { DownloadsView } from '@/components/downloads-view';
 import { NewsView } from '@/components/news-view';
 import { AccountsView } from '@/components/accounts-view';
+import { FriendsSidebar } from '@/components/friends-sidebar';
 import { SteamIntegrationPanel } from '@/components/steam-integration-panel';
 import { GamesProvider, useGames } from '@/lib/games-context';
 import { SettingsProvider, useSettings } from '@/lib/settings-context';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
+import { FriendsProvider } from '@/lib/friends-context';
 import { Game } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { OnboardingScreen } from '@/components/onboarding/onboarding-screen';
+import { LoadingScreen } from '@/components/loading-screen';
 import {
   Dialog,
   DialogContent,
@@ -32,38 +36,51 @@ const STEAM_PROMPT_DISMISSED_KEY = 'quark_steam_prompt_dismissed';
 function LauncherContent() {
   const [currentView, setCurrentView] = useState('home');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const [isSteamIntegrationOpen, setIsSteamIntegrationOpen] = useState(false);
+  
+  // Stan widoczności prawego sidebaru (znajomych) z pamięcią podręczną
+  const [isFriendsOpen, setIsFriendsOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('quark_friends_sidebar_open');
+      return saved !== null ? saved === 'true' : true; // Domyślnie otwarty
+    }
+    return true;
+  });
+
   const { selectedGame, setSelectedGame } = useGames();
   const { settings } = useSettings();
-  const { isAuthenticated, profile, isLoading } = useAuth();
+  const { isAuthenticated, steamIntegration, isLoading } = useAuth();
 
-  // Show Steam integration modal only if:
-  // 1. User is authenticated
-  // 2. Steam is NOT already connected (no API key or user ID)
-  // 3. User hasn't dismissed the prompt before
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      const hasApiKey = settings.steamApiKey && settings.steamApiKey.length > 0;
-      const hasUserId = settings.steamUserId && settings.steamUserId.length > 0;
+      const hasSteam = !!steamIntegration?.steamId;
       const wasDismissed = localStorage.getItem(STEAM_PROMPT_DISMISSED_KEY) === 'true';
-      
-      // Only show if Steam is NOT connected AND user hasn't dismissed it
-      if (!hasApiKey || !hasUserId) {
-        if (!wasDismissed) {
-          const timer = setTimeout(() => {
-            setIsSteamIntegrationOpen(true);
-          }, 1000);
-          return () => clearTimeout(timer);
-        }
+
+      if (!hasSteam && !wasDismissed) {
+        const timer = setTimeout(() => setIsSteamIntegrationOpen(true), 1000);
+        return () => clearTimeout(timer);
       }
     }
-  }, [isLoading, isAuthenticated, settings.steamApiKey, settings.steamUserId]);
+  }, [isLoading, isAuthenticated, steamIntegration]);
 
-  // Handle Steam dialog close - remember dismissal
+  if (isLoading) {
+    return <LoadingScreen minDuration={0} />;
+  }
+
+  if (!isAuthenticated) {
+    return <OnboardingScreen />;
+  }
+
+  // Funkcja do zamykania/otwierania sidebaru
+  const toggleFriendsSidebar = () => {
+    setIsFriendsOpen((prev) => {
+      localStorage.setItem('quark_friends_sidebar_open', (!prev).toString());
+      return !prev;
+    });
+  };
+
   const handleSteamDialogClose = (open: boolean) => {
     if (!open) {
-      // User closed the dialog, remember this choice
       localStorage.setItem(STEAM_PROMPT_DISMISSED_KEY, 'true');
     }
     setIsSteamIntegrationOpen(open);
@@ -77,7 +94,6 @@ function LauncherContent() {
     setSelectedGame(null);
   };
 
-  // Dynamiczny styl dla skalowania UI
   const scaleStyle = {
     fontSize: `${settings.uiScale * 100}%`,
   };
@@ -93,39 +109,25 @@ function LauncherContent() {
       {/* Title Bar */}
       <TitleBar />
 
-      {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
+      {/* Main Content Container */}
+      <div className="flex-1 flex overflow-hidden w-full relative">
+        {/* Sidebar (Lewy) */}
         <Sidebar
           currentView={currentView}
           onNavigate={setCurrentView}
           onGameSelect={handleGameSelect}
           onOpenSettings={() => setIsSettingsOpen(true)}
-          onOpenChat={() => setIsChatOpen(true)}
+          onOpenChat={toggleFriendsSidebar} // <--- PRZYPISUJEMY PRZYCISK CZATU DO OTWIERANIA/ZAMYKANIA ZNAJOMYCH!
           onOpenSteamIntegration={() => setIsSteamIntegrationOpen(true)}
         />
 
-        {/* Main View */}
-          <main className={cn(
-            "flex-1 flex flex-col overflow-hidden transition-all duration-300",
-            "bg-launcher-main", // <-- Nasza nowa, stała klasa oparta na zmiennych CSS
-            isChatOpen && 'mr-[400px]'
-         )}>
-          {currentView === 'home' && (
-            <HomeView onGameSelect={handleGameSelect} />
-          )}
-          {currentView === 'library' && (
-            <LibraryView onGameSelect={handleGameSelect} />
-          )}
-          {currentView === 'downloads' && (
-            <DownloadsView />
-          )}
-          {currentView === 'news' && (
-            <NewsView />
-          )}
-          {currentView === 'accounts' && (
-            <AccountsView />
-          )}
+        {/* Główny widok (Środek) */}
+        <main className="flex-1 flex flex-col overflow-hidden bg-launcher-main">
+          {currentView === 'home' && <HomeView onGameSelect={handleGameSelect} />}
+          {currentView === 'library' && <LibraryView onGameSelect={handleGameSelect} />}
+          {currentView === 'downloads' && <DownloadsView />}
+          {currentView === 'news' && <NewsView />}
+          {currentView === 'accounts' && <AccountsView />}
           {currentView === 'store' && (
             <div className="flex-1 flex items-center justify-center text-zinc-500">
               <div className="text-center">
@@ -135,23 +137,22 @@ function LauncherContent() {
             </div>
           )}
         </main>
+
+        {/* PRAWY SIDEBAR — Znajomi Quark */}
+        <aside
+          className={cn(
+            'h-full border-l border-zinc-800 bg-zinc-900/30 flex flex-col shrink-0 transition-all duration-300 ease-in-out w-72',
+            isFriendsOpen ? 'mr-0 opacity-100' : '-mr-72 opacity-0 pointer-events-none'
+          )}
+        >
+          <FriendsSidebar onClose={toggleFriendsSidebar} />
+        </aside>
       </div>
 
-      {/* AI Chat Panel */}
-      <AIChatPanel isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      {/* Modale globalne */}
+      {selectedGame && <GameDetails game={selectedGame} onClose={handleCloseDetails} />}
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
 
-      {/* Game Details Modal */}
-      {selectedGame && (
-        <GameDetails game={selectedGame} onClose={handleCloseDetails} />
-      )}
-
-      {/* Settings Modal */}
-      <SettingsModal 
-        isOpen={isSettingsOpen} 
-        onClose={() => setIsSettingsOpen(false)} 
-      />
-
-      {/* Steam Integration Modal */}
       <Dialog open={isSteamIntegrationOpen} onOpenChange={handleSteamDialogClose}>
         <DialogContent className="sm:max-w-[600px] bg-zinc-900 border-zinc-800">
           <DialogHeader>
@@ -171,11 +172,13 @@ export function Launcher() {
   return (
     <TooltipProvider>
       <AuthProvider>
-        <SettingsProvider>
-          <GamesProvider>
-            <LauncherContent />
-          </GamesProvider>
-        </SettingsProvider>
+        <FriendsProvider>
+          <SettingsProvider>
+            <GamesProvider>
+              <LauncherContent />
+            </GamesProvider>
+          </SettingsProvider>
+        </FriendsProvider>
       </AuthProvider>
     </TooltipProvider>
   );

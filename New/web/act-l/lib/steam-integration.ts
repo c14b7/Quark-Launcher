@@ -6,8 +6,7 @@
  * or through the Appwrite Functions backend.
  */
 
-import { databases, APPWRITE_CONFIG } from './appwrite';
-import { Query } from 'appwrite';
+import { callSteamApi } from './steam-api-client';
 
 const STEAM_API_BASE = 'https://api.steampowered.com';
 
@@ -324,74 +323,23 @@ export const steamIntegration = {
   /**
    * Get cached friends from Appwrite
    */
-  async getCachedFriends(userId: string): Promise<SteamFriend[] | null> {
+  async getCachedFriends(_userId: string): Promise<SteamFriend[] | null> {
     try {
-      const docs = await databases.listDocuments(
-        APPWRITE_CONFIG.databaseId,
-        'steam_friends_cache',
-        [Query.equal('userId', userId)]
-      );
-
-      if (docs.documents.length > 0) {
-        const data = docs.documents[0];
-        const friendsData = data.friendsData as string;
-        return JSON.parse(friendsData);
-      }
-      return null;
+      const result = await callSteamApi<SteamFriend[]>('getCachedFriends', {});
+      return result.success ? result.data || null : null;
     } catch (error) {
       console.error('Error getting cached friends:', error);
       return null;
     }
   },
 
-  /**
-   * Get cached achievements from Appwrite
-   */
-  async getCachedAchievements(userId: string, gameId: string): Promise<SteamAchievement[] | null> {
-    try {
-      const docs = await databases.listDocuments(
-        APPWRITE_CONFIG.databaseId,
-        'steam_achievements_cache',
-        [Query.equal('userId', userId), Query.equal('gameId', gameId)]
-      );
-
-      if (docs.documents.length > 0) {
-        const data = docs.documents[0];
-        const achievementsData = data.achievementsData as string;
-        return JSON.parse(achievementsData);
-      }
-      return null;
-    } catch (error) {
-      console.error('Error getting cached achievements:', error);
-      return null;
-    }
+  async getCachedAchievements(_userId: string, _gameId: string): Promise<SteamAchievement[] | null> {
+    // Achievements cache via server only — use callSteamApi getAchievements action
+    return null;
   },
 
-  /**
-   * Get cached stats from Appwrite
-   */
-  async getCachedStats(userId: string): Promise<SteamStats | null> {
-    try {
-      const docs = await databases.listDocuments(
-        APPWRITE_CONFIG.databaseId,
-        'steam_stats_cache',
-        [Query.equal('userId', userId)]
-      );
-
-      if (docs.documents.length > 0) {
-        const data = docs.documents[0];
-        return {
-          gamesOwned: data.gamesOwned as number,
-          totalPlaytime: data.totalPlaytime as number,
-          steamLevel: 0,
-          recentGames: JSON.parse(data.recentlyPlayedData as string),
-        };
-      }
-      return null;
-    } catch (error) {
-      console.error('Error getting cached stats:', error);
-      return null;
-    }
+  async getCachedStats(_userId: string): Promise<SteamStats | null> {
+    return null;
   },
 };
 

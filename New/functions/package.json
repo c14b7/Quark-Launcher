@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "setup-db": "npx ts-node setup-database.ts",
+    "migrate-profiles": "npx ts-node migrate-user-profiles-v2.ts",
     "build": "tsc",
     "start": "node dist/index.js"
   },
