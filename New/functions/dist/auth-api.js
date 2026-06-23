@@ -38,7 +38,7 @@ exports.toPublicProfile = toPublicProfile;
 exports.toPrivateProfile = toPrivateProfile;
 exports.getProfileByUserId = getProfileByUserId;
 const node_appwrite_1 = require("node-appwrite");
-const file_1 = require("node-appwrite/file");
+const input_file_1 = require("./lib/input-file");
 const config_1 = require("./lib/config");
 const middleware_1 = require("./lib/middleware");
 const rate_limit_1 = require("./lib/rate-limit");
@@ -93,6 +93,10 @@ function toPrivateProfile(doc) {
         lastSeen: doc.lastSeen ?? null,
         emailVerified: doc.emailVerified ?? false,
         friendCodeRegeneratedAt: doc.friendCodeRegeneratedAt ?? null,
+        subscriptionTier: doc.subscriptionTier ?? 'free',
+        subscriptionStatus: doc.subscriptionStatus ?? 'active',
+        subscriptionExpiresAt: doc.subscriptionExpiresAt ?? null,
+        subscriptionProvider: doc.subscriptionProvider ?? null,
     };
 }
 function getPublicDisplayFields(preferences) {
@@ -368,7 +372,7 @@ async function handleAuthApiRequest(req, res, logger = noopLogger) {
                     // previous file may already be gone
                 }
             }
-            await storage.createFile(config_1.BUCKETS.userMedia, fileId, file_1.InputFile.fromBuffer(buffer, `avatar.${ext}`), [
+            await storage.createFile(config_1.BUCKETS.userMedia, fileId, input_file_1.InputFile.fromBuffer(buffer, `avatar.${ext}`), [
                 node_appwrite_1.Permission.read(node_appwrite_1.Role.any()),
                 node_appwrite_1.Permission.update(node_appwrite_1.Role.user(userId)),
                 node_appwrite_1.Permission.delete(node_appwrite_1.Role.user(userId)),
@@ -436,6 +440,7 @@ async function handleAuthApiRequest(req, res, logger = noopLogger) {
                     return (0, middleware_1.errorResponse)(res, 'INVALID_PREFERENCES', 'Invalid preferences JSON');
                 }
             }
+            // avatarFileId — tylko przez POST /auth/avatar (upload przez serwer)
             if (Object.keys(updates).length === 0) {
                 return (0, middleware_1.errorResponse)(res, 'NO_CHANGES', 'No valid fields to update');
             }

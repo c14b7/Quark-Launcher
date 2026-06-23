@@ -40,6 +40,10 @@ const COLLECTIONS = [
             { key: 'lastSeen', type: 'datetime', required: false },
             { key: 'emailVerified', type: 'boolean', required: false, default: false },
             { key: 'friendCodeRegeneratedAt', type: 'datetime', required: false },
+            { key: 'subscriptionTier', type: 'enum', elements: ['free', 'premium', 'premium_plus'], required: false, default: 'free' },
+            { key: 'subscriptionStatus', type: 'enum', elements: ['active', 'canceled', 'expired', 'trialing'], required: false, default: 'active' },
+            { key: 'subscriptionExpiresAt', type: 'datetime', required: false },
+            { key: 'subscriptionProvider', type: 'enum', elements: ['stripe', 'manual'], required: false },
         ],
     },
     {
@@ -215,6 +219,8 @@ async function setupDatabase() {
         }
     }
     try {
+        // Bucket bez create dla users — upload tylko przez Function (API key).
+        // Odczyt plików: Permission.read(Role.any()) na każdym pliku przy uploadzie.
         await storage.createBucket('user_media', 'User Media', [], true, true, 5242880, undefined, undefined, undefined);
         console.log('\n📦 Bucket user_media created (server-only upload)');
     }
@@ -228,6 +234,7 @@ async function setupDatabase() {
             }
             catch (updateError) {
                 console.error('   ⚠️  Could not update user_media permissions:', updateError);
+                console.error('   → W konsoli Appwrite usuń ręcznie create:users z bucketa user_media');
             }
         }
     }

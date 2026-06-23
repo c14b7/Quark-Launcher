@@ -3,6 +3,7 @@
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { UserCard } from './user-card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,9 @@ export function UserCardPopover({ friend, open, onOpenChange }: UserCardPopoverP
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm bg-zinc-900 border-zinc-800 p-0 overflow-hidden">
+        <DialogTitle className="sr-only">
+          {friend.displayName}
+        </DialogTitle>
         <UserCard profile={friend} />
         <div className="p-4 pt-0">
           <Button

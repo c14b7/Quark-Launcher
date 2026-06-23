@@ -849,6 +849,14 @@ class QuarkLauncher {
     });
 
     // ===== SYSTEM INFO =====
+    ipcMain.handle('open-dev-tools', () => {
+      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+        this.mainWindow.webContents.openDevTools({ mode: 'detach' });
+        return { success: true };
+      }
+      return { success: false, error: 'Window not available' };
+    });
+
     ipcMain.handle('get-system-info', () => ({
       platform: process.platform,
       arch: process.arch,

@@ -60,6 +60,10 @@ const COLLECTIONS: CollectionConfig[] = [
       { key: 'lastSeen', type: 'datetime', required: false },
       { key: 'emailVerified', type: 'boolean', required: false, default: false },
       { key: 'friendCodeRegeneratedAt', type: 'datetime', required: false },
+      { key: 'subscriptionTier', type: 'enum', elements: ['free', 'premium', 'premium_plus'], required: false, default: 'free' },
+      { key: 'subscriptionStatus', type: 'enum', elements: ['active', 'canceled', 'expired', 'trialing'], required: false, default: 'active' },
+      { key: 'subscriptionExpiresAt', type: 'datetime', required: false },
+      { key: 'subscriptionProvider', type: 'enum', elements: ['stripe', 'manual'], required: false },
     ],
   },
   {

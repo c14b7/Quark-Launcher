@@ -139,6 +139,11 @@
     "steamAccountHint": "Connect Steam from the Account tab or profile menu — use “Sign in with Steam”. No API key required.",
     "categoryColor": "Category color",
     "categoryCustomColor": "Custom color",
-    "categoryIcon": "Category icon"
+    "categoryIcon": "Category icon",
+    "devPanelTitle": "Developer panel",
+    "devPanelDesc": "Only available in builds with a -dev suffix or in development mode.",
+    "devTools": "Developer tools",
+    "openDevTools": "Open DevTools",
+    "devToolsHint": "Opens Chromium DevTools for UI debugging (Electron only)."
   }
 }

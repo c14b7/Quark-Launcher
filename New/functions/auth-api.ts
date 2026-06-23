@@ -1,5 +1,5 @@
 import { Client, Users, Databases, Query, ID, Storage, Permission, Role } from 'node-appwrite';
-import { InputFile } from 'node-appwrite/file';
+import { InputFile } from './lib/input-file';
 import {
   APPWRITE_ENDPOINT,
   APPWRITE_PROJECT_ID,
@@ -93,6 +93,10 @@ function toPrivateProfile(doc: Record<string, unknown>) {
     lastSeen: doc.lastSeen ?? null,
     emailVerified: doc.emailVerified ?? false,
     friendCodeRegeneratedAt: doc.friendCodeRegeneratedAt ?? null,
+    subscriptionTier: doc.subscriptionTier ?? 'free',
+    subscriptionStatus: doc.subscriptionStatus ?? 'active',
+    subscriptionExpiresAt: doc.subscriptionExpiresAt ?? null,
+    subscriptionProvider: doc.subscriptionProvider ?? null,
   };
 }
 
@@ -394,7 +398,7 @@ export async function handleAuthApiRequest(
       await storage.createFile(
         BUCKETS.userMedia,
         fileId,
-        InputFile.fromBuffer(buffer, `avatar.${ext}`),
+        InputFile.fromBuffer(buffer, `avatar.${ext}`) as never,
         [
           Permission.read(Role.any()),
           Permission.update(Role.user(userId)),

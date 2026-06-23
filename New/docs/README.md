@@ -49,3 +49,19 @@ if (login.success && login.steamId) await linkSteam(login.steamId);
 cd functions && npm run build:compile
 # następnie wgraj dist/ do Appwrite
 ```
+
+> **InputFile:** używaj `./lib/input-file` zamiast `node-appwrite/file` — patrz [ZMIANY-2026-06-23.md](./ZMIANY-2026-06-23.md#16-aktualizacja-sesji--kontynuacja).
+
+### Subskrypcja premium (scaffolding)
+
+```typescript
+import { useAuth } from '@/lib/auth-context';
+import { hasPremiumFeature } from '@/lib/subscription';
+
+const { subscription } = useAuth();
+hasPremiumFeature(subscription, 'unlimitedCategories');
+```
+
+### Dev settings
+
+Widoczne tylko gdy wersja zawiera `-dev` lub `NODE_ENV=development`. DevTools: `window.electronAPI.openDevTools()`.

@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { authService, UserProfile, SteamIntegration, CardTheme, parseCardTheme } from './auth-service';
+import { parseSubscription, type UserSubscription } from './subscription';
 import { apiRequest } from './api-client';
 import { Models } from 'appwrite';
 
@@ -42,6 +43,7 @@ async function loadProfileCache(): Promise<ProfileCache | null> {
 interface AuthContextType {
   user: Models.User<Models.Preferences> | null;
   profile: UserProfile | null;
+  subscription: UserSubscription;
   steamIntegration: SteamIntegration | null;
   cardTheme: CardTheme;
   isLoading: boolean;
@@ -261,6 +263,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value: AuthContextType = {
     user,
     profile,
+    subscription: parseSubscription(profile),
     steamIntegration,
     cardTheme: parseCardTheme(profile?.cardTheme),
     isLoading,

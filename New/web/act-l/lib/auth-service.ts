@@ -28,6 +28,10 @@ export interface UserProfile {
   lastSeen: string | null;
   emailVerified: boolean;
   friendCodeRegeneratedAt: string | null;
+  subscriptionTier?: 'free' | 'premium' | 'premium_plus';
+  subscriptionStatus?: 'active' | 'canceled' | 'expired' | 'trialing';
+  subscriptionExpiresAt?: string | null;
+  subscriptionProvider?: 'stripe' | 'manual' | null;
 }
 
 export interface SteamIntegration {

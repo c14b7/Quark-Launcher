@@ -78,6 +78,12 @@ function validateCardTheme(raw) {
         if (parsed.glowEnabled !== undefined && typeof parsed.glowEnabled !== 'boolean') {
             return { valid: false, error: 'INVALID_CARD_THEME' };
         }
+        if (parsed.borderStyle !== undefined) {
+            const allowed = new Set(['default', 'minimal', 'accent']);
+            if (typeof parsed.borderStyle !== 'string' || !allowed.has(parsed.borderStyle)) {
+                return { valid: false, error: 'INVALID_CARD_THEME' };
+            }
+        }
         return { valid: true, parsed };
     }
     catch {

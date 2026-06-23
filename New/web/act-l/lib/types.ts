@@ -224,6 +224,7 @@ export interface IElectronAPI {
     electronVersion: string;
     nodeVersion: string;
   }>;
+  openDevTools: () => Promise<{ success: boolean; error?: string }>;
   
   // --- UPDATE MECHANISM ---
   onUpdateAvailable: (callback: (info: UpdateInfo) => void) => () => void;

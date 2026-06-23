@@ -139,6 +139,11 @@
     "steamAccountHint": "Połącz Steam w zakładce Konto lub z menu profilu — przycisk „Zaloguj przez Steam”. Nie musisz podawać klucza API.",
     "categoryColor": "Kolor kategorii",
     "categoryCustomColor": "Własny kolor",
-    "categoryIcon": "Ikona kategorii"
+    "categoryIcon": "Ikona kategorii",
+    "devPanelTitle": "Panel deweloperski",
+    "devPanelDesc": "Dostępne tylko w buildach z sufiksem -dev lub w trybie development.",
+    "devTools": "Narzędzia deweloperskie",
+    "openDevTools": "Otwórz DevTools",
+    "devToolsHint": "Otwiera Chromium DevTools do debugowania UI (tylko Electron)."
   }
 }

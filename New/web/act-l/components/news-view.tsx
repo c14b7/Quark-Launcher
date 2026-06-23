@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Bell, ExternalLink, Calendar, Gamepad2, RefreshCw, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useGames } from '@/lib/games-context';
 
@@ -151,9 +150,9 @@ export function NewsView() {
   };
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       {/* Header */}
-      <div className="p-6 border-b border-white/5">
+      <div className="shrink-0 p-6 border-b border-white/5">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-3">
@@ -179,7 +178,7 @@ export function NewsView() {
         </div>
       </div>
 
-      <ScrollArea className="flex-1">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="p-6 space-y-4">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-16">
@@ -259,7 +258,7 @@ export function NewsView() {
             ))
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

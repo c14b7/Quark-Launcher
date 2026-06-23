@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { X, Moon, Monitor, EyeOff, FolderPlus, Trash2, Bot, Server, Key, Shield, RefreshCw, Trash, Database, Info, AlertTriangle, ChevronDown, ChevronUp, Plus, Search } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { X, Moon, Monitor, EyeOff, FolderPlus, Trash2, Bot, Server, Key, Shield, RefreshCw, Trash, Database, Info, AlertTriangle, ChevronDown, ChevronUp, Plus, Search, Terminal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -13,6 +13,7 @@ import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { CategoryIcon, CATEGORY_ICON_OPTIONS, CATEGORY_COLOR_PRESETS, type CategoryIconId } from '@/lib/category-icons';
+import { isDevSettingsEnabled, getAppVersion } from '@/lib/build-env';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -29,6 +30,25 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [categoryGameSearch, setCategoryGameSearch] = useState('');
+
+  const showDevSettings = isDevSettingsEnabled();
+  const appVersion = getAppVersion();
+
+  const settingsTabs = useMemo(
+    () => [
+      { id: 'general' as const, label: ts('tabs.general') },
+      { id: 'hidden' as const, label: ts('tabs.hidden') },
+      { id: 'categories' as const, label: ts('tabs.categories') },
+      ...(showDevSettings ? [{ id: 'admin' as const, label: ts('tabs.admin') }] : []),
+    ],
+    [showDevSettings, ts]
+  );
+
+  useEffect(() => {
+    if (!showDevSettings && activeTab === 'admin') {
+      setActiveTab('general');
+    }
+  }, [showDevSettings, activeTab]);
 
   if (!isOpen) return null;
 
@@ -48,6 +68,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const getRandomColor = () => {
     return CATEGORY_COLOR_PRESETS[Math.floor(Math.random() * CATEGORY_COLOR_PRESETS.length)];
+  };
+
+  const openDevTools = async () => {
+    if (typeof window !== 'undefined' && window.electronAPI?.openDevTools) {
+      await window.electronAPI.openDevTools();
+    }
   };
 
   return (
@@ -79,12 +105,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         {/* Tabs + content */}
         <div className="flex flex-1 min-h-0">
           <div className="w-44 shrink-0 border-r border-white/8 p-3 space-y-1 hidden sm:block">
-            {[
-              { id: 'general', label: ts('tabs.general') },
-              { id: 'hidden', label: ts('tabs.hidden') },
-              { id: 'categories', label: ts('tabs.categories') },
-              { id: 'admin', label: ts('tabs.admin') }
-            ].map(tab => (
+            {settingsTabs.map(tab => (
               <Button
                 key={tab.id}
                 variant="ghost"
@@ -102,12 +123,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
           <div className="flex-1 flex flex-col min-w-0">
             <div className="flex gap-1 p-3 border-b border-white/5 overflow-x-auto sm:hidden">
-              {[
-                { id: 'general', label: ts('tabs.general') },
-                { id: 'hidden', label: ts('tabs.hidden') },
-                { id: 'categories', label: ts('tabs.categories') },
-                { id: 'admin', label: ts('tabs.admin') }
-              ].map(tab => (
+              {settingsTabs.map(tab => (
                 <Button
                   key={tab.id}
                   variant="ghost"
@@ -542,20 +558,33 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               </div>
             )}
 
-            {activeTab === 'admin' && (
+            {activeTab === 'admin' && showDevSettings && (
               <div className="space-y-6">
-                {/* Admin Warning */}
                 <div className="p-4 rounded-xl bg-gradient-to-br from-red-500/10 to-orange-500/10 border border-red-500/20">
                   <div className="flex items-center gap-3 mb-2">
                     <Shield className="h-5 w-5 text-red-400" />
-                    <h3 className="font-semibold text-white">Panel administracyjny</h3>
+                    <h3 className="font-semibold text-white">{ts('devPanelTitle')}</h3>
                   </div>
-                  <p className="text-xs text-zinc-400">
-                    DevTools
-                  </p>
+                  <p className="text-xs text-zinc-400">{ts('devPanelDesc')}</p>
                 </div>
 
-                {/* Version Info */}
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+                    <Terminal className="h-4 w-4" />
+                    {ts('devTools')}
+                  </label>
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2 rounded-xl border-white/10"
+                    onClick={openDevTools}
+                  >
+                    <Terminal className="h-4 w-4" />
+                    {ts('openDevTools')}
+                  </Button>
+                  <p className="text-xs text-zinc-500">{ts('devToolsHint')}</p>
+                </div>
+
+                <Separator className="bg-white/5" />
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
                     <Info className="h-4 w-4" />
@@ -564,7 +593,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5 space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-zinc-500">Wersja aplikacji:</span>
-                      <span className="text-white font-mono">0.0.5-beta02-dev</span>
+                      <span className="text-white font-mono">{appVersion}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-zinc-500">Next.js:</span>
