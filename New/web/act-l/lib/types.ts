@@ -7,6 +7,8 @@ export interface QuarkFriend {
   bannerFileId?: string | null;
   presence: 'online' | 'idle' | 'dnd' | 'offline';
   customStatus?: string;
+  pronouns?: string;
+  location?: string;
   cardTheme?: string;
   lastSeen?: string | null;
   createdAt?: string;
@@ -16,6 +18,7 @@ export interface CardTheme {
   accentColor: string;
   gradientPreset?: string;
   glowEnabled?: boolean;
+  borderStyle?: 'default' | 'minimal' | 'accent';
 }
 
 // Types for the Quark Launcher

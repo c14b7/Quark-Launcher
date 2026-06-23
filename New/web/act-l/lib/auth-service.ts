@@ -5,6 +5,7 @@ export interface CardTheme {
   accentColor: string;
   gradientPreset?: string;
   glowEnabled?: boolean;
+  borderStyle?: 'default' | 'minimal' | 'accent';
 }
 
 export interface UserProfile {

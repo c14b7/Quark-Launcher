@@ -38,6 +38,7 @@ exports.toPublicProfile = toPublicProfile;
 exports.toPrivateProfile = toPrivateProfile;
 exports.getProfileByUserId = getProfileByUserId;
 const node_appwrite_1 = require("node-appwrite");
+const file_1 = require("node-appwrite/file");
 const config_1 = require("./lib/config");
 const middleware_1 = require("./lib/middleware");
 const rate_limit_1 = require("./lib/rate-limit");
@@ -94,7 +95,21 @@ function toPrivateProfile(doc) {
         friendCodeRegeneratedAt: doc.friendCodeRegeneratedAt ?? null,
     };
 }
+function getPublicDisplayFields(preferences) {
+    try {
+        const raw = typeof preferences === 'string' ? preferences : '';
+        const p = raw ? JSON.parse(raw) : {};
+        return {
+            pronouns: typeof p.pronouns === 'string' ? p.pronouns.slice(0, 24) : '',
+            location: typeof p.location === 'string' ? p.location.slice(0, 48) : '',
+        };
+    }
+    catch {
+        return { pronouns: '', location: '' };
+    }
+}
 function toPublicProfile(doc) {
+    const display = getPublicDisplayFields(doc.preferences);
     return {
         userId: doc.userId,
         displayName: doc.displayName || doc.name,
@@ -104,6 +119,8 @@ function toPublicProfile(doc) {
         cardTheme: doc.cardTheme ?? defaultCardTheme(),
         presence: doc.presence ?? 'offline',
         customStatus: doc.customStatus ?? '',
+        pronouns: display.pronouns || undefined,
+        location: display.location || undefined,
         lastSeen: doc.lastSeen ?? null,
         createdAt: doc.createdAt,
     };
@@ -351,7 +368,7 @@ async function handleAuthApiRequest(req, res, logger = noopLogger) {
                     // previous file may already be gone
                 }
             }
-            await storage.createFile(config_1.BUCKETS.userMedia, fileId, node_appwrite_1.InputFile.fromBuffer(buffer, `avatar.${ext}`), [
+            await storage.createFile(config_1.BUCKETS.userMedia, fileId, file_1.InputFile.fromBuffer(buffer, `avatar.${ext}`), [
                 node_appwrite_1.Permission.read(node_appwrite_1.Role.any()),
                 node_appwrite_1.Permission.update(node_appwrite_1.Role.user(userId)),
                 node_appwrite_1.Permission.delete(node_appwrite_1.Role.user(userId)),

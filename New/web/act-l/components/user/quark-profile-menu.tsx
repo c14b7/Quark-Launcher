@@ -85,7 +85,12 @@ export function QuarkProfileMenu({
           <ChevronDown className="h-3.5 w-3.5 text-zinc-500 hidden lg:block" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56 bg-zinc-900/95 backdrop-blur-xl border-white/10 rounded-xl">
+      <DropdownMenuContent
+        align="end"
+        sideOffset={8}
+        collisionPadding={12}
+        className="w-56 bg-zinc-900/95 border-white/10 rounded-xl overflow-visible"
+      >
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-medium text-white">{displayName}</span>
@@ -121,7 +126,13 @@ export function QuarkProfileMenu({
             <Circle className="h-4 w-4" />
             {t('presence')}
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="bg-zinc-900/95 border-white/10 rounded-xl">
+          <DropdownMenuSubContent
+            side="left"
+            align="start"
+            sideOffset={6}
+            collisionPadding={12}
+            className="bg-zinc-900/95 border-white/10 rounded-xl min-w-[10rem]"
+          >
             {PRESENCE_OPTIONS.map((p) => (
               <DropdownMenuItem
                 key={p}

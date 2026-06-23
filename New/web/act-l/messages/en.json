@@ -22,13 +22,14 @@
     "featured": "Recommended for you",
     "searchResults": "Search results",
     "library": "Game library",
+    "recentlyPlayed": "Recently played",
     "noSearchResults": "No results for \"{query}\""
   },
   "profile": {
     "guest": "User",
     "myAccount": "My account",
     "editProfile": "Edit profile",
-    "editProfileDesc": "Customize your Quark profile — avatar, status and card appearance.",
+    "editProfileDesc": "Avatar, pronouns, status and profile card appearance.",
     "settings": "Settings",
     "presence": "Status",
     "presence_online": "Online",
@@ -63,7 +64,19 @@
     "saving": "Saving...",
     "saved": "Saved!",
     "saveError": "Save failed",
-    "preview": "Preview"
+    "preview": "Preview",
+    "previewHint": "Hover to see the 3D tilt effect",
+    "pronouns": "Pronouns",
+    "pronounsHint": "Optional — shown on your profile card",
+    "pronounsPlaceholder": "e.g. she/her, they/them",
+    "location": "Location",
+    "locationHint": "City or region — optional",
+    "locationPlaceholder": "e.g. Warsaw, Poland",
+    "cardBorder": "Card border",
+    "border_default": "Default",
+    "border_minimal": "Minimal",
+    "border_accent": "Accent",
+    "showMemberSince": "Show join date on card"
   },
   "steam": {
     "title": "Steam integration",
@@ -89,7 +102,13 @@
   },
   "notifications": {
     "title": "Notifications",
-    "empty": "No new notifications"
+    "empty": "No new notifications",
+    "friendRequest": "{name} sent you a friend request",
+    "friendAccepted": "{name} accepted your friend request",
+    "someone": "Someone",
+    "markAllRead": "Mark all as read",
+    "pendingRequests": "Pending requests",
+    "openFriendsHint": "Open the friends panel to accept"
   },
   "launcher": {
     "storeTitle": "Store",
@@ -117,6 +136,9 @@
     "uiScale": "Interface scale",
     "steamIntegration": "Steam integration",
     "steamHint": "Required to display player achievements and stats",
-    "steamAccountHint": "Connect Steam from the Account tab or profile menu — use “Sign in with Steam”. No API key required."
+    "steamAccountHint": "Connect Steam from the Account tab or profile menu — use “Sign in with Steam”. No API key required.",
+    "categoryColor": "Category color",
+    "categoryCustomColor": "Custom color",
+    "categoryIcon": "Category icon"
   }
 }

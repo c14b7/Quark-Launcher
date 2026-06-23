@@ -26,6 +26,7 @@ import {
 import { GameCard } from '@/components/game-card';
 import { useGames } from '@/lib/games-context';
 import { useSettings } from '@/lib/settings-context';
+import { CategoryIcon } from '@/lib/category-icons';
 import { Game } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -178,10 +179,7 @@ export function LibraryView({ onGameSelect }: LibraryViewProps) {
                   <DropdownMenuLabel>Kategorie</DropdownMenuLabel>
                   {categoryFilters.map((category) => (
                     <DropdownMenuItem key={category.id} onClick={() => setFilter(category.id)}>
-                      <span
-                        className="w-2 h-2 rounded-full mr-2"
-                        style={{ backgroundColor: category.color }}
-                      />
+                      <CategoryIcon icon={category.icon} color={category.color} className="h-3.5 w-3.5 mr-2" />
                       {category.name}
                     </DropdownMenuItem>
                   ))}
@@ -272,10 +270,7 @@ export function LibraryView({ onGameSelect }: LibraryViewProps) {
               )}
               onClick={() => setFilter(category.id)}
             >
-              <span
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: category.color }}
-              />
+              <CategoryIcon icon={category.icon} color={category.color} className="h-3 w-3" />
               {category.name}
               <span className="opacity-60">({category.gameIds.length})</span>
             </Button>

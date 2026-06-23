@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { Game } from '@/lib/types';
 import { useGames } from '@/lib/games-context';
 import { useSettings } from '@/lib/settings-context';
+import { CategoryIcon } from '@/lib/category-icons';
 import { PlaytimeBadge } from '@/components/steam-profile';
 import { useState } from 'react';
 
@@ -239,10 +240,7 @@ export function GameCard({ game, variant = 'medium', onClick, className }: GameC
                       else addGameToCategory(category.id, game.id);
                     }}
                   >
-                    <span
-                      className="w-2 h-2 rounded-full shrink-0"
-                      style={{ backgroundColor: category.color }}
-                    />
+                    <CategoryIcon icon={category.icon} color={category.color} className="h-3.5 w-3.5" />
                     <span className="flex-1">{category.name}</span>
                     {inCategory && <Check className="h-3.5 w-3.5 text-violet-400" />}
                   </ContextMenuItem>

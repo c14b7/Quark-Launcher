@@ -6,11 +6,12 @@ import { useGames } from '@/lib/games-context';
 import { useSettings } from '@/lib/settings-context';
 import { Game } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RefreshCw, Gamepad2, Star } from 'lucide-react';
+import { RefreshCw, Gamepad2, Star, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DialogBanner } from './dialog_banner';
 import { UpBanner } from './up_banner';
 import { useTranslations } from 'next-intl';
+import { CategoryIcon } from '@/lib/category-icons';
 
 interface HomeViewProps {
   onGameSelect: (game: Game) => void;
@@ -19,13 +20,17 @@ interface HomeViewProps {
 export function HomeView({ onGameSelect }: HomeViewProps) {
   const t = useTranslations('home');
   const tc = useTranslations('common');
-  const { games, favoriteGames, isLoading, refreshGames, searchQuery, filteredGames } = useGames();
+  const { games, favoriteGames, isLoading, refreshGames, searchQuery, filteredGames, recentlyPlayedGames } = useGames();
   const { settings } = useSettings();
 
   const visibleGames = (searchQuery ? filteredGames : games).filter(
     (g) => !settings.hiddenGames.includes(g.id)
   );
   const visibleFavorites = favoriteGames.filter((g) => !settings.hiddenGames.includes(g.id));
+
+  const recentlyPlayedVisible = recentlyPlayedGames.filter(
+    (g) => !settings.hiddenGames.includes(g.id)
+  );
 
   const featuredGames = !searchQuery
     ? visibleFavorites.length > 0
@@ -34,7 +39,8 @@ export function HomeView({ onGameSelect }: HomeViewProps) {
     : [];
 
   const featuredIds = new Set(featuredGames.map((g) => g.id));
-  const allGames = visibleGames.filter((g) => !featuredIds.has(g.id));
+  const recentIds = new Set(recentlyPlayedVisible.map((g) => g.id));
+  const allGames = visibleGames.filter((g) => !featuredIds.has(g.id) && !recentIds.has(g.id));
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -64,6 +70,7 @@ export function HomeView({ onGameSelect }: HomeViewProps) {
         <UpBanner />
         <DialogBanner />
 
+
         {featuredGames.length > 0 && (
           <section className="space-y-3">
             <h2 className="text-lg font-semibold tracking-tight text-white/90 flex items-center gap-2">
@@ -84,6 +91,26 @@ export function HomeView({ onGameSelect }: HomeViewProps) {
           </section>
         )}
 
+        
+        {!searchQuery && recentlyPlayedVisible.length > 0 && (
+          <GameRow
+            title={t('recentlyPlayed')}
+            icon={<Clock className="h-5 w-5 text-cyan-400 shrink-0" />}
+            count={recentlyPlayedVisible.length}
+          >
+            {recentlyPlayedVisible.map((game) => (
+              <CarouselItem key={`recent-${game.id}`} className={CARD_WIDTH}>
+                <GameCard
+                  game={game}
+                  variant="medium"
+                  onClick={() => onGameSelect(game)}
+                  className="hover-game-card w-full"
+                />
+              </CarouselItem>
+            ))}
+          </GameRow>
+        )}
+
         {settings.customCategories
           .filter((cat) => cat.gameIds.length > 0)
           .map((category) => {
@@ -93,12 +120,7 @@ export function HomeView({ onGameSelect }: HomeViewProps) {
               <GameRow
                 key={category.id}
                 title={category.name}
-                icon={
-                  <Gamepad2
-                    className="h-5 w-5 shrink-0"
-                    style={{ color: category.color || '#a1a1aa' }}
-                  />
-                }
+                icon={<CategoryIcon icon={category.icon} color={category.color} />}
                 count={catGames.length}
               >
                 {catGames.map((game) => (

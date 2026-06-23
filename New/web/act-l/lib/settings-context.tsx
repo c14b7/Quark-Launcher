@@ -31,6 +31,7 @@ interface SettingsContextType {
   hideGame: (gameId: string) => void;
   unhideGame: (gameId: string) => void;
   addCategory: (category: Omit<Category, 'id'>) => void;
+  updateCategory: (categoryId: string, updates: Partial<Omit<Category, 'id'>>) => void;
   removeCategory: (categoryId: string) => void;
   addGameToCategory: (categoryId: string, gameId: string) => void;
   removeGameFromCategory: (categoryId: string, gameId: string) => void;
@@ -224,6 +225,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const updateCategory = useCallback((categoryId: string, updates: Partial<Omit<Category, 'id'>>) => {
+    setSettings(prev => ({
+      ...prev,
+      customCategories: prev.customCategories.map(c =>
+        c.id === categoryId ? { ...c, ...updates } : c
+      ),
+    }));
+  }, []);
+
   const addGameToCategory = useCallback((categoryId: string, gameId: string) => {
     setSettings(prev => ({
       ...prev,
@@ -259,6 +269,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         hideGame,
         unhideGame,
         addCategory,
+        updateCategory,
         removeCategory,
         addGameToCategory,
         removeGameFromCategory,

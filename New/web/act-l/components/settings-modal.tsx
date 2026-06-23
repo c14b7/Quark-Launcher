@@ -12,6 +12,7 @@ import { useGames } from '@/lib/games-context';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
+import { CategoryIcon, CATEGORY_ICON_OPTIONS, CATEGORY_COLOR_PRESETS, type CategoryIconId } from '@/lib/category-icons';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -20,7 +21,7 @@ interface SettingsModalProps {
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const ts = useTranslations('settings');
-  const { settings, updateSettings, unhideGame, addCategory, removeCategory, addGameToCategory, removeGameFromCategory } = useSettings();
+  const { settings, updateSettings, unhideGame, addCategory, updateCategory, removeCategory, addGameToCategory, removeGameFromCategory } = useSettings();
   const { games } = useGames();
   const { logout } = useAuth();
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -38,27 +39,27 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       addCategory({
         name: newCategoryName.trim(),
         gameIds: [],
-        color: getRandomColor()
+        color: getRandomColor(),
+        icon: 'gamepad2',
       });
       setNewCategoryName('');
     }
   };
 
   const getRandomColor = () => {
-    const colors = ['#8b5cf6', '#ec4899', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'];
-    return colors[Math.floor(Math.random() * colors.length)];
+    return CATEGORY_COLOR_PRESETS[Math.floor(Math.random() * CATEGORY_COLOR_PRESETS.length)];
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/70"
         onClick={onClose}
       />
 
-      {/* Modal */}
-      <div className="relative w-full max-w-3xl max-h-[85vh] bg-zinc-950/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      {/* Modal — stała szerokość, elastyczna wysokość z przewijaniem */}
+      <div className="relative w-[48rem] max-w-[calc(100vw-2rem)] h-[min(85vh,720px)] bg-zinc-950/95 border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-white/8 shrink-0">
           <div>
@@ -122,7 +123,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               ))}
             </div>
 
-        <ScrollArea className="flex-1 max-h-[55vh]">
+        <ScrollArea className="flex-1 min-h-0">
           <div className="p-6 space-y-5">
             {activeTab === 'general' && (
               <>
@@ -392,18 +393,19 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           className="rounded-xl bg-zinc-800/50 border border-white/5 overflow-hidden"
                         >
                           <div className="flex items-center gap-3 p-3">
-                            <div
-                              className="w-4 h-4 rounded-full shrink-0"
-                              style={{ backgroundColor: category.color }}
+                            <CategoryIcon icon={category.icon} color={category.color} className="h-4 w-4" />
+                            <Input
+                              value={category.name}
+                              onChange={(e) => updateCategory(category.id, { name: e.target.value.slice(0, 32) })}
+                              className="flex-1 h-8 text-sm rounded-lg bg-zinc-900/50 border-white/5"
                             />
-                            <span className="flex-1 text-sm font-medium">{category.name}</span>
-                            <Badge variant="secondary" className="text-xs">
-                              {category.gameIds.length} gier
+                            <Badge variant="secondary" className="text-xs shrink-0">
+                              {category.gameIds.length}
                             </Badge>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-zinc-400"
+                              className="h-8 w-8 text-zinc-400 shrink-0"
                               onClick={() => {
                                 setExpandedCategory(isExpanded ? null : category.id);
                                 setCategoryGameSearch('');
@@ -414,7 +416,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-zinc-500 hover:text-red-500"
+                              className="h-8 w-8 text-zinc-500 hover:text-red-500 shrink-0"
                               onClick={() => removeCategory(category.id)}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -423,6 +425,52 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
                           {isExpanded && (
                             <div className="px-3 pb-3 space-y-3 border-t border-white/5 pt-3">
+                              <div className="space-y-2">
+                                <p className="text-[11px] text-zinc-500 font-medium">{ts('categoryColor')}</p>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {CATEGORY_COLOR_PRESETS.map((color) => (
+                                    <button
+                                      key={color}
+                                      type="button"
+                                      onClick={() => updateCategory(category.id, { color })}
+                                      className={cn(
+                                        'h-6 w-6 rounded-full border-2 transition-transform hover:scale-110',
+                                        category.color === color ? 'border-white scale-110' : 'border-transparent'
+                                      )}
+                                      style={{ backgroundColor: color }}
+                                    />
+                                  ))}
+                                  <input
+                                    type="color"
+                                    value={category.color}
+                                    onChange={(e) => updateCategory(category.id, { color: e.target.value })}
+                                    className="h-6 w-8 rounded cursor-pointer border-0 bg-transparent"
+                                    title={ts('categoryCustomColor')}
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="space-y-2">
+                                <p className="text-[11px] text-zinc-500 font-medium">{ts('categoryIcon')}</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {CATEGORY_ICON_OPTIONS.map((opt) => (
+                                    <button
+                                      key={opt.id}
+                                      type="button"
+                                      onClick={() => updateCategory(category.id, { icon: opt.id })}
+                                      className={cn(
+                                        'flex h-8 w-8 items-center justify-center rounded-lg border transition-colors',
+                                        (category.icon || 'gamepad2') === opt.id
+                                          ? 'border-violet-500/50 bg-violet-500/10'
+                                          : 'border-white/5 bg-zinc-900/50 hover:bg-zinc-800'
+                                      )}
+                                      title={opt.label}
+                                    >
+                                      <CategoryIcon icon={opt.id as CategoryIconId} color={category.color} className="h-4 w-4" />
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
                               {categoryGames.length > 0 && (
                                 <div className="space-y-1">
                                   {categoryGames.map((game) => (
@@ -516,7 +564,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5 space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-zinc-500">Wersja aplikacji:</span>
-                      <span className="text-white font-mono">0.0.5-beta01-dev</span>
+                      <span className="text-white font-mono">0.0.5-beta02-dev</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-zinc-500">Next.js:</span>

@@ -3,6 +3,13 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { Game } from '@/lib/types';
 import { useSettings } from '@/lib/settings-context';
+import {
+  loadPlayHistory,
+  persistPlayHistory,
+  recordGameLaunch,
+  getRecentlyPlayedIds,
+  type PlayHistory,
+} from '@/lib/play-history';
 
 interface GamesContextType {
   games: Game[];
@@ -14,6 +21,7 @@ interface GamesContextType {
   refreshGames: () => Promise<void>;
   toggleFavorite: (gameId: string) => void;
   launchGame: (game: Game) => Promise<void>;
+  recentlyPlayedGames: Game[];
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   filteredGames: Game[];
@@ -24,6 +32,7 @@ const GamesContext = createContext<GamesContextType | undefined>(undefined);
 export function GamesProvider({ children }: { children: ReactNode }) {
   const [games, setGames] = useState<Game[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [playHistory, setPlayHistory] = useState<PlayHistory>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedGameSnapshot, setSelectedGameSnapshot] = useState<Game | null>(null);
@@ -58,10 +67,17 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const loadUserSettings = async () => {
     try {
       if (typeof window !== 'undefined' && window.electronAPI) {
-        const result = await window.electronAPI.loadUserData('favorites');
-        if (result.success && result.data) {
-          setFavoriteIds(result.data as string[]);
+        const [favoritesResult, history] = await Promise.all([
+          window.electronAPI.loadUserData('favorites'),
+          loadPlayHistory(),
+        ]);
+        if (favoritesResult.success && favoritesResult.data) {
+          setFavoriteIds(favoritesResult.data as string[]);
         }
+        setPlayHistory(history);
+      } else {
+        const history = await loadPlayHistory();
+        setPlayHistory(history);
       }
     } catch (err) {
       console.error('Failed to load user settings:', err);
@@ -119,7 +135,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
                   return {
                     ...game,
                     playtime: steamData.playtime,
-                    lastPlayed: steamData.lastPlayed ? steamData.lastPlayed.toString() : undefined
                   };
                 } else {
                   console.log(`[GAMES] No playtime data for ${game.name} (ID: "${gameIdStr}", type: ${typeof game.id})`);
@@ -187,19 +202,29 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const launchGame = useCallback(async (game: Game) => {
+    const markLaunched = () => {
+      setPlayHistory((prev) => {
+        const next = recordGameLaunch(prev, game.id);
+        void persistPlayHistory(next);
+        return next;
+      });
+    };
+
     try {
       if (typeof window !== 'undefined' && window.electronAPI) {
         const result = await window.electronAPI.launchGame({
           platform: game.platform,
           gameId: game.id
         });
-        
-        if (!result.success) {
+
+        if (result.success) {
+          markLaunched();
+        } else {
           setError(result.error || 'Nie udało się uruchomić gry');
         }
       } else {
-        // Development fallback
         window.open(`steam://rungameid/${game.id}`, '_blank');
+        markLaunched();
       }
     } catch (err) {
       setError('Nie udało się uruchomić gry');
@@ -210,7 +235,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   // Compute derived state - add isFavorite to all games
   const gamesWithFavorites = games.map(game => ({
     ...game,
-    isFavorite: favoriteIds.includes(game.id)
+    isFavorite: favoriteIds.includes(game.id),
+    lastPlayed: playHistory[game.id],
   }));
 
   // Get selected game from current games list WITH favorites (so it always has updated data)
@@ -225,6 +251,13 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     game.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const recentlyPlayedGames = useMemo(() => {
+    const gameMap = new Map(gamesWithFavorites.map((g) => [g.id, g]));
+    return getRecentlyPlayedIds(playHistory)
+      .map((id) => gameMap.get(id))
+      .filter((g): g is Game => !!g);
+  }, [playHistory, gamesWithFavorites]);
+
   return (
     <GamesContext.Provider
       value={{
@@ -237,6 +270,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         refreshGames,
         toggleFavorite,
         launchGame,
+        recentlyPlayedGames,
         searchQuery,
         setSearchQuery,
         filteredGames

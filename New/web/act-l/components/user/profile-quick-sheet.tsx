@@ -7,9 +7,9 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { ProfileEditor } from '@/components/user/profile-editor';
 import { useTranslations } from 'next-intl';
-import { Sparkles } from 'lucide-react';
 
 interface ProfileQuickSheetProps {
   open: boolean;
@@ -21,21 +21,19 @@ export function ProfileQuickSheet({ open, onOpenChange }: ProfileQuickSheetProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto bg-zinc-950/95 backdrop-blur-xl border-white/10 rounded-2xl p-0 gap-0">
-        <DialogHeader className="p-6 pb-4 border-b border-white/8">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10 border border-violet-500/20">
-              <Sparkles className="h-5 w-5 text-violet-400" />
-            </div>
-            <div>
-              <DialogTitle className="text-white text-lg">{t('editProfile')}</DialogTitle>
-              <DialogDescription className="text-zinc-500 text-sm">{t('editProfileDesc')}</DialogDescription>
-            </div>
-          </div>
+      <DialogContent
+        showCloseButton
+        className="sm:max-w-3xl lg:max-w-4xl max-h-[min(92vh,820px)] p-0 gap-0 overflow-hidden bg-background border-border shadow-lg"
+      >
+        <DialogHeader className="px-6 py-4 border-b border-border space-y-1 text-left">
+          <DialogTitle className="text-base font-semibold tracking-tight">{t('editProfile')}</DialogTitle>
+          <DialogDescription className="text-sm text-muted-foreground">{t('editProfileDesc')}</DialogDescription>
         </DialogHeader>
-        <div className="p-6 pt-4">
-          <ProfileEditor />
-        </div>
+        <ScrollArea className="max-h-[calc(min(92vh,820px)-4.25rem)]">
+          <div className="px-6 py-5">
+            <ProfileEditor />
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

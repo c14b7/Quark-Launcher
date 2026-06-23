@@ -326,7 +326,7 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
                   {game.lastPlayed && (
                     <div className="flex items-center gap-2 text-sm text-zinc-400">
                       <Calendar className="h-4 w-4" />
-                      <span>Ostatnio grane: {formatDate(parseInt(game.lastPlayed))}</span>
+                      <span>Ostatnio uruchomione: {formatDate(new Date(game.lastPlayed).getTime())}</span>
                     </div>
                   )}
                   {game.sizeOnDisk && (

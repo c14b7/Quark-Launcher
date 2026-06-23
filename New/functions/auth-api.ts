@@ -1,4 +1,5 @@
-import { Client, Users, Databases, Query, ID, Storage, InputFile, Permission, Role } from 'node-appwrite';
+import { Client, Users, Databases, Query, ID, Storage, Permission, Role } from 'node-appwrite';
+import { InputFile } from 'node-appwrite/file';
 import {
   APPWRITE_ENDPOINT,
   APPWRITE_PROJECT_ID,
@@ -95,7 +96,21 @@ function toPrivateProfile(doc: Record<string, unknown>) {
   };
 }
 
+function getPublicDisplayFields(preferences: unknown) {
+  try {
+    const raw = typeof preferences === 'string' ? preferences : '';
+    const p = raw ? JSON.parse(raw) : {};
+    return {
+      pronouns: typeof p.pronouns === 'string' ? p.pronouns.slice(0, 24) : '',
+      location: typeof p.location === 'string' ? p.location.slice(0, 48) : '',
+    };
+  } catch {
+    return { pronouns: '', location: '' };
+  }
+}
+
 function toPublicProfile(doc: Record<string, unknown>) {
+  const display = getPublicDisplayFields(doc.preferences);
   return {
     userId: doc.userId,
     displayName: doc.displayName || doc.name,
@@ -105,6 +120,8 @@ function toPublicProfile(doc: Record<string, unknown>) {
     cardTheme: doc.cardTheme ?? defaultCardTheme(),
     presence: doc.presence ?? 'offline',
     customStatus: doc.customStatus ?? '',
+    pronouns: display.pronouns || undefined,
+    location: display.location || undefined,
     lastSeen: doc.lastSeen ?? null,
     createdAt: doc.createdAt,
   };

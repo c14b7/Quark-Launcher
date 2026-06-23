@@ -22,13 +22,14 @@
     "featured": "Proponowane dla Ciebie",
     "searchResults": "Wyniki wyszukiwania",
     "library": "Biblioteka gier",
+    "recentlyPlayed": "Ostatnio grane",
     "noSearchResults": "Brak wyników dla \"{query}\""
   },
   "profile": {
     "guest": "Użytkownik",
     "myAccount": "Moje konto",
     "editProfile": "Edytuj profil",
-    "editProfileDesc": "Dostosuj swój profil Quark — avatar, status i wygląd karty.",
+    "editProfileDesc": "Avatar, zaimki, status i wygląd karty profilu.",
     "settings": "Ustawienia",
     "presence": "Status",
     "presence_online": "Online",
@@ -63,7 +64,19 @@
     "saving": "Zapisywanie...",
     "saved": "Zapisano!",
     "saveError": "Błąd zapisu",
-    "preview": "Podgląd"
+    "preview": "Podgląd",
+    "previewHint": "Najedź kursorem, aby zobaczyć efekt 3D",
+    "pronouns": "Zaimki",
+    "pronounsHint": "Opcjonalne — widoczne na karcie profilu",
+    "pronounsPlaceholder": "np. on/jego, ona/jej",
+    "location": "Lokalizacja",
+    "locationHint": "Miasto lub region — opcjonalnie",
+    "locationPlaceholder": "np. Warszawa, Polska",
+    "cardBorder": "Obramowanie karty",
+    "border_default": "Domyślne",
+    "border_minimal": "Minimalne",
+    "border_accent": "Akcent",
+    "showMemberSince": "Pokaż datę dołączenia na karcie"
   },
   "steam": {
     "title": "Integracja Steam",
@@ -89,7 +102,13 @@
   },
   "notifications": {
     "title": "Powiadomienia",
-    "empty": "Brak nowych powiadomień"
+    "empty": "Brak nowych powiadomień",
+    "friendRequest": "{name} wysłał(a) Ci zaproszenie do znajomych",
+    "friendAccepted": "{name} zaakceptował(a) Twoje zaproszenie",
+    "someone": "Ktoś",
+    "markAllRead": "Oznacz wszystkie jako przeczytane",
+    "pendingRequests": "Oczekujące zaproszenia",
+    "openFriendsHint": "Otwórz panel znajomych, aby zaakceptować"
   },
   "launcher": {
     "storeTitle": "Sklep",
@@ -117,6 +136,9 @@
     "uiScale": "Skala interfejsu",
     "steamIntegration": "Integracja Steam",
     "steamHint": "Potrzebne do wyświetlania osiągnięć i statystyk gracza",
-    "steamAccountHint": "Połącz Steam w zakładce Konto lub z menu profilu — przycisk „Zaloguj przez Steam”. Nie musisz podawać klucza API."
+    "steamAccountHint": "Połącz Steam w zakładce Konto lub z menu profilu — przycisk „Zaloguj przez Steam”. Nie musisz podawać klucza API.",
+    "categoryColor": "Kolor kategorii",
+    "categoryCustomColor": "Własny kolor",
+    "categoryIcon": "Ikona kategorii"
   }
 }
