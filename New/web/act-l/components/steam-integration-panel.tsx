@@ -354,7 +354,7 @@ export function SteamIntegrationPanel({ compact = false }: SteamIntegrationPanel
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-white truncate">{friend.personaname}</p>
-                          <p className="text-xs text-green-400 truncate">{t('playing', { game: friend.currentGame })}</p>
+                          <p className="text-xs text-green-400 truncate">{t('playing', { game: friend.currentGame ?? '' })}</p>
                         </div>
                       </div>
                     ))}

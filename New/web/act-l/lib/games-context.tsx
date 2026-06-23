@@ -253,9 +253,10 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
   const recentlyPlayedGames = useMemo(() => {
     const gameMap = new Map(gamesWithFavorites.map((g) => [g.id, g]));
-    return getRecentlyPlayedIds(playHistory)
-      .map((id) => gameMap.get(id))
-      .filter((g): g is Game => !!g);
+    return getRecentlyPlayedIds(playHistory).flatMap((id) => {
+      const game = gameMap.get(id);
+      return game ? [game] : [];
+    });
   }, [playHistory, gamesWithFavorites]);
 
   return (

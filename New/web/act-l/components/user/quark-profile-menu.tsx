@@ -127,7 +127,6 @@ export function QuarkProfileMenu({
             {t('presence')}
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent
-            side="left"
             align="start"
             sideOffset={6}
             collisionPadding={12}

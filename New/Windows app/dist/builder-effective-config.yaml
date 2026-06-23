@@ -11,6 +11,7 @@ files:
   - filter:
       - main.js
       - preload.js
+      - dev-app-update.yml
       - assets/**/*
       - package.json
 extraResources:
