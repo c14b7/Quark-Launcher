@@ -1,33 +1,38 @@
-# Quarch Launcher 
+# Quarch Launcher
 
-## Changelog:
+## Duża czerwcowa aktualizacja 🏳️‍🌈
 
-**🏳️‍🌈czerwcowa aktualizacja🏳️‍🌈**
+Obecna wersja: **0.0.5-beta01**
 
-Obecna wersja: **0.0.5-beta03-dev**:
+### 🚀 Co nowego:
+- Poprawiono automatyczne aktualizacje
+- Dodano system banerów
+- Dodano system znajomych
+- Dodano obsługę kategorii
+- Dodano karty profilu
+- Dodano możliwość zmiany zdjęcia profilowego
+- Dodano możliwość personalizacji profilu
+- Usunięto bieżące luki bezpieczeństwa
 
-**🚀Co nowego:**
-- Automatyczne aktualizacje (wersja zapoznawcza)
-  
+### ✅ Co poprawiono:
+- Odświeżono UI/UX
+- Zoptymalizowano integrację ze Steam
+- Usprawniono łączenie konta Steam
+- Wdrożono nowe zabezpieczenia
+- Usprawniono backend
+- Naprawiono system aktualności
+- Poprawiono działanie ustawień
 
-**✅️Co poprawiono:**
-- Poprawiono UI/UX 
-- Poprawiono integrację Steam
-- Naprawiono wyświetlanie grafik i banerów gier z Epic Games Launcher
-- Usunięto testowe wersje asystenta opartego o generatywne modele językowe
-
-
-**🚧Backlog:**
+### 🚧 Backlog:
 - Kanał testowy
-- Poprawa aktualizacji
+- Optymalizacja aktualizacji
 - Poprawa kanału aktualności
-- Osiągnięcia z Epic Games
-- Poprawa systemu logowania
-- Karta Użytkownika
-- Nakładka w grze
-  
+- Integracja osiągnięć z Epic Games
+- Naprawa systemu logowania
+- Nakładka w grze (Overlay)
+- Strona internetowa projektu
+- Wprowadzenie motywów
 
-**🛑Znane błędy:**
-- Nie działają kategorie
-- Gry z Xbox App/MS store nie pokazują się
-- Logowanie może powodować problemy
+### 🛑 Znane błędy:
+- Gry z Xbox App / MS Store nie wyświetlają się
+- Logowanie może sprawiać problemy
