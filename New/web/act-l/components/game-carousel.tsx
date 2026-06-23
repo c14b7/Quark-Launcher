@@ -39,7 +39,9 @@ export const GameCarousel = forwardRef<GameCarouselHandle, GameCarouselProps>(
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
-    const drag = useRef({ active: false, startX: 0, scrollLeft: 0, moved: false });
+    const drag = useRef({ active: false, startX: 0, scrollLeft: 0, moved: false, pointerId: -1 });
+    const suppressClickRef = useRef(false);
+    const DRAG_THRESHOLD = 8;
 
     const updateScrollButtons = useCallback(() => {
       const el = scrollRef.current;
@@ -107,6 +109,22 @@ export const GameCarousel = forwardRef<GameCarouselHandle, GameCarouselProps>(
       };
     }, [updateScrollButtons, children]);
 
+    const endDrag = (e: React.PointerEvent) => {
+      const wasDrag = drag.current.moved;
+      if (wasDrag) {
+        suppressClickRef.current = true;
+        window.setTimeout(() => {
+          suppressClickRef.current = false;
+        }, 0);
+      }
+      if (drag.current.moved && scrollRef.current?.hasPointerCapture(e.pointerId)) {
+        scrollRef.current.releasePointerCapture(e.pointerId);
+      }
+      drag.current = { active: false, startX: 0, scrollLeft: 0, moved: false, pointerId: -1 };
+      setIsDragging(false);
+      updateScrollButtons();
+    };
+
     const onPointerDown = (e: React.PointerEvent) => {
       if (!scrollRef.current) return;
       if ((e.target as HTMLElement).closest('button')) return;
@@ -115,32 +133,29 @@ export const GameCarousel = forwardRef<GameCarouselHandle, GameCarouselProps>(
         startX: e.clientX,
         scrollLeft: scrollRef.current.scrollLeft,
         moved: false,
+        pointerId: e.pointerId,
       };
-      setIsDragging(true);
-      scrollRef.current.setPointerCapture(e.pointerId);
     };
 
     const onPointerMove = (e: React.PointerEvent) => {
       if (!drag.current.active || !scrollRef.current) return;
       const dx = e.clientX - drag.current.startX;
-      if (Math.abs(dx) > 4) drag.current.moved = true;
+      if (!drag.current.moved) {
+        if (Math.abs(dx) < DRAG_THRESHOLD) return;
+        drag.current.moved = true;
+        setIsDragging(true);
+        scrollRef.current.setPointerCapture(drag.current.pointerId);
+      }
       scrollRef.current.scrollLeft = drag.current.scrollLeft - dx;
     };
 
     const onPointerUp = (e: React.PointerEvent) => {
-      const wasDrag = drag.current.moved;
-      drag.current.active = false;
-      setIsDragging(false);
-      scrollRef.current?.releasePointerCapture(e.pointerId);
-      updateScrollButtons();
-      if (wasDrag && scrollRef.current) {
-        scrollRef.current.dataset.dragging = 'true';
-        setTimeout(() => delete scrollRef.current?.dataset.dragging, 0);
-      }
+      if (!drag.current.active) return;
+      endDrag(e);
     };
 
     const onClickCapture = (e: React.MouseEvent) => {
-      if (scrollRef.current?.dataset.dragging === 'true') {
+      if (suppressClickRef.current) {
         e.preventDefault();
         e.stopPropagation();
       }

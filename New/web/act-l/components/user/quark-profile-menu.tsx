@@ -12,10 +12,11 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Settings, LogOut, Link2, ChevronDown, Pencil, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
+import { getAvatarUrl } from '@/lib/avatar-service';
 
 interface QuarkProfileMenuProps {
   onNavigate?: (view: string) => void;
@@ -50,6 +51,7 @@ export function QuarkProfileMenu({
 
   const displayName = profile?.displayName || profile?.name || t('guest');
   const initials = displayName.slice(0, 2).toUpperCase();
+  const avatarUrl = getAvatarUrl(profile?.avatarFileId);
   const steamLinked = profile?.steamLinked || !!steamIntegration?.steamId;
 
   const setPresence = async (presence: string) => {
@@ -65,6 +67,7 @@ export function QuarkProfileMenu({
         >
           <div className="relative">
             <Avatar className="h-7 w-7 border border-white/10">
+              {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
               <AvatarFallback className="bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white text-xs font-semibold">
                 {initials}
               </AvatarFallback>

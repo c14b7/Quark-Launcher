@@ -136,6 +136,16 @@ export interface UpdateInfo {
   releaseNotes: string;
 }
 
+export interface UpdateDownloadProgress {
+  percent: number;
+  transferred: number;
+  total: number;
+}
+
+export interface UpdateErrorInfo {
+  message: string;
+}
+
 // --- NAPRAWIONA SEKCJA ELECTRON API ---
 
 export interface IElectronAPI {
@@ -187,6 +197,7 @@ export interface IElectronAPI {
     }>;
     error?: string;
   }>;
+  steamOpenIdLogin: () => Promise<{ success: boolean; steamId?: string; error?: string }>;
   
   // Epic Games
   epicGetInstalledGames: () => Promise<Game[]>;
@@ -213,7 +224,9 @@ export interface IElectronAPI {
   
   // --- UPDATE MECHANISM ---
   onUpdateAvailable: (callback: (info: UpdateInfo) => void) => () => void;
-  startInstallation: () => Promise<boolean>;
+  onUpdateDownloadProgress: (callback: (info: UpdateDownloadProgress) => void) => () => void;
+  onUpdateError: (callback: (info: UpdateErrorInfo) => void) => () => void;
+  startInstallation: () => Promise<{ success: boolean; error?: string }>;
   
   // Platform & Versions
   platform: string;

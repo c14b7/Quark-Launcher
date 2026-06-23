@@ -75,7 +75,7 @@ export function GameCard({ game, variant = 'medium', onClick, className }: GameC
 
   return (
     <ContextMenu>
-      <ContextMenuTrigger>
+      <ContextMenuTrigger asChild>
         <div
           className={cn(
             'relative rounded-2xl overflow-hidden cursor-pointer group',

@@ -6,6 +6,7 @@ import { parseFriendCardTheme, GRADIENT_PRESETS } from '@/lib/friends-service';
 import type { QuarkFriend } from '@/lib/types';
 import type { UserProfile } from '@/lib/auth-service';
 import { parseCardTheme } from '@/lib/auth-service';
+import { getAvatarUrl } from '@/lib/avatar-service';
 
 type ProfileData = QuarkFriend | UserProfile | {
   displayName?: string;
@@ -23,6 +24,7 @@ interface UserCardProps {
   className?: string;
   compact?: boolean;
   showBio?: boolean;
+  avatarUrl?: string;
 }
 
 function getDisplayName(profile: ProfileData): string {
@@ -38,13 +40,14 @@ function getPresenceColor(presence?: string): string {
   }
 }
 
-export function UserCard({ profile, className, compact = false, showBio = true }: UserCardProps) {
+export function UserCard({ profile, className, compact = false, showBio = true, avatarUrl }: UserCardProps) {
   const theme = profile.cardTheme
     ? parseFriendCardTheme(profile.cardTheme)
     : parseCardTheme(undefined);
   const gradient = GRADIENT_PRESETS[theme.gradientPreset || 'violet-fuchsia'] || GRADIENT_PRESETS['violet-fuchsia'];
   const name = getDisplayName(profile);
   const initials = name.slice(0, 2).toUpperCase();
+  const imageSrc = avatarUrl ?? getAvatarUrl(profile.avatarFileId);
 
   return (
     <div
@@ -62,7 +65,7 @@ export function UserCard({ profile, className, compact = false, showBio = true }
             className={cn('border-4 border-zinc-900', compact ? 'h-12 w-12' : 'h-16 w-16')}
             style={{ borderColor: theme.accentColor + '55' }}
           >
-            <AvatarImage src="" alt={name} />
+            <AvatarImage src={imageSrc} alt={name} />
             <AvatarFallback className="bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white font-bold">
               {initials}
             </AvatarFallback>

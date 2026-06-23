@@ -26,12 +26,12 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
+  const [selectedGameSnapshot, setSelectedGameSnapshot] = useState<Game | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const { settings } = useSettings();
 
   const setSelectedGame = useCallback((game: Game | null) => {
-    setSelectedGameId(game?.id || null);
+    setSelectedGameSnapshot(game);
   }, []);
 
   // Track if we've enriched games already to avoid infinite loops
@@ -215,10 +215,9 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
   // Get selected game from current games list WITH favorites (so it always has updated data)
   const selectedGame = useMemo(() => {
-    if (!selectedGameId) return null;
-    const game = gamesWithFavorites.find(g => g.id === selectedGameId);
-    return game || null;
-  }, [selectedGameId, gamesWithFavorites]);
+    if (!selectedGameSnapshot) return null;
+    return gamesWithFavorites.find((g) => g.id === selectedGameSnapshot.id) ?? selectedGameSnapshot;
+  }, [selectedGameSnapshot, gamesWithFavorites]);
 
   const favoriteGames = gamesWithFavorites.filter(g => g.isFavorite);
 

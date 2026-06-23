@@ -1,6 +1,6 @@
 {
   "name": "quark",
-  "version": "v0.0.4-beta03c",
+  "version": "0.0.4-beta03c",
   "description": "game launcher for Windows",
   "main": "main.js",              
   "scripts": {
@@ -36,9 +36,10 @@
     ],
     "files": [
       "main.js",
-        "preload.js",
-       "assets/**/*",
-       "package.json"
+      "preload.js",
+      "dev-app-update.yml",
+      "assets/**/*",
+      "package.json"
     ],
     "extraResources": [
       {

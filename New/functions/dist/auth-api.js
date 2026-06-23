@@ -351,6 +351,18 @@ async function handleAuthApiRequest(req, res, logger = noopLogger) {
                     return (0, middleware_1.errorResponse)(res, 'INVALID_PREFERENCES', 'Invalid preferences JSON');
                 }
             }
+            if (body.avatarFileId !== undefined) {
+                if (body.avatarFileId === null || body.avatarFileId === '') {
+                    updates.avatarFileId = null;
+                }
+                else {
+                    const fileId = String(body.avatarFileId).trim();
+                    if (!/^[a-zA-Z0-9_-]{1,36}$/.test(fileId)) {
+                        return (0, middleware_1.errorResponse)(res, 'INVALID_AVATAR', 'Invalid avatar file id');
+                    }
+                    updates.avatarFileId = fileId;
+                }
+            }
             if (Object.keys(updates).length === 0) {
                 return (0, middleware_1.errorResponse)(res, 'NO_CHANGES', 'No valid fields to update');
             }

@@ -5,64 +5,25 @@ const { spawn, exec } = require('child_process');
 
 
 
-// --- update mechanism ---
 const { autoUpdater } = require('electron-updater');
 
-
-// Dodaj te dwie linijki pod importem:
-autoUpdater.forceDevUpdateConfig = true;
 autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = true;
 autoUpdater.allowPrerelease = true;
-// const log = require('electron-log'); // Opcjonalnie, warto mieć do logów aktualizacji
-
-// Wyłączamy automatyczne pobieranie - chcemy najpierw pokazać banner użytkownikowi!
-autoUpdater.autoDownload = false;
-
-app.whenReady().then(() => {
-  const win = this.createMainWindow(); // Twoja funkcja tworząca okno
-
-  // Sprawdzamy dostępność aktualizacji chwile po uruchomieniu okna
-  win.webContents.on('did-finish-load', () => {
-    autoUpdater.checkForUpdates();
-  });
-
-  // Reagujemy na znalezienie nowej wersji
-  autoUpdater.on('update-available', (info) => {
-    // info.version -> string (np. "1.1.0")
-    // info.releaseNotes -> string/array (Twoje "What's new" wpisane na GitHubie)
-    win.webContents.send('update-available-to-ui', {
-      version: info.version,
-      releaseNotes: info.releaseNotes || 'Poprawki błędów i usprawnienia stabilności.'
-    });
-  });
-
-  // Błędy podczas sprawdzania aktualizacji
-  autoUpdater.on('error', (err) => {
-    console.error('Błąd auto-updatera:', err);
-  });
-
-  // Kiedy paczka zostanie pobrana -> restart i instalacja
-  autoUpdater.on('update-downloaded', () => {
-    autoUpdater.quitAndInstall();
-  });
-});
-
-// Obsługa kliknięcia przycisku w Next.js przez invoke
-ipcMain.handle('start-installation', async () => {
-  autoUpdater.downloadUpdate(); // Zaczyna pobieranie w tle
-  return true;
-});
-
-// --- koniec update mechanism ---
-
+autoUpdater.logger = console;
 
 const isDev = !app.isPackaged;
+
+if (isDev) {
+  autoUpdater.forceDevUpdateConfig = true;
+}
 
 class QuarkLauncher {
   constructor() {
     this.mainWindow = null;
     this.runningProcesses = new Map();
     this.userDataPath = app.getPath('userData');
+    this._updaterListenersAttached = false;
     this.initializeApp();
   }
 
@@ -81,6 +42,7 @@ class QuarkLauncher {
       app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
           this.createMainWindow();
+          this.setupAutoUpdater();
         }
       });
     });
@@ -155,43 +117,83 @@ class QuarkLauncher {
   }
   // Wklej tę metodę wewnątrz klasy QuarkLauncher:
   setupAutoUpdater() {
+    if (!this._updaterListenersAttached) {
+      this._updaterListenersAttached = true;
+      this._registerAutoUpdaterListeners();
+    }
+    this._attachUpdateCheckToWindow();
+  }
 
-    autoUpdater.logger = console;
+  _registerAutoUpdaterListeners() {
+    const sendToUi = (channel, payload) => {
+      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+        this.mainWindow.webContents.send(channel, payload);
+      }
+    };
 
-  // Sprawdzamy dostępność aktualizacji po załadowaniu okna Next.js
-  this.mainWindow.webContents.on('did-finish-load', () => {
-    console.log('[UPDATER] Checking for updates...');
-    autoUpdater.checkForUpdatesAndNotify().catch(err => {
-      console.error('[UPDATER] Pre-check error:', err);
-    });
-  });
-    // Sprawdzamy dostępność aktualizacji po załadowaniu okna Next.js
-    this.mainWindow.webContents.on('did-finish-load', () => {
+    const formatReleaseNotes = (notes) => {
+      if (!notes) return 'Poprawki błędów i usprawnienia stabilności.';
+      if (typeof notes === 'string') return notes;
+      if (Array.isArray(notes)) {
+        return notes
+          .map((entry) => (typeof entry === 'string' ? entry : entry?.note || ''))
+          .filter(Boolean)
+          .join(' ');
+      }
+      return String(notes);
+    };
+
+    autoUpdater.on('checking-for-update', () => {
       console.log('[UPDATER] Checking for updates...');
-      autoUpdater.checkForUpdatesAndNotify().catch(err => {
-        console.error('[UPDATER] Pre-check error:', err);
+    });
+
+    autoUpdater.on('update-available', (info) => {
+      console.log('[UPDATER] Update available:', info.version);
+      sendToUi('update-available-to-ui', {
+        version: info.version,
+        releaseNotes: formatReleaseNotes(info.releaseNotes),
       });
     });
 
-    // Reagujemy na znalezienie nowej wersji i wysyłamy info do frontendu
-    autoUpdater.on('update-available', (info) => {
-      console.log('[UPDATER] Update available:', info.version);
-      if (this.mainWindow) {
-        this.mainWindow.webContents.send('update-available-to-ui', {
-          version: info.version,
-          releaseNotes: info.releaseNotes || 'Poprawki błędów i usprawnienia stabilności.'
-        });
-      }
+    autoUpdater.on('update-not-available', (info) => {
+      console.log('[UPDATER] App is up to date:', info?.version);
+    });
+
+    autoUpdater.on('download-progress', (progress) => {
+      sendToUi('update-download-progress', {
+        percent: progress.percent,
+        transferred: progress.transferred,
+        total: progress.total,
+      });
     });
 
     autoUpdater.on('error', (err) => {
-      console.error('[UPDATER] Błąd auto-updatera:', err);
+      console.error('[UPDATER] Error:', err?.message || err);
+      sendToUi('update-error-to-ui', {
+        message: err?.message || 'Nie udało się sprawdzić aktualizacji',
+      });
     });
 
-    // Kiedy paczka zostanie pobrana -> restart i automatyczna instalacja
-    autoUpdater.on('update-downloaded', () => {
-      console.log('[UPDATER] Update downloaded. Quark Launcher will restart now.');
-      autoUpdater.quitAndInstall();
+    autoUpdater.on('update-downloaded', (info) => {
+      console.log('[UPDATER] Update downloaded:', info.version, '- restarting...');
+      setTimeout(() => {
+        autoUpdater.quitAndInstall(false, true);
+      }, 500);
+    });
+  }
+
+  _attachUpdateCheckToWindow() {
+    if (!this.mainWindow) return;
+
+    this.mainWindow.webContents.on('did-finish-load', () => {
+      if (!app.isPackaged && !autoUpdater.forceDevUpdateConfig) {
+        console.log('[UPDATER] Skipping update check in unpackaged dev mode');
+        return;
+      }
+
+      autoUpdater.checkForUpdates().catch((err) => {
+        console.error('[UPDATER] checkForUpdates failed:', err?.message || err);
+      });
     });
   }
 
@@ -244,6 +246,86 @@ class QuarkLauncher {
     ipcMain.handle('window-close', () => this.mainWindow.close());
     
     ipcMain.handle('window-is-maximized', () => this.mainWindow.isMaximized());
+
+    // ===== STEAM OPENID LOGIN =====
+    ipcMain.handle('steam-openid-login', async () => {
+      const http = require('http');
+      const STEAM_LOGIN_TIMEOUT_MS = 5 * 60 * 1000;
+
+      return new Promise((resolve) => {
+        const port = 38492;
+        const returnUrl = `http://127.0.0.1:${port}/steam/callback`;
+        let settled = false;
+
+        const finish = (result) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeout);
+          try {
+            server.close();
+          } catch {
+            // server may already be closed
+          }
+          resolve(result);
+        };
+
+        const buildSteamOpenIdUrl = () => {
+          const params = new URLSearchParams({
+            'openid.ns': 'http://specs.openid.net/auth/2.0',
+            'openid.mode': 'checkid_setup',
+            'openid.return_to': returnUrl,
+            'openid.realm': returnUrl,
+            'openid.identity': 'http://specs.openid.net/auth/2.0/identifier_select',
+            'openid.claimed_id': 'http://specs.openid.net/auth/2.0/identifier_select',
+          });
+          return `https://steamcommunity.com/openid/login?${params.toString()}`;
+        };
+
+        const server = http.createServer((req, res) => {
+          if (!req.url || !req.url.startsWith('/steam/callback')) {
+            res.writeHead(404);
+            res.end();
+            return;
+          }
+
+          const callbackUrl = new URL(req.url, returnUrl);
+          const params = Object.fromEntries(callbackUrl.searchParams.entries());
+          const claimedId = params['openid.claimed_id'] || params['openid.identity'] || '';
+          const match = claimedId.match(/\/openid\/id\/(\d+)/);
+
+          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+          res.end(
+            '<html><body style="font-family:sans-serif;background:#0a0a0a;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">' +
+            '<div style="text-align:center"><h1>Steam połączony</h1><p>Możesz zamknąć to okno i wrócić do Quark Launcher.</p></div>' +
+            '<script>setTimeout(() => window.close(), 1500)</script></body></html>'
+          );
+
+          if (params['openid.mode'] === 'cancel') {
+            finish({ success: false, error: 'Anulowano logowanie Steam' });
+            return;
+          }
+
+          if (match) {
+            finish({ success: true, steamId: match[1] });
+            return;
+          }
+
+          finish({ success: false, error: 'Nie udało się odczytać Steam ID' });
+        });
+
+        const timeout = setTimeout(() => {
+          finish({ success: false, error: 'Przekroczono czas logowania Steam' });
+        }, STEAM_LOGIN_TIMEOUT_MS);
+
+        server.on('error', (err) => {
+          finish({ success: false, error: err.message });
+        });
+
+        server.listen(port, '127.0.0.1', () => {
+          shell.openExternal(buildSteamOpenIdUrl());
+        });
+      });
+    });
 
     // ===== STEAM DETECTION =====
     ipcMain.handle('steam-detect-installation', async () => {
@@ -774,12 +856,21 @@ class QuarkLauncher {
       nodeVersion: process.versions.node
     }));
     ipcMain.removeHandler('start-installation');
-
     ipcMain.handle('start-installation', async () => {
-      console.log('[UPDATER] Next.js requested installation start. Downloading update...');
-      autoUpdater.downloadUpdate();
-  return true;
-  });
+      try {
+        console.log('[UPDATER] User requested update download');
+        await autoUpdater.downloadUpdate();
+        return { success: true };
+      } catch (error) {
+        console.error('[UPDATER] Download failed:', error?.message || error);
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+          this.mainWindow.webContents.send('update-error-to-ui', {
+            message: error?.message || 'Nie udało się pobrać aktualizacji',
+          });
+        }
+        return { success: false, error: error?.message || 'Download failed' };
+      }
+    });
   }
 
   // ===== HELPER METHODS =====

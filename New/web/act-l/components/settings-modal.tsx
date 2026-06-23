@@ -58,10 +58,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-2xl max-h-[80vh] bg-zinc-900 border border-white/10 rounded-3xl shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-3xl max-h-[85vh] bg-zinc-950/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/10">
-          <h2 className="text-xl font-bold text-white">{ts('title')}</h2>
+        <div className="flex items-center justify-between px-6 py-5 border-b border-white/8 shrink-0">
+          <div>
+            <h2 className="text-xl font-bold text-white">{ts('title')}</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">{ts('subtitle')}</p>
+          </div>
           <Button
             variant="ghost"
             size="icon"
@@ -72,42 +75,68 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           </Button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 p-4 border-b border-white/5 overflow-x-auto">
-          {[
-            { id: 'general', label: ts('tabs.general') },
-            { id: 'hidden', label: ts('tabs.hidden') },
-            { id: 'categories', label: ts('tabs.categories') },
-            { id: 'admin', label: ts('tabs.admin') }
-          ].map(tab => (
-            <Button
-              key={tab.id}
-              variant="ghost"
-              size="sm"
-              className={cn(
-                'rounded-xl px-4 whitespace-nowrap',
-                activeTab === tab.id && 'bg-white/10'
-              )}
-              onClick={() => setActiveTab(tab.id as typeof activeTab)}
-            >
-              {tab.label}
-            </Button>
-          ))}
-        </div>
+        {/* Tabs + content */}
+        <div className="flex flex-1 min-h-0">
+          <div className="w-44 shrink-0 border-r border-white/8 p-3 space-y-1 hidden sm:block">
+            {[
+              { id: 'general', label: ts('tabs.general') },
+              { id: 'hidden', label: ts('tabs.hidden') },
+              { id: 'categories', label: ts('tabs.categories') },
+              { id: 'admin', label: ts('tabs.admin') }
+            ].map(tab => (
+              <Button
+                key={tab.id}
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  'w-full justify-start rounded-xl px-3',
+                  activeTab === tab.id && 'bg-violet-500/10 text-violet-300 border border-violet-500/20'
+                )}
+                onClick={() => setActiveTab(tab.id as typeof activeTab)}
+              >
+                {tab.label}
+              </Button>
+            ))}
+          </div>
 
-        {/* Content */}
-        <ScrollArea className="h-[50vh]">
-          <div className="p-6 space-y-6">
+          <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex gap-1 p-3 border-b border-white/5 overflow-x-auto sm:hidden">
+              {[
+                { id: 'general', label: ts('tabs.general') },
+                { id: 'hidden', label: ts('tabs.hidden') },
+                { id: 'categories', label: ts('tabs.categories') },
+                { id: 'admin', label: ts('tabs.admin') }
+              ].map(tab => (
+                <Button
+                  key={tab.id}
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    'rounded-xl px-4 whitespace-nowrap',
+                    activeTab === tab.id && 'bg-white/10'
+                  )}
+                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                >
+                  {tab.label}
+                </Button>
+              ))}
+            </div>
+
+        <ScrollArea className="flex-1 max-h-[55vh]">
+          <div className="p-6 space-y-5">
             {activeTab === 'general' && (
               <>
-                <div className="space-y-3">
-                  <label className="text-sm font-medium text-zinc-400">{ts('language')}</label>
+                <div className="rounded-2xl border border-white/8 bg-zinc-900/50 p-5 space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-white">{ts('language')}</label>
+                    <p className="text-xs text-zinc-500 mt-0.5">{ts('languageDesc')}</p>
+                  </div>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       className={cn(
-                        'flex-1 rounded-xl border-white/10',
-                        settings.locale === 'pl' && 'bg-white/10 border-violet-500'
+                        'flex-1 rounded-xl border-white/10 h-11',
+                        settings.locale === 'pl' && 'bg-violet-500/10 border-violet-500 text-violet-200'
                       )}
                       onClick={() => updateSettings({ locale: 'pl' })}
                     >
@@ -116,27 +145,27 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <Button
                       variant="outline"
                       className={cn(
-                        'flex-1 rounded-xl border-white/10',
-                        settings.locale === 'en' && 'bg-white/10 border-violet-500'
+                        'flex-1 rounded-xl border-white/10 h-11',
+                        settings.locale === 'en' && 'bg-violet-500/10 border-violet-500 text-violet-200'
                       )}
                       onClick={() => updateSettings({ locale: 'en' })}
                     >
                       {ts('english')}
                     </Button>
                   </div>
-                  <p className="text-xs text-zinc-500">{ts('languageDesc')}</p>
                 </div>
 
-                <Separator className="bg-white/5" />
-
-                <div className="space-y-3">
-                  <label className="text-sm font-medium text-zinc-400">{ts('theme')}</label>
+                <div className="rounded-2xl border border-white/8 bg-zinc-900/50 p-5 space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-white">{ts('theme')}</label>
+                    <p className="text-xs text-zinc-500 mt-0.5">{ts('themeOledHint')}</p>
+                  </div>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       className={cn(
-                        'flex-1 gap-2 rounded-xl border-white/10',
-                        settings.theme === 'dark' && 'bg-white/10 border-violet-500'
+                        'flex-1 gap-2 rounded-xl border-white/10 h-11',
+                        settings.theme === 'dark' && 'bg-violet-500/10 border-violet-500 text-violet-200'
                       )}
                       onClick={() => updateSettings({ theme: 'dark' })}
                     >
@@ -146,8 +175,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <Button
                       variant="outline"
                       className={cn(
-                        'flex-1 gap-2 rounded-xl border-white/10  ',
-                        settings.theme === 'oled' && 'bg-white/10 border-violet-500'
+                        'flex-1 gap-2 rounded-xl border-white/10 h-11',
+                        settings.theme === 'oled' && 'bg-violet-500/10 border-violet-500 text-violet-200'
                       )}
                       onClick={() => updateSettings({ theme: 'oled' })}
                     >
@@ -155,16 +184,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       {ts('themeOled')}
                     </Button>
                   </div>
-                  <p className="text-xs text-zinc-500">{ts('themeOledHint')}</p>
                 </div>
 
-                <Separator className="bg-white/5" />
-
-                {/* UI Scale */}
-                <div className="space-y-3">
+                <div className="rounded-2xl border border-white/8 bg-zinc-900/50 p-5 space-y-4">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-zinc-400">{ts('uiScale')}</label>
-                    <span className="text-sm text-white">{Math.round(settings.uiScale * 100)}%</span>
+                    <label className="text-sm font-medium text-white">{ts('uiScale')}</label>
+                    <span className="text-sm font-mono text-violet-300">{Math.round(settings.uiScale * 100)}%</span>
                   </div>
                   <input
                     type="range"
@@ -182,26 +207,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   </div>
                 </div>
 
-                <Separator className="bg-white/5" />
-
-                {/* Steam Integration */}
-                <div className="space-y-3">
-                  <label className="text-sm font-medium text-zinc-400">{ts('steamIntegration')}</label>
-                  <div className="space-y-2">
-                    <Input
-                      placeholder="Steam API Key"
-                      value={settings.steamApiKey || ''}
-                      onChange={(e) => updateSettings({ steamApiKey: e.target.value })}
-                      className="rounded-xl bg-zinc-800/50 border-white/5"
-                    />
-                    <Input
-                      placeholder="Steam User ID"
-                      value={settings.steamUserId || ''}
-                      onChange={(e) => updateSettings({ steamUserId: e.target.value })}
-                      className="rounded-xl bg-zinc-800/50 border-white/5"
-                    />
-                  </div>
-                  <p className="text-xs text-zinc-500">{ts('steamHint')}</p>
+                <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-5 space-y-2">
+                  <label className="text-sm font-medium text-white">{ts('steamIntegration')}</label>
+                  <p className="text-xs text-zinc-400 leading-relaxed">{ts('steamAccountHint')}</p>
                 </div>
               </>
             )}
@@ -508,7 +516,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5 space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-zinc-500">Wersja aplikacji:</span>
-                      <span className="text-white font-mono">v0.0.4-beta03c</span>
+                      <span className="text-white font-mono">0.0.5-beta01-dev</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-zinc-500">Next.js:</span>
@@ -678,6 +686,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             )}
           </div>
         </ScrollArea>
+          </div>
+        </div>
       </div>
     </div>
   );

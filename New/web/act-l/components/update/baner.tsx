@@ -1,81 +1,120 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { Sparkles, Loader2, ArrowRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-interface UpdateInfo {
-  version: string;
-  releaseNotes: string;
-}
+import type { UpdateInfo } from "@/lib/types";
 
 export default function UpdateBanner() {
   const [updateData, setUpdateData] = useState<UpdateInfo | null>(null);
-  const [status, setStatus] = useState<"idle" | "downloading">("idle");
+  const [status, setStatus] = useState<"idle" | "downloading" | "error">("idle");
+  const [progress, setProgress] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && window.electronAPI.onUpdateAvailable) {
-      const unsubscribe = window.electronAPI.onUpdateAvailable((info: UpdateInfo) => {
-        setUpdateData(info);
-      });
+    if (typeof window === "undefined" || !window.electronAPI) return;
 
-      return () => unsubscribe();
+    const cleanups: Array<() => void> = [];
+
+    if (window.electronAPI.onUpdateAvailable) {
+      cleanups.push(
+        window.electronAPI.onUpdateAvailable((info: UpdateInfo) => {
+          setUpdateData(info);
+          setStatus("idle");
+          setErrorMessage(null);
+          setIsVisible(true);
+        })
+      );
     }
+
+    if (window.electronAPI.onUpdateDownloadProgress) {
+      cleanups.push(
+        window.electronAPI.onUpdateDownloadProgress((info) => {
+          setProgress(Math.round(info.percent || 0));
+          setStatus("downloading");
+        })
+      );
+    }
+
+    if (window.electronAPI.onUpdateError) {
+      cleanups.push(
+        window.electronAPI.onUpdateError((info) => {
+          setStatus("error");
+          setErrorMessage(info.message);
+        })
+      );
+    }
+
+    return () => cleanups.forEach((fn) => fn());
   }, []);
 
   const handleUpdateClick = async () => {
+    if (!window.electronAPI?.startInstallation) return;
+
     setStatus("downloading");
-    if (window.electronAPI.startInstallation) {
-      await window.electronAPI.startInstallation();
+    setProgress(0);
+    setErrorMessage(null);
+
+    const result = await window.electronAPI.startInstallation();
+    if (!result?.success) {
+      setStatus("error");
+      setErrorMessage(result?.error || "Nie udało się rozpocząć pobierania");
     }
   };
 
-  // Jeśli nie ma aktualizacji lub użytkownik kliknął zamknięcie, nie pokazuj nic
   if (!updateData || !isVisible) return null;
 
   return (
-    <div 
+    <div
       className={cn(
-        "w-full border-b px-4 py-3 shadow-sm transition-all duration-300",
-        // Używamy zmiennych shadcn: bg-muted do tła, border-border do obramowania
-        "bg-muted/50 text-muted-foreground border-border animate-in fade-in slide-in-from-top-2"
+        "w-full border-b px-4 py-3 shadow-sm transition-all duration-300 z-[60] relative",
+        "bg-violet-500/10 text-foreground border-violet-500/20 animate-in fade-in slide-in-from-top-2"
       )}
     >
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        
-        {/* Lewa strona: Nagłówek i logi zmian */}
         <div className="flex items-start gap-3 flex-1">
-          {/* Ikonka w kolorze primary dla akcentu */}
-          <div className="bg-primary/10 text-primary p-2 rounded-lg mt-0.5 shrink-0">
-            <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+          <div className="bg-violet-500/15 text-violet-400 p-2 rounded-lg mt-0.5 shrink-0">
+            <Sparkles className="h-4 w-4 animate-pulse" />
           </div>
-          
-          <div className="space-y-0.5">
-            <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
-              Dostępna aktualizacja Quark Launchera 
-              <span className="text-xs bg-primary/10 text-primary font-mono px-2 py-0.5 rounded-full border border-primary/20">
+
+          <div className="space-y-1 min-w-0">
+            <h4 className="font-semibold text-sm text-white flex items-center gap-2 flex-wrap">
+              Dostępna aktualizacja Quark Launchera
+              <span className="text-xs bg-violet-500/15 text-violet-300 font-mono px-2 py-0.5 rounded-full border border-violet-500/25">
                 v{updateData.version}
               </span>
             </h4>
-            
-            {/* Sekcja "What's new" na bazie zmiennych tekstowych shadcn */}
-            <p className="text-xs text-muted-foreground/90 line-clamp-2 md:line-clamp-1">
-              <span className="font-medium text-foreground">Co nowego: </span>
+
+            <p className="text-xs text-zinc-400 line-clamp-2 md:line-clamp-1">
+              <span className="font-medium text-zinc-300">Co nowego: </span>
               {updateData.releaseNotes}
             </p>
+
+            {status === "downloading" && (
+              <div className="flex items-center gap-2 pt-1">
+                <div className="h-1.5 flex-1 max-w-[200px] rounded-full bg-zinc-800 overflow-hidden">
+                  <div
+                    className="h-full bg-violet-500 transition-all duration-300"
+                    style={{ width: `${Math.max(progress, 8)}%` }}
+                  />
+                </div>
+                <span className="text-[10px] text-zinc-500 font-mono">{progress}%</span>
+              </div>
+            )}
+
+            {status === "error" && errorMessage && (
+              <p className="text-xs text-red-400 pt-1">{errorMessage}</p>
+            )}
           </div>
         </div>
 
-        {/* Prawa strona: Przyciski akcji zgodne z shadcn/ui */}
         <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
-          {/* Przycisk zamknięcia/pominięcia */}
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 text-xs hover:bg-muted"
+            className="h-8 text-xs hover:bg-white/5"
             disabled={status === "downloading"}
             onClick={() => setIsVisible(false)}
           >
@@ -83,10 +122,9 @@ export default function UpdateBanner() {
             Pomiń
           </Button>
 
-          {/* Główny przycisk aktualizacji */}
           <Button
             size="sm"
-            className="h-8 text-xs font-medium shadow-sm transition-all"
+            className="h-8 text-xs font-medium bg-violet-600 hover:bg-violet-500"
             disabled={status === "downloading"}
             onClick={handleUpdateClick}
           >
@@ -95,6 +133,8 @@ export default function UpdateBanner() {
                 <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
                 Pobieranie...
               </>
+            ) : status === "error" ? (
+              "Spróbuj ponownie"
             ) : (
               <>
                 Aktualizuj teraz
@@ -103,7 +143,6 @@ export default function UpdateBanner() {
             )}
           </Button>
         </div>
-
       </div>
     </div>
   );

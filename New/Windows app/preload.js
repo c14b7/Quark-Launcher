@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   steamGetAchievements: (steamApiKey, steamId, appId) => ipcRenderer.invoke('steam-get-achievements', { steamApiKey, steamId, appId }),
   steamGetNews: (appIds, count) => ipcRenderer.invoke('steam-get-news', { appIds, count }),
   steamGetRecentAchievements: (steamApiKey, steamId, appIds) => ipcRenderer.invoke('steam-get-recent-achievements', { steamApiKey, steamId, appIds }),
+  steamOpenIdLogin: () => ipcRenderer.invoke('steam-openid-login'),
 
   // Epic Games
   epicGetInstalledGames: () => ipcRenderer.invoke('epic-get-installed-games'),
@@ -52,11 +53,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onUpdateAvailable: (callback) => {
     const subscription = (event, info) => callback(info);
     ipcRenderer.on('update-available-to-ui', subscription);
-    // Zwracamy funkcję do czyszczenia listenera (dobre dla Reacta)
     return () => ipcRenderer.removeListener('update-available-to-ui', subscription);
   },
 
-  // Mówi Electronowi, żeby zaczął pobierać i instalować aktualizację
+  onUpdateDownloadProgress: (callback) => {
+    const subscription = (event, info) => callback(info);
+    ipcRenderer.on('update-download-progress', subscription);
+    return () => ipcRenderer.removeListener('update-download-progress', subscription);
+  },
+
+  onUpdateError: (callback) => {
+    const subscription = (event, info) => callback(info);
+    ipcRenderer.on('update-error-to-ui', subscription);
+    return () => ipcRenderer.removeListener('update-error-to-ui', subscription);
+  },
+
   startInstallation: () => ipcRenderer.invoke('start-installation')
 });
 
