@@ -7,8 +7,9 @@ exports.default = default_1;
 const steam_api_1 = require("./steam-api");
 const auth_api_1 = require("./auth-api");
 const friends_api_1 = require("./friends-api");
+const middleware_1 = require("./lib/middleware");
 async function default_1(req, res) {
-    const path = req.path || '';
+    const path = (0, middleware_1.resolveRoutePath)(req, (0, middleware_1.parseBody)(req));
     if (path.startsWith('/auth')) {
         return (0, auth_api_1.handleAuthApiRequest)(req, res);
     }
@@ -19,9 +20,10 @@ async function default_1(req, res) {
         return (0, steam_api_1.handleSteamApiRequest)(req, res);
     }
     return res.json({
-        success: true,
-        message: 'Quark Launcher API',
+        success: false,
+        code: 'NOT_FOUND',
+        error: `Unknown route: ${path || '/'}`,
         version: '2.0.0',
         endpoints: ['/auth', '/friends', '/steam'],
-    });
+    }, 404);
 }

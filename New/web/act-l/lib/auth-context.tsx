@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { authService, UserProfile, SteamIntegration, CardTheme, parseCardTheme } from './auth-service';
+import { apiRequest } from './api-client';
 import { Models } from 'appwrite';
 
 interface AuthContextType {
@@ -58,6 +59,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (meResult.success && meResult.profile) {
           setProfile(meResult.profile);
           setSteamIntegration(meResult.steamIntegration || null);
+        } else if (!meResult.success) {
+          // Logged in but no Quark profile yet — try to init
+          const init = await apiRequest<{ profile: UserProfile }>(
+            '/auth/profile/init',
+            'POST',
+            { name: userResult.user.name },
+            true
+          );
+          if (init.success && init.profile) {
+            setProfile(init.profile as UserProfile);
+          }
         }
       } else {
         setUser(null);
@@ -101,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const result = await authService.register(email, password, name);
       if (result.success) {
+        if (result.profile) setProfile(result.profile);
         await loadUser();
         if (typeof window !== 'undefined') {
           localStorage.setItem(ONBOARDING_KEY, 'true');

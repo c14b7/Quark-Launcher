@@ -5,9 +5,10 @@
 import { handleSteamApiRequest } from './steam-api';
 import { handleAuthApiRequest } from './auth-api';
 import { handleFriendsApiRequest } from './friends-api';
+import { parseBody, resolveRoutePath } from './lib/middleware';
 
 export default async function (req: { path?: string; method?: string; payload?: string; headers?: Record<string, string> }, res: { json: (body: unknown, status?: number) => unknown }) {
-  const path = req.path || '';
+  const path = resolveRoutePath(req, parseBody(req));
 
   if (path.startsWith('/auth')) {
     return handleAuthApiRequest(req, res);
@@ -22,9 +23,10 @@ export default async function (req: { path?: string; method?: string; payload?: 
   }
 
   return res.json({
-    success: true,
-    message: 'Quark Launcher API',
+    success: false,
+    code: 'NOT_FOUND',
+    error: `Unknown route: ${path || '/'}`,
     version: '2.0.0',
     endpoints: ['/auth', '/friends', '/steam'],
-  });
+  }, 404);
 }

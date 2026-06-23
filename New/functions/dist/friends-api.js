@@ -36,9 +36,10 @@ async function hasPendingRequest(databases, fromId, toId) {
     return docs.documents.length > 0;
 }
 async function handleFriendsApiRequest(req, res) {
-    const path = req.path || '';
+    const rawBody = (0, middleware_1.parseBody)(req);
+    const path = (0, middleware_1.resolveRoutePath)(req, rawBody);
+    const body = (0, middleware_1.stripRouteMeta)(rawBody);
     const method = (req.method || 'POST').toUpperCase();
-    const body = (0, middleware_1.parseBody)(req);
     const userId = await (0, middleware_1.verifyAuth)(req);
     const databases = getDatabases();
     if (!(0, middleware_1.requireAuth)(res, userId))

@@ -6,6 +6,8 @@ import {
   jsonResponse,
   errorResponse,
   requireAuth,
+  resolveRoutePath,
+  stripRouteMeta,
 } from './lib/middleware';
 import { checkRateLimit } from './lib/rate-limit';
 import { validateFriendCode, normalizeFriendCode, validatePresence, validateCustomStatus } from './lib/validators';
@@ -46,9 +48,10 @@ export async function handleFriendsApiRequest(
   req: { path?: string; method?: string; payload?: string; headers?: Record<string, string> },
   res: { json: (body: unknown, status?: number) => unknown }
 ) {
-  const path = req.path || '';
+  const rawBody = parseBody(req);
+  const path = resolveRoutePath(req, rawBody);
+  const body = stripRouteMeta(rawBody);
   const method = (req.method || 'POST').toUpperCase();
-  const body = parseBody(req);
   const userId = await verifyAuth(req);
   const databases = getDatabases();
 

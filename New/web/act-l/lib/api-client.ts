@@ -57,14 +57,27 @@ export async function apiRequest<T = unknown>(
   }
 
   try {
+    const payload = { ...(body || {}), _route: path };
     const execution = await functions.createExecution({
       functionId: APPWRITE_CONFIG.functionId,
-      body: body ? JSON.stringify(body) : undefined,
+      body: JSON.stringify(payload),
       async: false,
       xpath: path,
       method: methodToEnum(method),
-      headers,
+      headers: {
+        ...headers,
+        'x-appwrite-path': path,
+      },
     });
+
+    if (execution.status === 'failed') {
+      console.error('[API] Function execution failed:', execution.errors);
+      return {
+        success: false,
+        code: 'FUNCTION_ERROR',
+        error: execution.errors || 'Function execution failed',
+      };
+    }
 
     if (execution.responseStatusCode && execution.responseStatusCode >= 400) {
       const parsed = parseResponseBody(execution.responseBody);

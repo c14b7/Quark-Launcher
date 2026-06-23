@@ -16,6 +16,27 @@ export function parseBody(req: { payload?: string; body?: string; bodyRaw?: stri
   }
 }
 
+/** Resolve route path from Appwrite execution (path is often empty without fallbacks). */
+export function resolveRoutePath(
+  req: { path?: string; url?: string; headers?: Record<string, string> },
+  body: Record<string, unknown>
+): string {
+  const headers = req.headers || {};
+  const fromBody = typeof body._route === 'string' ? body._route : '';
+  const headerPath =
+    headers['x-appwrite-path'] ||
+    headers['X-Appwrite-Path'] ||
+    headers['x-appwrite-user-path'] ||
+    '';
+  const raw = (req.path || req.url || headerPath || fromBody || '/').split('?')[0];
+  return raw.startsWith('/') ? raw : `/${raw}`;
+}
+
+export function stripRouteMeta(body: Record<string, unknown>): Record<string, unknown> {
+  const { _route, ...rest } = body;
+  return rest;
+}
+
 export function getHeaders(req: { headers?: Record<string, string> }): Record<string, string> {
   return req.headers || {};
 }

@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parseBody = parseBody;
+exports.resolveRoutePath = resolveRoutePath;
+exports.stripRouteMeta = stripRouteMeta;
 exports.getHeaders = getHeaders;
 exports.getClientIp = getClientIp;
 exports.extractAuth = extractAuth;
@@ -18,6 +20,21 @@ function parseBody(req) {
     catch {
         return {};
     }
+}
+/** Resolve route path from Appwrite execution (path is often empty without fallbacks). */
+function resolveRoutePath(req, body) {
+    const headers = req.headers || {};
+    const fromBody = typeof body._route === 'string' ? body._route : '';
+    const headerPath = headers['x-appwrite-path'] ||
+        headers['X-Appwrite-Path'] ||
+        headers['x-appwrite-user-path'] ||
+        '';
+    const raw = (req.path || req.url || headerPath || fromBody || '/').split('?')[0];
+    return raw.startsWith('/') ? raw : `/${raw}`;
+}
+function stripRouteMeta(body) {
+    const { _route, ...rest } = body;
+    return rest;
 }
 function getHeaders(req) {
     return req.headers || {};

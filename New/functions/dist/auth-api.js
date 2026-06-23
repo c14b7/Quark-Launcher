@@ -121,6 +121,25 @@ async function getProfileByUserId(databases, userId) {
         return null;
     }
 }
+async function createProfileForUser(databases, userId, email, name) {
+    const friendCode = await (0, friend_code_1.generateUniqueFriendCode)(databases);
+    return databases.createDocument(config_1.DATABASE_ID, config_1.COLLECTIONS.userProfiles, userId, {
+        userId,
+        email,
+        name,
+        displayName: name.slice(0, 32),
+        friendCode,
+        createdAt: new Date().toISOString(),
+        steamLinked: false,
+        steamId: null,
+        preferences: defaultPreferences(),
+        bio: '',
+        cardTheme: defaultCardTheme(),
+        presence: 'offline',
+        customStatus: '',
+        emailVerified: false,
+    });
+}
 async function getSteamIntegration(databases, userId) {
     const docs = await databases.listDocuments(config_1.DATABASE_ID, config_1.COLLECTIONS.steamIntegrations, [
         node_appwrite_1.Query.equal('userId', userId),
@@ -157,9 +176,10 @@ async function resolveVanityUrl(vanityUrl) {
     return null;
 }
 async function handleAuthApiRequest(req, res) {
-    const path = req.path || '';
+    const rawBody = (0, middleware_1.parseBody)(req);
+    const path = (0, middleware_1.resolveRoutePath)(req, rawBody);
+    const body = (0, middleware_1.stripRouteMeta)(rawBody);
     const method = (req.method || 'POST').toUpperCase();
-    const body = (0, middleware_1.parseBody)(req);
     const ip = (0, middleware_1.getClientIp)(req);
     const databases = getDatabases();
     try {
@@ -182,7 +202,6 @@ async function handleAuthApiRequest(req, res) {
                 return (0, middleware_1.errorResponse)(res, nameErr, 'Invalid name');
             const users = getUsers();
             const userId = node_appwrite_1.ID.unique();
-            const friendCode = await (0, friend_code_1.generateUniqueFriendCode)(databases);
             try {
                 await users.create(userId, email, undefined, password, name);
             }
@@ -192,27 +211,10 @@ async function handleAuthApiRequest(req, res) {
                     return (0, middleware_1.errorResponse)(res, 'EMAIL_TAKEN', 'Email already registered', 409);
                 throw err;
             }
-            await databases.createDocument(config_1.DATABASE_ID, config_1.COLLECTIONS.userProfiles, userId, {
-                userId,
-                email,
-                name,
-                displayName: name.slice(0, 32),
-                friendCode,
-                createdAt: new Date().toISOString(),
-                steamLinked: false,
-                steamId: null,
-                preferences: defaultPreferences(),
-                bio: '',
-                cardTheme: defaultCardTheme(),
-                presence: 'offline',
-                customStatus: '',
-                emailVerified: false,
-            });
-            const session = await createEmailSession(email, password);
+            await createProfileForUser(databases, userId, email, name);
             const profile = await getProfileByUserId(databases, userId);
             return (0, middleware_1.jsonResponse)(res, {
                 success: true,
-                session: { userId: session.userId, secret: session.secret },
                 profile: profile ? toPrivateProfile(profile) : null,
             });
         }
@@ -228,11 +230,13 @@ async function handleAuthApiRequest(req, res) {
             if (!password)
                 return (0, middleware_1.errorResponse)(res, 'INVALID_CREDENTIALS', 'Invalid credentials', 401);
             try {
-                const session = await createEmailSession(email, password);
-                const profile = await getProfileByUserId(databases, session.userId);
+                await createEmailSession(email, password);
+                const users = getUsers();
+                const listed = await users.list([node_appwrite_1.Query.equal('email', email), node_appwrite_1.Query.limit(1)]);
+                const userId = listed.users[0]?.$id;
+                const profile = userId ? await getProfileByUserId(databases, userId) : null;
                 return (0, middleware_1.jsonResponse)(res, {
                     success: true,
-                    session: { userId: session.userId, secret: session.secret },
                     profile: profile ? toPrivateProfile(profile) : null,
                 });
             }
@@ -241,6 +245,31 @@ async function handleAuthApiRequest(req, res) {
             }
         }
         const userId = await (0, middleware_1.verifyAuth)(req);
+        // POST /auth/profile/init — create Quark profile after client-side account.create
+        if (path === '/auth/profile/init' && method === 'POST') {
+            if (!(0, middleware_1.requireAuth)(res, userId))
+                return;
+            const existing = await getProfileByUserId(databases, userId);
+            if (existing) {
+                return (0, middleware_1.jsonResponse)(res, {
+                    success: true,
+                    profile: toPrivateProfile(existing),
+                });
+            }
+            const users = getUsers();
+            const user = await users.get(userId);
+            const name = String(body.name || user.name || 'User').trim();
+            const email = String(user.email || '').trim().toLowerCase();
+            const nameErr = (0, validators_1.validateName)(name);
+            if (nameErr)
+                return (0, middleware_1.errorResponse)(res, nameErr, 'Invalid name');
+            await createProfileForUser(databases, userId, email, name);
+            const profile = await getProfileByUserId(databases, userId);
+            return (0, middleware_1.jsonResponse)(res, {
+                success: true,
+                profile: profile ? toPrivateProfile(profile) : null,
+            });
+        }
         // GET /auth/me
         if (path === '/auth/me' && method === 'GET') {
             if (!(0, middleware_1.requireAuth)(res, userId))

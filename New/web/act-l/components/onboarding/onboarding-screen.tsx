@@ -38,6 +38,10 @@ export function OnboardingScreen() {
       setError('Hasło musi mieć minimum 8 znaków');
       return;
     }
+    if (!/[a-zA-Z]/.test(password) || !/\d/.test(password)) {
+      setError('Hasło musi zawierać literę i cyfrę');
+      return;
+    }
 
     if (authMode === 'register') {
       if (!name) {

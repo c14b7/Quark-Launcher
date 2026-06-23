@@ -1,4 +1,5 @@
-import { apiRequest, createSessionFromSecret, account } from './api-client';
+import { ID } from 'appwrite';
+import { apiRequest, account } from './api-client';
 
 export interface CardTheme {
   accentColor: string;
@@ -46,6 +47,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   INVALID_CREDENTIALS: 'Nieprawidłowy email lub hasło',
   UNAUTHORIZED: 'Wymagane logowanie',
   INVALID_STEAM_ID: 'Nieprawidłowy profil Steam',
+  USER_ALREADY_EXISTS: 'Ten email jest już zajęty',
 };
 
 function mapError(code?: string, fallback?: string): string {
@@ -53,41 +55,75 @@ function mapError(code?: string, fallback?: string): string {
   return fallback || 'Wystąpił błąd';
 }
 
+function validatePasswordClient(password: string): string | null {
+  if (!password || password.length < 8) return 'Hasło musi mieć min. 8 znaków';
+  if (!/[a-zA-Z]/.test(password) || !/\d/.test(password)) {
+    return 'Hasło musi zawierać literę i cyfrę';
+  }
+  return null;
+}
+
+async function createClientEmailSession(email: string, password: string) {
+  await account.createEmailPasswordSession(email.trim().toLowerCase(), password);
+}
+
+function mapAuthError(error: unknown): string {
+  const err = error as { code?: number; type?: string; message?: string };
+  if (err.code === 401) return mapError('INVALID_CREDENTIALS');
+  if (err.code === 409 || err.type === 'user_already_exists') return mapError('EMAIL_TAKEN');
+  return err.message || 'Authentication failed';
+}
+
 export const authService = {
   async register(email: string, password: string, name: string) {
-    const result = await apiRequest<{ session: { userId: string; secret: string }; profile: UserProfile }>(
-      '/auth/register',
-      'POST',
-      { email, password, name },
-      false
-    );
+    const passErr = validatePasswordClient(password);
+    if (passErr) return { success: false, error: passErr };
 
-    if (!result.success) {
-      return { success: false, error: mapError(result.code, result.error) };
+    const normalizedEmail = email.trim().toLowerCase();
+    const trimmedName = name.trim();
+
+    try {
+      await account.create({
+        userId: ID.unique(),
+        email: normalizedEmail,
+        password,
+        name: trimmedName,
+      });
+    } catch (error: unknown) {
+      return { success: false, error: mapAuthError(error) };
     }
 
-    const session = result.session as { userId: string; secret: string };
-    await createSessionFromSecret(session.userId, session.secret);
+    try {
+      await createClientEmailSession(normalizedEmail, password);
+    } catch (error: unknown) {
+      return {
+        success: false,
+        error: mapAuthError(error) + ' Konto mogło zostać utworzone — spróbuj się zalogować.',
+      };
+    }
 
-    return { success: true, profile: result.profile as UserProfile };
+    const init = await apiRequest<{ profile: UserProfile }>(
+      '/auth/profile/init',
+      'POST',
+      { name: trimmedName },
+      true
+    );
+
+    if (!init.success) {
+      console.warn('[AUTH] Profile init failed:', init.error, init.code);
+      return { success: true, profile: null as UserProfile | null };
+    }
+
+    return { success: true, profile: (init.profile as UserProfile) || null };
   },
 
   async login(email: string, password: string) {
-    const result = await apiRequest<{ session: { userId: string; secret: string }; profile: UserProfile }>(
-      '/auth/login',
-      'POST',
-      { email, password },
-      false
-    );
-
-    if (!result.success) {
-      return { success: false, error: mapError(result.code, result.error) };
+    try {
+      await createClientEmailSession(email, password);
+      return { success: true };
+    } catch (error: unknown) {
+      return { success: false, error: mapAuthError(error) };
     }
-
-    const session = result.session as { userId: string; secret: string };
-    await createSessionFromSecret(session.userId, session.secret);
-
-    return { success: true, profile: result.profile as UserProfile };
   },
 
   async logout() {
