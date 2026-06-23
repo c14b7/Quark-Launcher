@@ -4,108 +4,63 @@ import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 interface LoadingScreenProps {
+  /** Auto-dismiss after ms; omit or 0 to stay until unmounted by parent */
   onComplete?: () => void;
   minDuration?: number;
 }
 
-export function LoadingScreen({ onComplete, minDuration = 2000 }: LoadingScreenProps) {
+export function QuarkSplashBackground() {
+  return (
+    <div className="quark-aurora" aria-hidden>
+      <div className="quark-aurora-layer quark-aurora-layer-1" />
+      <div className="quark-aurora-layer quark-aurora-layer-2" />
+      <div className="quark-aurora-layer quark-aurora-layer-3" />
+      <div className="quark-aurora-layer quark-aurora-layer-4" />
+      <div className="quark-aurora-layer quark-aurora-layer-5" />
+      <div className="quark-aurora-vignette" />
+    </div>
+  );
+}
+
+export function QuarkSplashContent({ className }: { className?: string }) {
+  return (
+    <div className={cn('quark-splash-brand', className)}>
+      <h1 className="font-logo quark-splash-title">Quark</h1>
+      <div className="quark-splash-spinner" role="status" aria-label="Loading" />
+    </div>
+  );
+}
+
+export function LoadingScreen({ onComplete, minDuration }: LoadingScreenProps) {
   const [isExiting, setIsExiting] = useState(false);
-  const [isVisible, setIsVisible] = useState(true);
+  const canAutoDismiss = minDuration != null && minDuration > 0;
 
   useEffect(() => {
+    document.getElementById('quark-splash')?.remove();
+  }, []);
+
+  useEffect(() => {
+    if (!canAutoDismiss) return;
+
     const timer = setTimeout(() => {
       setIsExiting(true);
-      // Wait for exit animation to complete
       setTimeout(() => {
-        setIsVisible(false);
         onComplete?.();
       }, 500);
     }, minDuration);
 
     return () => clearTimeout(timer);
-  }, [minDuration, onComplete]);
-
-  if (!isVisible) return null;
+  }, [canAutoDismiss, minDuration, onComplete]);
 
   return (
     <div
       className={cn(
-        "fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden transition-opacity duration-500",
-        isExiting && "opacity-0"
+        'quark-splash-screen fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden transition-opacity duration-500',
+        isExiting && 'opacity-0 pointer-events-none'
       )}
     >
-      {/* Animated gradient background with blur */}
-      <div className="absolute inset-0 bg-zinc-950">
-        {/* Floating blobs */}
-        <div 
-          className="absolute w-[600px] h-[600px] rounded-full animate-float-blob"
-          style={{
-            background: 'radial-gradient(circle, rgba(139, 92, 246, 0.6) 0%, rgba(99, 102, 241, 0.3) 50%, transparent 70%)',
-            top: '10%',
-            left: '20%',
-            filter: 'blur(80px)',
-          }}
-        />
-        <div 
-          className="absolute w-[500px] h-[500px] rounded-full animate-float-blob-2"
-          style={{
-            background: 'radial-gradient(circle, rgba(79, 70, 229, 0.5) 0%, rgba(139, 92, 246, 0.25) 50%, transparent 70%)',
-            bottom: '10%',
-            right: '15%',
-            filter: 'blur(100px)',
-          }}
-        />
-        <div 
-          className="absolute w-[400px] h-[400px] rounded-full animate-float-blob-3"
-          style={{
-            background: 'radial-gradient(circle, rgba(124, 58, 237, 0.4) 0%, rgba(67, 56, 202, 0.2) 50%, transparent 70%)',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            filter: 'blur(120px)',
-          }}
-        />
-        {/* Additional smaller blobs for depth */}
-        <div 
-          className="absolute w-[300px] h-[300px] rounded-full animate-float-blob"
-          style={{
-            background: 'radial-gradient(circle, rgba(168, 85, 247, 0.4) 0%, transparent 60%)',
-            top: '60%',
-            left: '10%',
-            filter: 'blur(60px)',
-            animationDelay: '-5s',
-          }}
-        />
-        <div 
-          className="absolute w-[350px] h-[350px] rounded-full animate-float-blob-2"
-          style={{
-            background: 'radial-gradient(circle, rgba(99, 102, 241, 0.35) 0%, transparent 60%)',
-            top: '20%',
-            right: '10%',
-            filter: 'blur(70px)',
-            animationDelay: '-10s',
-          }}
-        />
-      </div>
-
-      {/* Logo text */}
-      <div className="relative z-10 flex flex-col items-center">
-        <h1 
-          className="font-logo text-8xl md:text-9xl text-white animate-pulse-glow tracking-wider"
-          style={{
-            fontFamily: "'Hedvig Letters Sans', sans-serif",
-          }}
-        >
-          Quark
-        </h1>
-        
-        {/* Subtle loading indicator */}
-        <div className="mt-8 flex gap-2">
-          <div className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-          <div className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-          <div className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-        </div>
-      </div>
+      <QuarkSplashBackground />
+      <QuarkSplashContent />
     </div>
   );
 }

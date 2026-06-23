@@ -15,6 +15,20 @@
     "friends": "Friends",
     "online": "{count} online"
   },
+  "account": {
+    "title": "Account",
+    "subtitle": "Your Quark profile and platform connections",
+    "guest": "User",
+    "profileSection": "Your profile",
+    "profileLoading": "Loading profile…",
+    "editProfile": "Edit profile",
+    "integrationsSection": "Steam",
+    "morePlatforms": "Other platforms",
+    "emailVerifyHint": "Verify your email to add Quark friends.",
+    "planFree": "Free plan",
+    "planPremium": "Premium",
+    "logout": "Log out"
+  },
   "home": {
     "noGames": "No games found",
     "steamHint": "Make sure Steam is installed",

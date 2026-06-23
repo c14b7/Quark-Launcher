@@ -72,7 +72,7 @@ function LauncherContent() {
   }, [isLoading, isAuthenticated, steamIntegration, profile, meLoaded, apiUnavailable]);
 
   if (isLoading) {
-    return <LoadingScreen minDuration={0} />;
+    return <LoadingScreen />;
   }
 
   if (!isAuthenticated) {
@@ -147,7 +147,9 @@ function LauncherContent() {
           {currentView === 'library' && <LibraryView onGameSelect={handleGameSelect} />}
           {currentView === 'downloads' && <DownloadsView />}
           {currentView === 'news' && <NewsView />}
-          {currentView === 'accounts' && <AccountsView />}
+          {currentView === 'accounts' && (
+            <AccountsView onOpenProfileEdit={() => setIsProfileEditOpen(true)} />
+          )}
           {currentView === 'store' && (
             <div className="flex-1 flex items-center justify-center text-zinc-500">
               <div className="text-center">

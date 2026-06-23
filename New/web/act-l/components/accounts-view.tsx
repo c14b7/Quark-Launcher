@@ -1,373 +1,145 @@
 'use client';
 
-import { useState } from 'react';
-import { 
-  User, 
-  Link as LinkIcon, 
-  Unlink, 
-  CheckCircle, 
-  ExternalLink,
-  Gamepad2,
-  Trophy,
+import {
+  Pencil,
   LogOut,
-  Settings,
-  Shield,
-  Mail
+  Mail,
+  Link2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/lib/auth-context';
-import { useSettings } from '@/lib/settings-context';
 import { SteamIntegrationPanel } from '@/components/steam-integration-panel';
-import { ProfileEditor } from '@/components/user/profile-editor';
 import { FriendCodeDisplay } from '@/components/user/friend-code-display';
 import { UserCard } from '@/components/user/user-card';
-import { cn } from '@/lib/utils';
+import { getAvatarUrl } from '@/lib/avatar-service';
+import { getAppVersion } from '@/lib/build-env';
+import { isPremiumUser } from '@/lib/subscription';
+import { useTranslations } from 'next-intl';
 
-interface AccountConnection {
-  id: string;
-  name: string;
-  icon: string;
-  color: string;
-  connected: boolean;
-  username?: string;
-  gamesCount?: number;
-  achievementsCount?: number;
+interface AccountsViewProps {
+  onOpenProfileEdit?: () => void;
 }
 
-const availableAccounts: AccountConnection[] = [
-  {
-    id: 'xbox',
-    name: 'Xbox / Microsoft',
-    icon: '🎯',
-    color: 'from-green-600 to-green-800',
-    connected: false
-  },
-  {
-    id: 'epic',
-    name: 'Epic Games',
-    icon: '🏪',
-    color: 'from-zinc-600 to-zinc-800',
-    connected: false
-  },
-  {
-    id: 'gog',
-    name: 'GOG Galaxy',
-    icon: '🌌',
-    color: 'from-purple-600 to-purple-800',
-    connected: false
-  },
-  {
-    id: 'ubisoft',
-    name: 'Ubisoft Connect',
-    icon: '🔷',
-    color: 'from-blue-400 to-blue-600',
-    connected: false
-  },
-  {
-    id: 'ea',
-    name: 'EA App',
-    icon: '⚡',
-    color: 'from-orange-500 to-red-600',
-    connected: false
-  }
+const COMING_SOON_PLATFORMS = [
+  { id: 'epic', name: 'Epic Games' },
+  { id: 'xbox', name: 'Xbox' },
+  { id: 'gog', name: 'GOG Galaxy' },
 ];
 
-export function AccountsView() {
-  const { user, profile, logout, isLoading, regenerateFriendCode } = useAuth();
-  const { steamUser, isLoggedIn, settings } = useSettings();
-  
-  const [accounts, setAccounts] = useState<AccountConnection[]>(() => 
-    availableAccounts.map(acc => ({
-      ...acc,
-      connected: false
-    }))
-  );
-  const [activeTab, setActiveTab] = useState<'profile' | 'integrations'>('integrations');
+export function AccountsView({ onOpenProfileEdit }: AccountsViewProps) {
+  const t = useTranslations('account');
+  const tc = useTranslations('common');
+  const { user, profile, subscription, logout, isLoading, regenerateFriendCode } = useAuth();
 
-  const handleConnect = (id: string) => {
-    // In production, this would redirect to OAuth
-    setAccounts(prev => prev.map(acc => {
-      if (acc.id === id) {
-        return {
-          ...acc,
-          connected: true,
-          username: `${acc.name}User`,
-          gamesCount: Math.floor(Math.random() * 50) + 10,
-          achievementsCount: Math.floor(Math.random() * 200) + 50
-        };
-      }
-      return acc;
-    }));
-  };
-
-  const handleDisconnect = (id: string) => {
-    setAccounts(prev => prev.map(acc => {
-      if (acc.id === id) {
-        return {
-          ...acc,
-          connected: false,
-          username: undefined,
-          gamesCount: undefined,
-          achievementsCount: undefined
-        };
-      }
-      return acc;
-    }));
-  };
-
-  const handleLogout = async () => {
-    await logout();
-  };
-
-  const connectedAccounts = accounts.filter(a => a.connected);
-  const availableToConnect = accounts.filter(a => !a.connected);
+  const email = profile?.email || user?.email || '';
+  const premium = isPremiumUser(subscription);
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="p-6 border-b border-white/5">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
-                <User className="h-5 w-5 text-white" />
-              </div>
-              Konto i integracje
-            </h1>
-            <p className="text-sm text-zinc-500 mt-1">
-              Zarządzaj swoim kontem i połączeniami z platformami
-            </p>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-2 mt-6">
-          <Button
-            variant={activeTab === 'profile' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setActiveTab('profile')}
-            className={cn(
-              "rounded-lg",
-              activeTab === 'profile' && "bg-gradient-to-r from-purple-600 to-blue-600"
-            )}
-          >
-            <User className="w-4 h-4 mr-2" />
-            Profil
-          </Button>
-          <Button
-            variant={activeTab === 'integrations' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setActiveTab('integrations')}
-            className={cn(
-              "rounded-lg",
-              activeTab === 'integrations' && "bg-gradient-to-r from-purple-600 to-blue-600"
-            )}
-          >
-            <LinkIcon className="w-4 h-4 mr-2" />
-            Integracje
-          </Button>
-        </div>
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <div className="shrink-0 px-6 py-5 border-b border-border/60">
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">{t('title')}</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">{t('subtitle')}</p>
       </div>
 
-      <ScrollArea className="flex-1">
-        <div className="p-6">
-          {/* Profile Tab */}
-          {activeTab === 'profile' && (
-            <div className="space-y-6 max-w-4xl">
-              {profile && !profile.emailVerified && (
-                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-sm">
-                  Zweryfikuj adres email, aby móc dodawać znajomych Quark.
-                </div>
-              )}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="content-shell max-w-3xl mx-auto px-6 py-6 space-y-6 pb-12">
+          {profile && !profile.emailVerified && (
+            <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+              <Mail className="h-4 w-4 shrink-0 mt-0.5" />
+              <p>{t('emailVerifyHint')}</p>
+            </div>
+          )}
 
-              {profile && (
+          {/* Profile */}
+          <section className="rounded-xl border border-border bg-card/50 overflow-hidden">
+            <div className="px-4 py-3 border-b border-border/60 flex items-center justify-between gap-2">
+              <h2 className="text-sm font-medium text-foreground">{t('profileSection')}</h2>
+              <Badge variant="secondary" className="text-[10px] font-normal capitalize">
+                {premium ? t('planPremium') : t('planFree')}
+              </Badge>
+            </div>
+
+            <div className="p-4 space-y-4">
+              {profile ? (
                 <>
-                  <UserCard profile={profile} />
+                  <UserCard profile={profile} compact avatarUrl={getAvatarUrl(profile.avatarFileId)} />
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <Mail className="h-3.5 w-3.5" />
+                    <span className="truncate">{email}</span>
+                  </div>
                   {profile.friendCode && (
                     <FriendCodeDisplay
                       code={profile.friendCode}
+                      glowEnabled={false}
                       onRegenerate={async () => { await regenerateFriendCode(); }}
                     />
                   )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full sm:w-auto gap-2"
+                    onClick={() => onOpenProfileEdit?.()}
+                  >
+                    <Pencil className="h-4 w-4" />
+                    {t('editProfile')}
+                  </Button>
                 </>
-              )}
-
-              <div className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-700/30">
-                <h3 className="text-lg font-semibold text-white mb-4">Edytuj kartę profilu</h3>
-                <ProfileEditor />
-              </div>
-
-              <div className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-700/30">
-                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-purple-400" />
-                  Bezpieczeństwo
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-zinc-800/30">
-                    <div>
-                      <p className="text-sm font-medium text-white">Zmień hasło</p>
-                      <p className="text-xs text-zinc-500">Zaktualizuj hasło do konta</p>
-                    </div>
-                    <Button variant="ghost" size="sm" className="text-purple-400 hover:text-purple-300">
-                      Zmień
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-zinc-800/30">
-                    <div>
-                      <p className="text-sm font-medium text-white">Weryfikacja dwuetapowa</p>
-                      <p className="text-xs text-zinc-500">Dodatkowe zabezpieczenie konta</p>
-                    </div>
-                    <Badge variant="secondary" className="bg-zinc-700 text-zinc-400">
-                      Wkrótce
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-
-              {/* Logout */}
-              <Button
-                variant="ghost"
-                onClick={handleLogout}
-                disabled={isLoading}
-                className="w-full h-12 text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/20"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Wyloguj się
-              </Button>
-            </div>
-          )}
-
-          {/* Integrations Tab */}
-          {activeTab === 'integrations' && (
-            <div className="space-y-8">
-              {/* Steam Integration */}
-              <section className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-700/30">
-                <SteamIntegrationPanel />
-              </section>
-
-              {/* Other Platforms */}
-              <section>
-                <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <LinkIcon className="h-4 w-4" />
-                  Inne platformy
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {availableToConnect.map(account => (
-                    <AccountCard
-                      key={account.id}
-                      account={account}
-                      onConnect={() => handleConnect(account.id)}
-                    />
-                  ))}
-                </div>
-              </section>
-
-              {/* Connected Other Accounts */}
-              {connectedAccounts.length > 0 && (
-                <section>
-                  <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-400" />
-                    Połączone
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {connectedAccounts.map(account => (
-                      <AccountCard
-                        key={account.id}
-                        account={account}
-                        onDisconnect={() => handleDisconnect(account.id)}
-                      />
-                    ))}
-                  </div>
-                </section>
+              ) : (
+                <p className="text-sm text-muted-foreground">{t('profileLoading')}</p>
               )}
             </div>
-          )}
-        </div>
-      </ScrollArea>
-    </div>
-  );
-}
+          </section>
 
-interface AccountCardProps {
-  account: AccountConnection;
-  onConnect?: () => void;
-  onDisconnect?: () => void;
-}
-
-function AccountCard({ account, onConnect, onDisconnect }: AccountCardProps) {
-  return (
-    <div className={cn(
-      "p-4 rounded-xl border transition-all",
-      account.connected 
-        ? 'bg-zinc-900/50 border-green-500/30' 
-        : 'bg-zinc-900/30 border-white/5 hover:border-white/10'
-    )}>
-      <div className="flex items-center gap-3 mb-4">
-        <div className={cn("w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center text-2xl", account.color)}>
-          {account.icon}
-        </div>
-        <div className="flex-1">
-          <h3 className="font-semibold text-white">{account.name}</h3>
-          {account.connected && account.username && (
-            <p className="text-sm text-zinc-400">{account.username}</p>
-          )}
-        </div>
-        {account.connected && (
-          <CheckCircle className="h-5 w-5 text-green-400" />
-        )}
-      </div>
-
-      {account.connected && (
-        <div className="flex items-center gap-4 mb-4 text-sm text-zinc-400">
-          {account.gamesCount !== undefined && (
-            <div className="flex items-center gap-1">
-              <Gamepad2 className="h-4 w-4" />
-              <span>{account.gamesCount} gier</span>
+          {/* Steam */}
+          <section className="rounded-xl border border-border bg-card/50 overflow-hidden">
+            <div className="px-4 py-3 border-b border-border/60 flex items-center gap-2">
+              <Link2 className="h-4 w-4 text-muted-foreground" />
+              <h2 className="text-sm font-medium text-foreground">{t('integrationsSection')}</h2>
             </div>
-          )}
-          {account.achievementsCount !== undefined && (
-            <div className="flex items-center gap-1">
-              <Trophy className="h-4 w-4 text-yellow-500" />
-              <span>{account.achievementsCount} osiągnięć</span>
+            <div className="p-4">
+              <SteamIntegrationPanel compact />
             </div>
-          )}
-        </div>
-      )}
+          </section>
 
-      {account.connected ? (
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1 border-white/10 text-zinc-400 hover:text-white rounded-lg"
-          >
-            <ExternalLink className="h-4 w-4 mr-2" />
-            Profil
-          </Button>
+          {/* Coming soon */}
+          <section className="rounded-xl border border-border/60 bg-muted/20 overflow-hidden">
+            <div className="px-4 py-3 border-b border-border/40">
+              <h2 className="text-sm font-medium text-muted-foreground">{t('morePlatforms')}</h2>
+            </div>
+            <ul className="divide-y divide-border/40">
+              {COMING_SOON_PLATFORMS.map((platform) => (
+                <li
+                  key={platform.id}
+                  className="flex items-center justify-between px-4 py-3 text-sm text-muted-foreground"
+                >
+                  <span>{platform.name}</span>
+                  <Badge variant="outline" className="text-[10px] font-normal">
+                    {tc('soon')}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <Separator />
+
           <Button
             variant="ghost"
-            size="sm"
-            className="text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg"
-            onClick={onDisconnect}
+            onClick={() => logout()}
+            disabled={isLoading}
+            className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
           >
-            <Unlink className="h-4 w-4 mr-2" />
-            Odłącz
+            <LogOut className="h-4 w-4 mr-2" />
+            {t('logout')}
           </Button>
+
+          <p className="text-center text-[11px] text-muted-foreground/70">
+            Quark Launcher v{getAppVersion()}
+          </p>
         </div>
-      ) : (
-        <Button
-          size="sm"
-          className={cn("w-full bg-gradient-to-r rounded-lg", account.color)}
-          onClick={onConnect}
-        >
-          <LinkIcon className="h-4 w-4 mr-2" />
-          Połącz
-        </Button>
-      )}
+      </div>
     </div>
   );
 }

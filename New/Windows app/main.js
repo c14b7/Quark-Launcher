@@ -90,7 +90,7 @@ class QuarkLauncher {
         webSecurity: true
       },
       show: false,
-      backgroundColor: '#0a0a0a',
+      backgroundColor: '#030306',
       transparent: false,
       roundedCorners: true
     });
@@ -103,6 +103,7 @@ class QuarkLauncher {
     this.mainWindow.loadURL(startUrl);
 
     this.mainWindow.once('ready-to-show', () => {
+      this.mainWindow.maximize();
       this.mainWindow.show();
       if (isDev) {
         this.mainWindow.webContents.openDevTools();

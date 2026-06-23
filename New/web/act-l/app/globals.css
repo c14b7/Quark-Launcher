@@ -39,20 +39,150 @@
   font-display: swap;
 }
 
-@font-face {
-  font-family: 'Array';
-  src: url('./fonts/Array-Regular.otf') format('opentype');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* Logo font class - WYCZYSZCZONE (w klasach nie podaje się właściwości 'src') */
-.font-logo, #font-logo {
+/* Logo / splash — Array from Fontshare (linked in layout.tsx) */
+.font-logo {
   font-family: 'Array', sans-serif;
+  font-weight: 400;
 }
 
-/* Loading screen animations */
+/* ── Quark splash & aurora background ── */
+.quark-splash-screen {
+  background: #030306;
+}
+
+.quark-aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: radial-gradient(ellipse 120% 80% at 50% 100%, #0a0520 0%, #030306 55%, #000 100%);
+}
+
+.quark-aurora-layer {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  will-change: transform, opacity;
+  mix-blend-mode: screen;
+}
+
+.quark-aurora-layer-1 {
+  width: 70vmax;
+  height: 55vmax;
+  left: -15%;
+  top: 10%;
+  background: radial-gradient(circle, rgba(255, 120, 40, 0.45) 0%, rgba(180, 60, 120, 0.2) 45%, transparent 70%);
+  animation: aurora-drift-1 22s ease-in-out infinite;
+}
+
+.quark-aurora-layer-2 {
+  width: 65vmax;
+  height: 60vmax;
+  left: 25%;
+  top: -10%;
+  background: radial-gradient(circle, rgba(160, 60, 220, 0.55) 0%, rgba(100, 40, 180, 0.25) 50%, transparent 72%);
+  animation: aurora-drift-2 26s ease-in-out infinite;
+}
+
+.quark-aurora-layer-3 {
+  width: 75vmax;
+  height: 50vmax;
+  right: -20%;
+  top: 20%;
+  background: radial-gradient(circle, rgba(60, 100, 255, 0.5) 0%, rgba(40, 60, 200, 0.2) 48%, transparent 70%);
+  animation: aurora-drift-3 20s ease-in-out infinite;
+}
+
+.quark-aurora-layer-4 {
+  width: 55vmax;
+  height: 45vmax;
+  left: 10%;
+  bottom: -5%;
+  background: radial-gradient(circle, rgba(220, 50, 180, 0.4) 0%, rgba(120, 30, 140, 0.15) 55%, transparent 75%);
+  animation: aurora-drift-4 24s ease-in-out infinite;
+}
+
+.quark-aurora-layer-5 {
+  width: 50vmax;
+  height: 40vmax;
+  right: 5%;
+  bottom: 5%;
+  background: radial-gradient(circle, rgba(80, 180, 255, 0.35) 0%, transparent 65%);
+  animation: aurora-drift-5 18s ease-in-out infinite;
+}
+
+.quark-aurora-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 90% 70% at 50% 45%, transparent 30%, rgba(0, 0, 0, 0.55) 100%);
+  pointer-events: none;
+}
+
+@keyframes aurora-drift-1 {
+  0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 0.85; }
+  33% { transform: translate(8%, 12%) scale(1.08) rotate(3deg); opacity: 1; }
+  66% { transform: translate(-5%, 6%) scale(0.95) rotate(-2deg); opacity: 0.75; }
+}
+
+@keyframes aurora-drift-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.9; }
+  40% { transform: translate(-10%, 8%) scale(1.12); opacity: 1; }
+  70% { transform: translate(6%, -6%) scale(0.92); opacity: 0.8; }
+}
+
+@keyframes aurora-drift-3 {
+  0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 0.8; }
+  50% { transform: translate(-12%, 10%) scale(1.1) rotate(-4deg); opacity: 1; }
+}
+
+@keyframes aurora-drift-4 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.7; }
+  45% { transform: translate(10%, -8%) scale(1.15); opacity: 0.95; }
+}
+
+@keyframes aurora-drift-5 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.65; }
+  55% { transform: translate(-8%, -10%) scale(1.05); opacity: 0.9; }
+}
+
+.quark-splash-brand {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.75rem;
+}
+
+.quark-splash-title {
+  font-size: clamp(3.5rem, 14vw, 6.5rem);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: #d4ff00;
+  text-transform: none;
+  margin: 0;
+  user-select: none;
+  animation: quark-title-glow 3s ease-in-out infinite;
+}
+
+@keyframes quark-title-glow {
+  0%, 100% { opacity: 0.92; filter: drop-shadow(0 0 24px rgba(212, 255, 0, 0.25)); }
+  50% { opacity: 1; filter: drop-shadow(0 0 40px rgba(212, 255, 0, 0.45)); }
+}
+
+.quark-splash-spinner {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 2px solid rgba(212, 255, 0, 0.15);
+  border-top-color: #d4ff00;
+  animation: quark-spin 0.85s linear infinite;
+}
+
+@keyframes quark-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Legacy loading blobs — kept for other uses */
 @keyframes float-blob {
   0%, 100% { transform: translate(0, 0) scale(1); }
   25% { transform: translate(30%, -20%) scale(1.1); }

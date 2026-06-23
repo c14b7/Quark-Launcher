@@ -15,6 +15,20 @@
     "friends": "Znajomi",
     "online": "{count} online"
   },
+  "account": {
+    "title": "Konto",
+    "subtitle": "Profil Quark i połączenia z platformami",
+    "guest": "Użytkownik",
+    "profileSection": "Twój profil",
+    "profileLoading": "Ładowanie profilu…",
+    "editProfile": "Edytuj profil",
+    "integrationsSection": "Steam",
+    "morePlatforms": "Inne platformy",
+    "emailVerifyHint": "Zweryfikuj email, aby dodawać znajomych Quark.",
+    "planFree": "Plan Free",
+    "planPremium": "Premium",
+    "logout": "Wyloguj się"
+  },
   "home": {
     "noGames": "Nie znaleziono gier",
     "steamHint": "Upewnij się, że Steam jest zainstalowany",

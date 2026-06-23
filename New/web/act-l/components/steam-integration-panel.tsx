@@ -32,7 +32,11 @@ import { useTranslations } from 'next-intl';
 
 type ConnectionStep = 'idle' | 'connected';
 
-export function SteamIntegrationPanel() {
+interface SteamIntegrationPanelProps {
+  compact?: boolean;
+}
+
+export function SteamIntegrationPanel({ compact = false }: SteamIntegrationPanelProps) {
   const t = useTranslations('steam');
   const { updateSettings, steamUser, setSteamUser, setSteamFriends: setGlobalSteamFriends } = useSettings();
   const { steamIntegration: linkedSteam, linkSteam, unlinkSteam } = useAuth();
@@ -191,20 +195,23 @@ export function SteamIntegrationPanel() {
   const playingFriends = friends.filter((f) => f.currentGame);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/30">
+    <div className={cn('space-y-4', !compact && 'space-y-6')}>
+      <div className="flex items-center gap-3">
+        <div className={cn(
+          'bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl flex items-center justify-center shrink-0',
+          compact ? 'w-10 h-10' : 'w-12 h-12 shadow-lg shadow-blue-900/30'
+        )}>
           <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
             <path d="M11.64 5.93c2.97.03 5.36 2.44 5.36 5.42 0 2.99-2.43 5.42-5.42 5.42-.52 0-1.02-.07-1.5-.21l-3.1 1.26a.5.5 0 0 1-.67-.64l1.09-2.89a5.39 5.39 0 0 1-1.22-3.44c0-2.98 2.42-5.4 5.38-5.42h.08zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
           </svg>
         </div>
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-white">{t('title')}</h3>
-          <p className="text-sm text-zinc-400">
+        <div className="flex-1 min-w-0">
+          <h3 className={cn('font-semibold text-white', compact ? 'text-sm' : 'text-lg')}>{t('title')}</h3>
+          <p className="text-xs text-zinc-400 truncate">
             {connectionStep === 'connected' ? t('connectedDesc') : t('idleDesc')}
           </p>
         </div>
-        {connectionStep === 'connected' && linkedSteam && (
+        {connectionStep === 'connected' && linkedSteam && !compact && (
           <Button
             variant="ghost"
             size="sm"
@@ -310,26 +317,28 @@ export function SteamIntegrationPanel() {
             </div>
 
             {stats && (
-              <div className="grid grid-cols-3 gap-3">
-                <div className="p-4 rounded-xl bg-zinc-800/30 border border-white/8 text-center">
-                  <Gamepad2 className="w-5 h-5 mx-auto mb-2 text-purple-400" />
-                  <p className="text-2xl font-bold text-white">{stats.gamesOwned}</p>
-                  <p className="text-xs text-zinc-500">{t('games')}</p>
+              <div className={cn('grid gap-2', compact ? 'grid-cols-2' : 'grid-cols-3 gap-3')}>
+                <div className="p-3 rounded-xl bg-zinc-800/30 border border-white/8 text-center">
+                  <Gamepad2 className="w-4 h-4 mx-auto mb-1 text-purple-400" />
+                  <p className={cn('font-bold text-white', compact ? 'text-lg' : 'text-2xl')}>{stats.gamesOwned}</p>
+                  <p className="text-[10px] text-zinc-500">{t('games')}</p>
                 </div>
-                <div className="p-4 rounded-xl bg-zinc-800/30 border border-white/8 text-center">
-                  <Clock className="w-5 h-5 mx-auto mb-2 text-blue-400" />
-                  <p className="text-2xl font-bold text-white">{formatPlaytime(stats.totalPlaytime)}</p>
-                  <p className="text-xs text-zinc-500">{t('playtime')}</p>
+                <div className="p-3 rounded-xl bg-zinc-800/30 border border-white/8 text-center">
+                  <Clock className="w-4 h-4 mx-auto mb-1 text-blue-400" />
+                  <p className={cn('font-bold text-white', compact ? 'text-lg' : 'text-2xl')}>{formatPlaytime(stats.totalPlaytime)}</p>
+                  <p className="text-[10px] text-zinc-500">{t('playtime')}</p>
                 </div>
+                {!compact && (
                 <div className="p-4 rounded-xl bg-zinc-800/30 border border-white/8 text-center">
                   <Users className="w-5 h-5 mx-auto mb-2 text-green-400" />
                   <p className="text-2xl font-bold text-white">{onlineFriends.length}</p>
                   <p className="text-xs text-zinc-500">{t('online')}</p>
                 </div>
+                )}
               </div>
             )}
 
-            {playingFriends.length > 0 && (
+            {!compact && playingFriends.length > 0 && (
               <div className="space-y-3">
                 <h4 className="text-sm font-medium text-zinc-400 flex items-center gap-2">
                   <Gamepad2 className="w-4 h-4" />
@@ -354,7 +363,7 @@ export function SteamIntegrationPanel() {
               </div>
             )}
 
-            {isFetchingData && friends.length === 0 && (
+            {isFetchingData && friends.length === 0 && !compact && (
               <div className="flex items-center justify-center py-8 text-zinc-500">
                 <Loader2 className="w-5 h-5 animate-spin mr-2" />
                 {t('loading')}
