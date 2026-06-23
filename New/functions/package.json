@@ -6,7 +6,8 @@
   "scripts": {
     "setup-db": "npx ts-node setup-database.ts",
     "migrate-profiles": "npx ts-node migrate-user-profiles-v2.ts",
-    "build": "node ./node_modules/typescript/bin/tsc",
+    "build": "npm install && node ./node_modules/typescript/bin/tsc",
+    "build:compile": "node ./node_modules/typescript/bin/tsc",
     "start": "node dist/index.js"
   },
   "dependencies": {
