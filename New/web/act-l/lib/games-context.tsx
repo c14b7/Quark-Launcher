@@ -10,6 +10,7 @@ import {
   getRecentlyPlayedIds,
   type PlayHistory,
 } from '@/lib/play-history';
+import { track, logTelemetry } from '@/lib/telemetry/client';
 
 interface GamesContextType {
   games: Game[];
@@ -219,16 +220,25 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
         if (result.success) {
           markLaunched();
+          track('game.launch', { gameId: game.id, platform: game.platform, success: true }, 'game');
         } else {
           setError(result.error || 'Nie udało się uruchomić gry');
+          track(
+            'game.launch_failed',
+            { gameId: game.id, platform: game.platform, errorCode: result.error || 'unknown' },
+            'game'
+          );
         }
       } else {
         window.open(`steam://rungameid/${game.id}`, '_blank');
         markLaunched();
+        track('game.launch', { gameId: game.id, platform: game.platform, success: true }, 'game');
       }
     } catch (err) {
       setError('Nie udało się uruchomić gry');
       console.error('Failed to launch game:', err);
+      track('game.launch_failed', { gameId: game.id, platform: game.platform, errorCode: 'exception' }, 'game');
+      logTelemetry('error', 'Game launch failed', { gameId: game.id }, err instanceof Error ? err.stack : undefined);
     }
   }, []);
 

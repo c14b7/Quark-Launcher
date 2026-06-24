@@ -139,7 +139,128 @@ const COLLECTIONS: CollectionConfig[] = [
       { key: 'lastUpdated', type: 'datetime', required: true },
     ],
   },
+  {
+    id: 'telemetry_installations',
+    name: 'Telemetry Installations',
+    attributes: [
+      // installationId = document $id (nie duplikujemy w atrybutach)
+      { key: 'firstSeenAt', type: 'datetime', required: true },
+      { key: 'lastSeenAt', type: 'datetime', required: true },
+      { key: 'appVersion', type: 'string', size: 32, required: false },
+      { key: 'platform', type: 'enum', elements: ['win32', 'darwin', 'linux', 'web'], required: false },
+      { key: 'arch', type: 'string', size: 16, required: false },
+      { key: 'locale', type: 'string', size: 10, required: false },
+      { key: 'electronVersion', type: 'string', size: 32, required: false },
+      { key: 'screenResolution', type: 'string', size: 16, required: false },
+      { key: 'userId', type: 'string', size: 36, required: false },
+      { key: 'analyticsEnabled', type: 'boolean', required: false, default: true },
+      { key: 'diagnosticsEnabled', type: 'boolean', required: false, default: true },
+      { key: 'optedOut', type: 'boolean', required: false, default: false },
+    ],
+  },
+  {
+    id: 'telemetry_sessions',
+    name: 'Telemetry Sessions',
+    attributes: [
+      // sessionId = document $id
+      { key: 'installationId', type: 'string', size: 36, required: true },
+      { key: 'userId', type: 'string', size: 36, required: false },
+      { key: 'startedAt', type: 'datetime', required: true },
+      { key: 'endedAt', type: 'datetime', required: false },
+      { key: 'lastActivityAt', type: 'datetime', required: false },
+      { key: 'durationSec', type: 'integer', required: false },
+      { key: 'appVersion', type: 'string', size: 32, required: false },
+      { key: 'entryPoint', type: 'enum', elements: ['cold_start', 'resume', 'login'], required: false },
+      { key: 'endReason', type: 'enum', elements: ['quit', 'crash', 'logout', 'unknown'], required: false },
+    ],
+  },
+  {
+    id: 'telemetry_events',
+    name: 'Telemetry Events',
+    attributes: [
+      // eventId = document $id — limit Appwrite: mało dużych stringów na kolekcję
+      { key: 'installationId', type: 'string', size: 36, required: true },
+      { key: 'sessionId', type: 'string', size: 36, required: true },
+      { key: 'userId', type: 'string', size: 36, required: false },
+      { key: 'name', type: 'string', size: 64, required: true },
+      { key: 'category', type: 'enum', elements: ['session', 'navigation', 'game', 'social', 'auth', 'settings', 'update', 'error', 'feature'], required: true },
+      { key: 'timestamp', type: 'datetime', required: true },
+      { key: 'properties', type: 'string', size: 2000, required: false },
+    ],
+  },
+  {
+    id: 'telemetry_logs',
+    name: 'Telemetry Logs',
+    attributes: [
+      // logId = document $id — context+stack scalone w details (JSON)
+      { key: 'installationId', type: 'string', size: 36, required: true },
+      { key: 'sessionId', type: 'string', size: 36, required: true },
+      { key: 'userId', type: 'string', size: 36, required: false },
+      { key: 'level', type: 'enum', elements: ['debug', 'info', 'warn', 'error', 'fatal'], required: true },
+      { key: 'message', type: 'string', size: 500, required: true },
+      { key: 'details', type: 'string', size: 3000, required: false },
+      { key: 'timestamp', type: 'datetime', required: true },
+    ],
+  },
 ];
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForAttributes(
+  databases: Databases,
+  collectionId: string,
+  keys: string[],
+  maxWaitMs = 120_000
+): Promise<boolean> {
+  const deadline = Date.now() + maxWaitMs;
+  while (Date.now() < deadline) {
+    const col = await databases.getCollection(DATABASE_ID, collectionId);
+    const attrs = (col.attributes || []) as unknown as Array<{ key: string; status: string }>;
+    const ready = keys.every((k) => attrs.find((a) => a.key === k)?.status === 'available');
+    if (ready) return true;
+    await sleep(2500);
+  }
+  return false;
+}
+
+async function createIndexWithRetry(
+  databases: Databases,
+  collection: string,
+  key: string,
+  attributes: string[],
+  unique = false,
+  retries = 8
+) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      await databases.createIndex(
+        DATABASE_ID,
+        collection,
+        key,
+        unique ? IndexType.Unique : IndexType.Key,
+        attributes
+      );
+      console.log(`   ✅ ${key}`);
+      return;
+    } catch (error: unknown) {
+      const e = error as { code?: number; type?: string };
+      if (e.code === 409) {
+        console.log(`   ℹ️  ${key}`);
+        return;
+      }
+      if (e.type === 'attribute_not_available' && attempt < retries) {
+        console.log(`   ⏳ ${key} — czekam na atrybuty (${attempt}/${retries})...`);
+        await waitForAttributes(databases, collection, attributes, 30_000);
+        await sleep(2000);
+        continue;
+      }
+      console.error(`   ❌ ${key}`, error);
+      return;
+    }
+  }
+}
 
 async function createAttribute(
   databases: Databases,
@@ -230,6 +351,12 @@ async function setupDatabase() {
       }
     }
     console.log('');
+    // Appwrite indeksuje atrybuty asynchronicznie — krótka pauza przed indeksami telemetry
+    if (collection.id.startsWith('telemetry_')) {
+      const keys = collection.attributes.map((a) => a.key);
+      console.log(`   ⏳ Oczekiwanie na atrybuty ${collection.id}...`);
+      await waitForAttributes(databases, collection.id, keys, 90_000);
+    }
   }
 
   const indexes = [
@@ -239,27 +366,35 @@ async function setupDatabase() {
     { collection: 'steam_integrations', key: 'steamId_idx', attributes: ['steamId'] },
     { collection: 'friend_requests', key: 'fromUserId_idx', attributes: ['fromUserId'] },
     { collection: 'friend_requests', key: 'toUserId_status_idx', attributes: ['toUserId', 'status'] },
-    { collection: 'friendships', key: 'userIds_idx', attributes: ['userIds'] },
+    // friendships.userIds — tablica; Appwrite nie wspiera indeksów na array (Query.contains działa bez indeksu)
     { collection: 'rate_limits', key: 'key_idx', attributes: ['key'] },
     { collection: 'steam_friends_cache', key: 'userId_idx', attributes: ['userId'] },
     { collection: 'steam_achievements_cache', key: 'userId_gameId_idx', attributes: ['userId', 'gameId'] },
     { collection: 'steam_stats_cache', key: 'userId_idx', attributes: ['userId'] },
+    { collection: 'telemetry_installations', key: 'userId_idx', attributes: ['userId'] },
+    { collection: 'telemetry_installations', key: 'lastSeenAt_idx', attributes: ['lastSeenAt'] },
+    { collection: 'telemetry_sessions', key: 'installationId_idx', attributes: ['installationId'] },
+    { collection: 'telemetry_sessions', key: 'userId_idx', attributes: ['userId'] },
+    { collection: 'telemetry_sessions', key: 'startedAt_idx', attributes: ['startedAt'] },
+    { collection: 'telemetry_events', key: 'name_idx', attributes: ['name'] },
+    { collection: 'telemetry_events', key: 'userId_idx', attributes: ['userId'] },
+    { collection: 'telemetry_events', key: 'installationId_idx', attributes: ['installationId'] },
+    { collection: 'telemetry_events', key: 'timestamp_idx', attributes: ['timestamp'] },
+    { collection: 'telemetry_events', key: 'category_idx', attributes: ['category'] },
+    { collection: 'telemetry_logs', key: 'level_idx', attributes: ['level'] },
+    { collection: 'telemetry_logs', key: 'timestamp_idx', attributes: ['timestamp'] },
+    { collection: 'telemetry_logs', key: 'installationId_idx', attributes: ['installationId'] },
   ];
 
   console.log('🔍 Indexes...');
   for (const index of indexes) {
-    try {
-      await databases.createIndex(
-        DATABASE_ID, index.collection, index.key,
-        (index as { unique?: boolean }).unique ? IndexType.Unique : IndexType.Key,
-        index.attributes
-      );
-      console.log(`   ✅ ${index.key}`);
-    } catch (error: unknown) {
-      const e = error as { code?: number };
-      if (e.code === 409) console.log(`   ℹ️  ${index.key}`);
-      else console.error(`   ❌ ${index.key}`, error);
-    }
+    await createIndexWithRetry(
+      databases,
+      index.collection,
+      index.key,
+      index.attributes,
+      (index as { unique?: boolean }).unique || false
+    );
   }
 
   try {

@@ -5,6 +5,7 @@ import { authService, UserProfile, SteamIntegration, CardTheme, parseCardTheme }
 import { parseSubscription, type UserSubscription } from './subscription';
 import { apiRequest } from './api-client';
 import { Models } from 'appwrite';
+import { track, endSession, flushTelemetry } from './telemetry/client';
 
 const PROFILE_CACHE_KEY = 'quark_profile_cache';
 
@@ -161,6 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem(ONBOARDING_KEY, 'true');
           setIsOnboardingComplete(true);
         }
+        track('auth.login', { method: 'email' }, 'auth');
         return { success: true };
       }
       setError(result.error || 'Login failed');
@@ -182,6 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem(ONBOARDING_KEY, 'true');
           setIsOnboardingComplete(true);
         }
+        track('auth.register', {}, 'auth');
         return { success: true };
       }
       setError(result.error || 'Registration failed');
@@ -194,6 +197,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     setIsLoading(true);
     try {
+      track('auth.logout', {}, 'auth');
+      endSession('logout');
+      await flushTelemetry();
       await authService.logout();
       setUser(null);
       setProfile(null);
@@ -239,6 +245,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if ('profile' in result && result.profile) {
         setProfile(result.profile);
       }
+      track('steam.linked', {}, 'social');
       await loadUser();
     }
     return result;
@@ -248,6 +255,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const result = await authService.unlinkSteam();
     if (result.success) {
       setSteamIntegration(null);
+      track('steam.unlinked', {}, 'social');
       await loadUser();
     }
     return result;
@@ -257,6 +265,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined') {
       localStorage.setItem(ONBOARDING_KEY, 'true');
       setIsOnboardingComplete(true);
+      track('auth.onboarding_complete', {}, 'auth');
     }
   };
 

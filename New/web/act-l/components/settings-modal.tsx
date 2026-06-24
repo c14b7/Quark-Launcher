@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { CategoryIcon, CATEGORY_ICON_OPTIONS, CATEGORY_COLOR_PRESETS, type CategoryIconId } from '@/lib/category-icons';
 import { isDevSettingsEnabled, getAppVersion } from '@/lib/build-env';
+import { getTelemetryConsent, updateTelemetryConsent } from '@/lib/telemetry';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -26,7 +27,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { games } = useGames();
   const { logout } = useAuth();
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [activeTab, setActiveTab] = useState<'general' | 'hidden' | 'categories' | 'ai' | 'admin'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'hidden' | 'categories' | 'ai' | 'privacy' | 'admin'>('general');
+  const [telemetryConsent, setTelemetryConsent] = useState(getTelemetryConsent);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [categoryGameSearch, setCategoryGameSearch] = useState('');
@@ -39,6 +41,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       { id: 'general' as const, label: ts('tabs.general') },
       { id: 'hidden' as const, label: ts('tabs.hidden') },
       { id: 'categories' as const, label: ts('tabs.categories') },
+      { id: 'privacy' as const, label: ts('tabs.privacy') },
       ...(showDevSettings ? [{ id: 'admin' as const, label: ts('tabs.admin') }] : []),
     ],
     [showDevSettings, ts]
@@ -555,6 +558,63 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     })}
                   </div>
                 )}
+              </div>
+            )}
+
+            {activeTab === 'privacy' && (
+              <div className="space-y-5">
+                <div className="rounded-2xl border border-white/8 bg-zinc-900/50 p-5 space-y-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-white">{ts('privacyTitle')}</h3>
+                    <p className="text-xs text-zinc-500 mt-1">{ts('privacyDesc')}</p>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4 py-2 border-t border-white/5">
+                    <div>
+                      <p className="text-sm text-white">{ts('analyticsEnabled')}</p>
+                      <p className="text-xs text-zinc-500">{ts('analyticsEnabledDesc')}</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        'rounded-xl min-w-[4.5rem]',
+                        telemetryConsent.analyticsEnabled && 'bg-violet-500/20 border-violet-500 text-violet-200'
+                      )}
+                      onClick={async () => {
+                        const next = !telemetryConsent.analyticsEnabled;
+                        await updateTelemetryConsent({ analyticsEnabled: next });
+                        setTelemetryConsent(getTelemetryConsent());
+                      }}
+                    >
+                      {telemetryConsent.analyticsEnabled ? ts('on') : ts('off')}
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4 py-2 border-t border-white/5">
+                    <div>
+                      <p className="text-sm text-white">{ts('diagnosticsEnabled')}</p>
+                      <p className="text-xs text-zinc-500">{ts('diagnosticsEnabledDesc')}</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        'rounded-xl min-w-[4.5rem]',
+                        telemetryConsent.diagnosticsEnabled && 'bg-violet-500/20 border-violet-500 text-violet-200'
+                      )}
+                      onClick={async () => {
+                        const next = !telemetryConsent.diagnosticsEnabled;
+                        await updateTelemetryConsent({ diagnosticsEnabled: next });
+                        setTelemetryConsent(getTelemetryConsent());
+                      }}
+                    >
+                      {telemetryConsent.diagnosticsEnabled ? ts('on') : ts('off')}
+                    </Button>
+                  </div>
+
+                  <p className="text-[11px] text-zinc-600 pt-2">{ts('privacyBetaNote')}</p>
+                </div>
               </div>
             )}
 

@@ -137,6 +137,7 @@
       "general": "General",
       "hidden": "Hidden games",
       "categories": "Categories",
+      "privacy": "Privacy",
       "admin": "Dev settings"
     },
     "language": "Language",
@@ -158,6 +159,15 @@
     "devPanelDesc": "Only available in builds with a -dev suffix or in development mode.",
     "devTools": "Developer tools",
     "openDevTools": "Open DevTools",
-    "devToolsHint": "Opens Chromium DevTools for UI debugging (Electron only)."
+    "devToolsHint": "Opens Chromium DevTools for UI debugging (Electron only).",
+    "privacyTitle": "Telemetry & diagnostics",
+    "privacyDesc": "Data helps us improve Quark during the beta. You can turn collection off anytime.",
+    "analyticsEnabled": "Usage analytics",
+    "analyticsEnabledDesc": "Sessions, navigation, game launches — no personal content",
+    "diagnosticsEnabled": "Diagnostic logs",
+    "diagnosticsEnabledDesc": "API errors and crashes with sanitized context",
+    "privacyBetaNote": "Beta: analytics on by default (opt-out). We never collect passwords, tokens, or message content.",
+    "on": "On",
+    "off": "Off"
   }
 }

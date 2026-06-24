@@ -2,7 +2,9 @@
 
 | Dokument | Opis |
 |----------|------|
+| [API-REFERENCE.md](./API-REFERENCE.md) | **Pełna referencja API, bazy danych, telemetrii i wytyczne pod panel admin** |
 | [ZMIANY-2026-06-23.md](./ZMIANY-2026-06-23.md) | Pełna dokumentacja zmian z 23.06.2026 — API, avatary, Steam, UI, Electron |
+| [TELEMETRY-PLAN.md](./TELEMETRY-PLAN.md) | Plan systemu telemetrii, logów diagnostycznych i przygotowanie pod panel admin |
 
 ## Szybkie linki w repo
 

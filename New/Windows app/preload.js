@@ -69,6 +69,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('update-error-to-ui', subscription);
   },
 
+  onTelemetryMainEvent: (callback) => {
+    const subscription = (event, data) => callback(data);
+    ipcRenderer.on('telemetry-main-event', subscription);
+    return () => ipcRenderer.removeListener('telemetry-main-event', subscription);
+  },
+
   startInstallation: () => ipcRenderer.invoke('start-installation')
 });
 

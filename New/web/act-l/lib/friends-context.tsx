@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { friendsService, QuarkFriend, FriendRequest } from './friends-service';
 import { useAuth } from './auth-context';
+import { track } from './telemetry/client';
 
 export interface FriendNotification {
   id: string;
@@ -245,7 +246,10 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
 
   const sendRequest = async (code: string) => {
     const result = await friendsService.sendRequest(code);
-    if (result.success) await refreshFriends();
+    if (result.success) {
+      track('friends.request_sent', { autoAccepted: !!result.autoAccepted }, 'social');
+      await refreshFriends();
+    }
     return {
       success: result.success,
       error: result.error,
@@ -255,13 +259,19 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
 
   const acceptRequest = async (id: string) => {
     const result = await friendsService.acceptRequest(id);
-    if (result.success) await refreshFriends();
+    if (result.success) {
+      track('friends.request_accepted', {}, 'social');
+      await refreshFriends();
+    }
     return result;
   };
 
   const declineRequest = async (id: string) => {
     const result = await friendsService.declineRequest(id);
-    if (result.success) await refreshFriends();
+    if (result.success) {
+      track('friends.request_declined', {}, 'social');
+      await refreshFriends();
+    }
     return result;
   };
 

@@ -230,6 +230,7 @@ export interface IElectronAPI {
   onUpdateAvailable: (callback: (info: UpdateInfo) => void) => () => void;
   onUpdateDownloadProgress: (callback: (info: UpdateDownloadProgress) => void) => () => void;
   onUpdateError: (callback: (info: UpdateErrorInfo) => void) => () => void;
+  onTelemetryMainEvent: (callback: (data: { name: string; properties?: Record<string, unknown>; category?: string }) => void) => () => void;
   startInstallation: () => Promise<{ success: boolean; error?: string }>;
   
   // Platform & Versions

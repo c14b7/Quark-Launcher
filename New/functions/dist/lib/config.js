@@ -15,6 +15,10 @@ exports.COLLECTIONS = {
     steamFriendsCache: 'steam_friends_cache',
     steamAchievementsCache: 'steam_achievements_cache',
     steamStatsCache: 'steam_stats_cache',
+    telemetryInstallations: 'telemetry_installations',
+    telemetrySessions: 'telemetry_sessions',
+    telemetryEvents: 'telemetry_events',
+    telemetryLogs: 'telemetry_logs',
 };
 exports.BUCKETS = {
     userMedia: 'user_media',

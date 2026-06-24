@@ -18,6 +18,7 @@ import { GamesProvider, useGames } from '@/lib/games-context';
 import { SettingsProvider, useSettings } from '@/lib/settings-context';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { FriendsProvider } from '@/lib/friends-context';
+import { TelemetryProvider, useTrackView } from '@/lib/telemetry';
 import { Game } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -55,7 +56,9 @@ function LauncherContent() {
 
   const { selectedGame, setSelectedGame } = useGames();
   const { settings } = useSettings();
-  const { isAuthenticated, profile, steamIntegration, isLoading, meLoaded, apiUnavailable, updateProfile } = useAuth();
+  const { isAuthenticated, profile, steamIntegration, isLoading, meLoaded, apiUnavailable, updateProfile, user } = useAuth();
+
+  useTrackView(isAuthenticated ? currentView : 'onboarding');
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && meLoaded && !apiUnavailable) {
@@ -191,17 +194,28 @@ export function Launcher() {
   return (
     <TooltipProvider>
       <AuthProvider>
-        <FriendsProvider>
-          <SettingsProvider>
-            <IntlProvider>
-              <GamesProvider>
-                <SteamSync />
-                <LauncherContent />
-              </GamesProvider>
-            </IntlProvider>
-          </SettingsProvider>
-        </FriendsProvider>
+        <TelemetryWrapper>
+          <FriendsProvider>
+            <SettingsProvider>
+              <IntlProvider>
+                <GamesProvider>
+                  <SteamSync />
+                  <LauncherContent />
+                </GamesProvider>
+              </IntlProvider>
+            </SettingsProvider>
+          </FriendsProvider>
+        </TelemetryWrapper>
       </AuthProvider>
     </TooltipProvider>
+  );
+}
+
+function TelemetryWrapper({ children }: { children: React.ReactNode }) {
+  const { user, isAuthenticated } = useAuth();
+  return (
+    <TelemetryProvider userId={user?.$id} isAuthenticated={isAuthenticated}>
+      {children}
+    </TelemetryProvider>
   );
 }

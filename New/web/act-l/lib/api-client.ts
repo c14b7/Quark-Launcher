@@ -1,4 +1,5 @@
 import { Client, Account, Functions, ExecutionMethod } from 'appwrite';
+import { track, logTelemetry } from './telemetry/client';
 
 export const APPWRITE_CONFIG = {
   endpoint: process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || 'https://fra.cloud.appwrite.io/v1',
@@ -45,6 +46,7 @@ export async function apiRequest<T = unknown>(
 
   const httpMethod = method.toUpperCase();
   const isGet = httpMethod === 'GET';
+  const startedAt = Date.now();
 
   if (requireAuth) {
     try {
@@ -67,6 +69,10 @@ export async function apiRequest<T = unknown>(
     if (execution.status === 'failed') {
       const errMsg = execution.errors || execution.responseBody || 'Function execution failed';
       console.error(`[API] ${httpMethod} ${path} failed (status=${execution.status}):`, errMsg);
+      if (!path.startsWith('/telemetry')) {
+        track('error.api', { path, code: 'FUNCTION_ERROR', latencyMs: Date.now() - startedAt }, 'error');
+        logTelemetry('error', `API ${path} failed`, { path, status: execution.status });
+      }
       return {
         success: false,
         code: 'FUNCTION_ERROR',
@@ -77,6 +83,13 @@ export async function apiRequest<T = unknown>(
     if (execution.responseStatusCode && execution.responseStatusCode >= 400) {
       const parsed = parseResponseBody(execution.responseBody);
       console.warn(`[API] ${httpMethod} ${path} → ${execution.responseStatusCode}`, parsed);
+      if (!path.startsWith('/telemetry')) {
+        track(
+          'error.api',
+          { path, code: (parsed.code as string) || 'API_ERROR', latencyMs: Date.now() - startedAt },
+          'error'
+        );
+      }
       return {
         success: false,
         code: (parsed.code as string) || 'API_ERROR',
@@ -88,6 +101,10 @@ export async function apiRequest<T = unknown>(
   } catch (error: unknown) {
     const err = error as { message?: string; code?: number; type?: string };
     console.error(`[API] ${httpMethod} ${path} exception:`, err.message || error);
+    if (!path.startsWith('/telemetry')) {
+      track('error.api', { path, code: 'NETWORK_ERROR', latencyMs: Date.now() - startedAt }, 'error');
+      logTelemetry('warn', `API network error: ${path}`, { message: err.message });
+    }
     return { success: false, code: 'NETWORK_ERROR', error: err.message || 'Network error' };
   }
 }

@@ -154,6 +154,11 @@ class QuarkLauncher {
         version: info.version,
         releaseNotes: formatReleaseNotes(info.releaseNotes),
       });
+      sendToUi('telemetry-main-event', {
+        name: 'update.available',
+        category: 'update',
+        properties: { version: info.version },
+      });
     });
 
     autoUpdater.on('update-not-available', (info) => {
@@ -166,6 +171,13 @@ class QuarkLauncher {
         transferred: progress.transferred,
         total: progress.total,
       });
+      if (progress.percent > 0 && progress.percent < 2) {
+        sendToUi('telemetry-main-event', {
+          name: 'update.download_started',
+          category: 'update',
+          properties: { percent: Math.round(progress.percent) },
+        });
+      }
     });
 
     autoUpdater.on('error', (err) => {
@@ -173,10 +185,25 @@ class QuarkLauncher {
       sendToUi('update-error-to-ui', {
         message: err?.message || 'Nie udało się sprawdzić aktualizacji',
       });
+      sendToUi('telemetry-main-event', {
+        name: 'update.failed',
+        category: 'update',
+        properties: { stage: 'check_or_download', errorCode: err?.message || 'unknown' },
+      });
     });
 
     autoUpdater.on('update-downloaded', (info) => {
       console.log('[UPDATER] Update downloaded:', info.version, '- restarting...');
+      sendToUi('telemetry-main-event', {
+        name: 'update.download_complete',
+        category: 'update',
+        properties: { version: info.version },
+      });
+      sendToUi('telemetry-main-event', {
+        name: 'update.installed',
+        category: 'update',
+        properties: { toVersion: info.version },
+      });
       setTimeout(() => {
         autoUpdater.quitAndInstall(false, true);
       }, 500);

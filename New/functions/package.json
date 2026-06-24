@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "setup-db": "npx ts-node setup-database.ts",
+    "migrate-telemetry": "npx ts-node migrate-telemetry-schema.ts",
     "migrate-profiles": "npx ts-node migrate-user-profiles-v2.ts",
     "build": "npm install && node ./node_modules/typescript/bin/tsc",
     "build:compile": "node ./node_modules/typescript/bin/tsc",

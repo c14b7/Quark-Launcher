@@ -7,6 +7,7 @@ exports.default = default_1;
 const steam_api_1 = require("./steam-api");
 const auth_api_1 = require("./auth-api");
 const friends_api_1 = require("./friends-api");
+const telemetry_api_1 = require("./telemetry-api");
 const middleware_1 = require("./lib/middleware");
 const config_1 = require("./lib/config");
 const runtime_1 = require("./lib/runtime");
@@ -41,13 +42,16 @@ async function default_1({ req, res, log, error }) {
         if (path.startsWith('/steam')) {
             return (0, steam_api_1.handleSteamApiRequest)(req, res, logger);
         }
+        if (path.startsWith('/telemetry')) {
+            return (0, telemetry_api_1.handleTelemetryApiRequest)(req, res, logger);
+        }
         logger.log(`Unknown route: ${path}`);
         return res.json({
             success: false,
             code: 'NOT_FOUND',
             error: `Unknown route: ${path || '/'}`,
             version: '2.0.1',
-            endpoints: ['/auth', '/friends', '/steam', '/health'],
+            endpoints: ['/auth', '/friends', '/steam', '/telemetry', '/health'],
         }, 404);
     }
     catch (err) {

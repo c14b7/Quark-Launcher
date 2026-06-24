@@ -137,6 +137,7 @@
       "general": "Ogólne",
       "hidden": "Ukryte gry",
       "categories": "Kategorie",
+      "privacy": "Prywatność",
       "admin": "Dev settings"
     },
     "language": "Język",
@@ -158,6 +159,15 @@
     "devPanelDesc": "Dostępne tylko w buildach z sufiksem -dev lub w trybie development.",
     "devTools": "Narzędzia deweloperskie",
     "openDevTools": "Otwórz DevTools",
-    "devToolsHint": "Otwiera Chromium DevTools do debugowania UI (tylko Electron)."
+    "devToolsHint": "Otwiera Chromium DevTools do debugowania UI (tylko Electron).",
+    "privacyTitle": "Telemetria i diagnostyka",
+    "privacyDesc": "Dane pomagają nam ulepszać Quark podczas fazy beta. Możesz wyłączyć zbieranie w dowolnym momencie.",
+    "analyticsEnabled": "Analityka użytkowania",
+    "analyticsEnabledDesc": "Sesje, nawigacja, uruchomienia gier — bez danych osobowych",
+    "diagnosticsEnabled": "Logi diagnostyczne",
+    "diagnosticsEnabledDesc": "Błędy API i crashy ze sanityzowanym kontekstem",
+    "privacyBetaNote": "Wersja beta: analityka domyślnie włączona (opt-out). Nie zbieramy haseł, tokenów ani treści wiadomości.",
+    "on": "Wł.",
+    "off": "Wył."
   }
 }

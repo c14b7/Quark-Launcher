@@ -12,6 +12,7 @@ const LIMITS: Record<string, RateLimitConfig> = {
   'friends/lookup': { max: 20, windowMs: 60 * 60 * 1000 },
   'friend-code/regenerate': { max: 1, windowMs: 24 * 60 * 60 * 1000 },
   'profile/patch': { max: 30, windowMs: 60 * 60 * 1000 },
+  'telemetry/ingest': { max: 120, windowMs: 15 * 60 * 1000 },
 };
 
 function getDatabases(): Databases {

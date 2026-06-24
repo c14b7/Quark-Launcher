@@ -5,6 +5,7 @@
 import { handleSteamApiRequest } from './steam-api';
 import { handleAuthApiRequest } from './auth-api';
 import { handleFriendsApiRequest } from './friends-api';
+import { handleTelemetryApiRequest } from './telemetry-api';
 import { parseBody, resolveRoutePathFromRequest } from './lib/middleware';
 import { APPWRITE_API_KEY } from './lib/config';
 import { createLogger, formatError, type FunctionContext } from './lib/runtime';
@@ -47,13 +48,17 @@ export default async function ({ req, res, log, error }: FunctionContext) {
       return handleSteamApiRequest(req, res, logger);
     }
 
+    if (path.startsWith('/telemetry')) {
+      return handleTelemetryApiRequest(req, res, logger);
+    }
+
     logger.log(`Unknown route: ${path}`);
     return res.json({
       success: false,
       code: 'NOT_FOUND',
       error: `Unknown route: ${path || '/'}`,
       version: '2.0.1',
-      endpoints: ['/auth', '/friends', '/steam', '/health'],
+      endpoints: ['/auth', '/friends', '/steam', '/telemetry', '/health'],
     }, 404);
   } catch (err) {
     logger.error(`Fatal router error: ${formatError(err)}`);
