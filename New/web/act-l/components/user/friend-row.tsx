@@ -4,6 +4,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import type { QuarkFriend } from '@/lib/types';
 import { getAvatarUrl } from '@/lib/avatar-service';
+import { Gamepad2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface FriendRowProps {
   friend: QuarkFriend;
@@ -20,9 +22,22 @@ function presenceColor(presence?: string) {
   }
 }
 
+function activityLabel(friend: QuarkFriend, t: ReturnType<typeof useTranslations>) {
+  if (friend.presence === 'dnd') return t('statusDnd');
+  if (friend.currentActivity === 'playing' && friend.currentGameName) {
+    return t('playingGame', { game: friend.currentGameName });
+  }
+  if (friend.currentActivity === 'idle' || friend.presence === 'idle') return t('statusIdle');
+  if (friend.customStatus) return friend.customStatus;
+  if (friend.presence === 'offline') return t('statusOffline');
+  return t('statusOnline');
+}
+
 export function FriendRow({ friend, onClick, className }: FriendRowProps) {
+  const t = useTranslations('friends');
   const initials = friend.displayName.slice(0, 2).toUpperCase();
   const avatarUrl = getAvatarUrl(friend.avatarFileId);
+  const isPlaying = friend.currentActivity === 'playing' && friend.currentGameName;
 
   return (
     <button
@@ -47,8 +62,12 @@ export function FriendRow({ friend, onClick, className }: FriendRowProps) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-zinc-200 truncate">{friend.displayName}</p>
-        <p className="text-xs text-zinc-500 truncate">
-          {friend.customStatus || (friend.presence === 'offline' ? 'Offline' : 'Online')}
+        <p className={cn(
+          'text-xs truncate flex items-center gap-1',
+          isPlaying ? 'text-green-400' : 'text-zinc-500'
+        )}>
+          {isPlaying && <Gamepad2 className="h-3 w-3 shrink-0" />}
+          {activityLabel(friend, t)}
         </p>
       </div>
     </button>

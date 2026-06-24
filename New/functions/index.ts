@@ -8,6 +8,7 @@ import { handleFriendsApiRequest } from './friends-api';
 import { handleTelemetryApiRequest } from './telemetry-api';
 import { parseBody, resolveRoutePathFromRequest } from './lib/middleware';
 import { APPWRITE_API_KEY } from './lib/config';
+import { getTelemetrySchemaStatus } from './lib/telemetry-schema';
 import { createLogger, formatError, type FunctionContext } from './lib/runtime';
 
 export default async function ({ req, res, log, error }: FunctionContext) {
@@ -28,11 +29,13 @@ export default async function ({ req, res, log, error }: FunctionContext) {
     }
 
     if (path === '/health' && method === 'GET') {
+      const telemetrySchema = await getTelemetrySchemaStatus();
       return res.json({
         success: true,
-        version: '2.0.1',
+        version: '2.0.2',
         apiKeyConfigured: true,
         path,
+        telemetrySchema,
       });
     }
 

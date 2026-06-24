@@ -8,8 +8,13 @@ import {
   persistPlayHistory,
   recordGameLaunch,
   getRecentlyPlayedIds,
+  loadLaunchStats,
+  persistLaunchStats,
+  recordLaunchStats,
   type PlayHistory,
 } from '@/lib/play-history';
+import { setPlayingGame, clearPlayingGame, activityPayloadForPresence } from '@/lib/activity-presence';
+import { friendsService } from '@/lib/friends-service';
 import { track, logTelemetry } from '@/lib/telemetry/client';
 
 interface GamesContextType {
@@ -136,6 +141,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
                   return {
                     ...game,
                     playtime: steamData.playtime,
+                    playtime2weeks: steamData.playtime2weeks,
                   };
                 } else {
                   console.log(`[GAMES] No playtime data for ${game.name} (ID: "${gameIdStr}", type: ${typeof game.id})`);
@@ -209,6 +215,10 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         void persistPlayHistory(next);
         return next;
       });
+      void loadLaunchStats().then((stats) => {
+        const next = recordLaunchStats(stats, game.id);
+        void persistLaunchStats(next);
+      });
     };
 
     try {
@@ -220,6 +230,12 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
         if (result.success) {
           markLaunched();
+          setPlayingGame(game.id, game.name);
+          friendsService.updatePresence('online', undefined, {
+            currentGameId: game.id,
+            currentGameName: game.name,
+            currentActivity: 'playing',
+          }).catch(() => {});
           track('game.launch', { gameId: game.id, platform: game.platform, success: true }, 'game');
         } else {
           setError(result.error || 'Nie udało się uruchomić gry');
@@ -232,6 +248,12 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       } else {
         window.open(`steam://rungameid/${game.id}`, '_blank');
         markLaunched();
+        setPlayingGame(game.id, game.name);
+        friendsService.updatePresence('online', undefined, {
+          currentGameId: game.id,
+          currentGameName: game.name,
+          currentActivity: 'playing',
+        }).catch(() => {});
         track('game.launch', { gameId: game.id, platform: game.platform, success: true }, 'game');
       }
     } catch (err) {

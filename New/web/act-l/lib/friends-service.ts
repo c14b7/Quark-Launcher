@@ -12,6 +12,9 @@ export interface QuarkFriend {
   cardTheme?: string;
   lastSeen?: string | null;
   createdAt?: string;
+  currentGameId?: string;
+  currentGameName?: string;
+  currentActivity?: 'playing' | 'menu' | 'idle' | 'none';
 }
 
 export interface FriendRequest {
@@ -58,8 +61,20 @@ export const friendsService = {
     return apiRequest(`/friends/${userId}`, 'DELETE');
   },
 
-  async updatePresence(presence: string, customStatus?: string) {
-    return apiRequest('/friends/presence', 'POST', { presence, customStatus });
+  async updatePresence(
+    presence: string,
+    customStatus?: string,
+    activity?: {
+      currentGameId?: string;
+      currentGameName?: string;
+      currentActivity?: string;
+    }
+  ) {
+    return apiRequest('/friends/presence', 'POST', {
+      presence,
+      customStatus,
+      ...activity,
+    });
   },
 };
 

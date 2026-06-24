@@ -615,6 +615,26 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
                   <p className="text-[11px] text-zinc-600 pt-2">{ts('privacyBetaNote')}</p>
                 </div>
+
+                <div className="rounded-2xl border border-white/8 bg-zinc-900/50 p-5 space-y-4">
+                  <div className="flex items-center justify-between gap-4 py-2">
+                    <div>
+                      <p className="text-sm text-white">{ts('notifyFriendPlaying')}</p>
+                      <p className="text-xs text-zinc-500">{ts('notifyFriendPlayingDesc')}</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        'rounded-xl min-w-[4.5rem]',
+                        settings.notifyFriendPlaying !== false && 'bg-violet-500/20 border-violet-500 text-violet-200'
+                      )}
+                      onClick={() => updateSettings({ notifyFriendPlaying: settings.notifyFriendPlaying === false })}
+                    >
+                      {settings.notifyFriendPlaying !== false ? ts('on') : ts('off')}
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
 

@@ -9,6 +9,7 @@ export interface AppSettings {
   locale: 'pl' | 'en';
   hiddenGames: string[];
   customCategories: Category[];
+  notifyFriendPlaying?: boolean;
   steamApiKey?: string;
   steamUserId?: string;
   // AI Chat settings
@@ -53,6 +54,7 @@ const defaultSettings: AppSettings = {
   locale: 'pl',
   hiddenGames: [],
   customCategories: [],
+  notifyFriendPlaying: true,
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

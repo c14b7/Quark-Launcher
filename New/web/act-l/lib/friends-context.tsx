@@ -3,14 +3,17 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { friendsService, QuarkFriend, FriendRequest } from './friends-service';
 import { useAuth } from './auth-context';
+import { useSettings } from './settings-context';
+import { activityPayloadForPresence, clearPlayingGame } from './activity-presence';
 import { track } from './telemetry/client';
 
 export interface FriendNotification {
   id: string;
-  type: 'friend_request' | 'friend_accepted';
+  type: 'friend_request' | 'friend_accepted' | 'friend_playing';
   displayName: string;
   createdAt: number;
   read: boolean;
+  gameName?: string;
 }
 
 interface FriendsContextType {
@@ -65,6 +68,7 @@ function pushNotification(
 
 export function FriendsProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, profile } = useAuth();
+  const { settings } = useSettings();
   const [friends, setFriends] = useState<QuarkFriend[]>([]);
   const [incomingRequests, setIncomingRequests] = useState<FriendRequest[]>([]);
   const [outgoingRequests, setOutgoingRequests] = useState<FriendRequest[]>([]);
@@ -76,8 +80,9 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
     incomingIds: Set<string>;
     outgoingIds: Set<string>;
     friendIds: Set<string>;
+    playingByFriend: Map<string, string>;
     initialized: boolean;
-  }>({ incomingIds: new Set(), outgoingIds: new Set(), friendIds: new Set(), initialized: false });
+  }>({ incomingIds: new Set(), outgoingIds: new Set(), friendIds: new Set(), playingByFriend: new Map(), initialized: false });
 
   useEffect(() => {
     setNotifications(loadStoredNotifications());
@@ -103,6 +108,11 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
         snap.incomingIds = nextIncomingIds;
         snap.outgoingIds = nextOutgoingIds;
         snap.friendIds = nextFriendIds;
+        snap.playingByFriend = new Map(
+          nextFriends
+            .filter((f) => f.currentActivity === 'playing' && f.currentGameId)
+            .map((f) => [f.userId, f.currentGameId!])
+        );
         snap.initialized = true;
         return;
       }
@@ -147,11 +157,49 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
         return updated;
       });
 
+      const notifyPlaying = settings.notifyFriendPlaying !== false;
+      if (notifyPlaying) {
+        setNotifications((prev) => {
+          let updated = [...prev];
+          let changed = false;
+
+          for (const friend of nextFriends) {
+            const wasPlaying = snap.playingByFriend.get(friend.userId);
+            const nowPlaying =
+              friend.currentActivity === 'playing' && friend.currentGameId
+                ? friend.currentGameId
+                : undefined;
+
+            if (nowPlaying && wasPlaying !== nowPlaying) {
+              const before = updated.length;
+              updated = pushNotification(updated, {
+                id: `playing-${friend.userId}-${nowPlaying}`,
+                type: 'friend_playing',
+                displayName: friend.displayName,
+                gameName: friend.currentGameName || 'grę',
+                createdAt: Date.now(),
+              });
+              if (updated.length !== before) changed = true;
+            }
+          }
+
+          if (!changed) return prev;
+          saveNotifications(updated);
+          return updated;
+        });
+      }
+
+      snap.playingByFriend = new Map(
+        nextFriends
+          .filter((f) => f.currentActivity === 'playing' && f.currentGameId)
+          .map((f) => [f.userId, f.currentGameId!])
+      );
+
       snap.incomingIds = nextIncomingIds;
       snap.outgoingIds = nextOutgoingIds;
       snap.friendIds = nextFriendIds;
     },
-    []
+    [settings.notifyFriendPlaying]
   );
 
   const refreshFriends = useCallback(async () => {
@@ -191,7 +239,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
       setFriends([]);
       setIncomingRequests([]);
       setOutgoingRequests([]);
-      snapshotRef.current = { incomingIds: new Set(), outgoingIds: new Set(), friendIds: new Set(), initialized: false };
+      snapshotRef.current = { incomingIds: new Set(), outgoingIds: new Set(), friendIds: new Set(), playingByFriend: new Map(), initialized: false };
     }
   }, [isAuthenticated, refreshFriends]);
 
@@ -202,7 +250,8 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
     const isManualLocked = userPresence === 'dnd' || userPresence === 'offline';
 
     const sendPresence = (presence: string) => {
-      friendsService.updatePresence(presence, profile.customStatus).catch(() => {});
+      const activity = activityPayloadForPresence();
+      friendsService.updatePresence(presence, profile.customStatus, activity).catch(() => {});
     };
 
     const resolvePresence = (fallback: string) => {
@@ -214,12 +263,19 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
 
     presenceInterval.current = setInterval(() => {
       sendPresence(resolvePresence('online'));
-    }, 60000);
+    }, 30000);
 
     const handleVisibility = () => {
       sendPresence(resolvePresence(document.hidden ? 'idle' : 'online'));
     };
-    const handleUnload = () => sendPresence('offline');
+    const handleUnload = () => {
+      clearPlayingGame();
+      friendsService.updatePresence('offline', profile.customStatus, {
+        currentActivity: 'none',
+        currentGameId: '',
+        currentGameName: '',
+      }).catch(() => {});
+    };
 
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('beforeunload', handleUnload);
@@ -228,7 +284,12 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
       if (presenceInterval.current) clearInterval(presenceInterval.current);
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('beforeunload', handleUnload);
-      sendPresence('offline');
+      clearPlayingGame();
+      friendsService.updatePresence('offline', profile.customStatus, {
+        currentActivity: 'none',
+        currentGameId: '',
+        currentGameName: '',
+      }).catch(() => {});
     };
   }, [isAuthenticated, profile?.customStatus, profile?.presence]);
 

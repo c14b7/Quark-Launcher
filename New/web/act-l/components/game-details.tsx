@@ -12,7 +12,12 @@ import {
   Share2,
   ExternalLink,
   Trophy,
-  Users
+  Users,
+  FolderOpen,
+  Newspaper,
+  Gamepad2,
+  StickyNote,
+  RotateCcw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +29,10 @@ import { Game } from '@/lib/types';
 import { useGames } from '@/lib/games-context';
 import { useSettings } from '@/lib/settings-context';
 import { useAuth } from '@/lib/auth-context';
+import { useFriends } from '@/lib/friends-context';
+import { loadLaunchStats, loadGameNotes, saveGameNote, type GameLaunchStats } from '@/lib/play-history';
+import { getAvatarUrl } from '@/lib/avatar-service';
+import type { QuarkFriend } from '@/lib/types';
 import { steamIntegration, SteamAchievement, SteamFriend } from '@/lib/steam-integration';
 import { PlaytimeBadge } from '@/components/steam-profile';
 
@@ -41,10 +50,57 @@ interface FriendPlaying {
 
 export function GameDetails({ game, onClose }: GameDetailsProps) {
   const { launchGame, toggleFavorite } = useGames();
-  const { isLoggedIn, settings, steamFriends } = useSettings();
+  const { isLoggedIn, settings, steamFriends, hideGame } = useSettings();
   const { profile } = useAuth();
+  const { friends: quarkFriends } = useFriends();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'achievements' | 'friends'>('overview');
+  const [launchStats, setLaunchStats] = useState<GameLaunchStats | null>(null);
+  const [gameNote, setGameNote] = useState('');
+  const [newsItems, setNewsItems] = useState<Array<{ title: string; url: string; date: number }>>([]);
+  const [quarkFriendsOnGame, setQuarkFriendsOnGame] = useState<QuarkFriend[]>([]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  useEffect(() => {
+    loadLaunchStats().then((stats) => setLaunchStats(stats[game.id] || null));
+    loadGameNotes().then((notes) => setGameNote(notes[game.id] || ''));
+    setQuarkFriendsOnGame(
+      quarkFriends.filter(
+        (f) => f.currentGameId === game.id || f.currentGameName?.toLowerCase() === game.name.toLowerCase()
+      )
+    );
+  }, [game.id, game.name, quarkFriends]);
+
+  useEffect(() => {
+    async function fetchNews() {
+      if (game.platform !== 'steam' || typeof window === 'undefined' || !window.electronAPI?.steamGetNews) return;
+      try {
+        const result = await window.electronAPI.steamGetNews([game.id], 3);
+        if (result.success && result.data) {
+          setNewsItems(
+            result.data
+              .filter((n) => String(n.appId) === String(game.id))
+              .slice(0, 3)
+              .map((n) => ({
+                title: n.title,
+                url: n.url,
+                date: n.date,
+              }))
+          );
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    fetchNews();
+  }, [game.id, game.platform]);
   
   // State for real achievements and friends
   const [achievements, setAchievements] = useState<SteamAchievement[]>([]);
@@ -116,11 +172,15 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
     fetchAchievements();
   }, [game.id, game.platform, settings.steamApiKey, settings.steamUserId, profile?.steamId]);
   
-  // Fetch friends who are playing this game
+  // Fetch friends who are playing this game (Steam + always load Quark for tab)
   useEffect(() => {
     async function fetchFriendsWithGame() {
+      if (activeTab !== 'friends') return;
+
+      const quarkOnGame = quarkFriends.filter((f) => f.currentGameId === game.id);
+      setQuarkFriendsOnGame(quarkOnGame);
+
       if (
-        activeTab === 'friends' &&
         game.platform === 'steam' &&
         isLoggedIn &&
         settings.steamApiKey &&
@@ -128,36 +188,41 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
       ) {
         setIsLoadingFriends(true);
         try {
-          const appId = parseInt(game.id, 10);
-          if (!isNaN(appId)) {
-            const friendsWithGame: FriendPlaying[] = [];
-            
-            for (const friend of steamFriends) {
-              // Check if friend is currently playing this game
-              const isPlayingThis = friend.currentGame?.toLowerCase() === game.name.toLowerCase();
-              
-              // Only add friends who are actually playing this game
-              if (isPlayingThis) {
-                friendsWithGame.push({
-                  name: friend.personaName,
-                  avatar: friend.avatarUrl,
-                  playtime: undefined,
-                  status: 'playing'
-                });
-              }
+          const friendsWithGame: FriendPlaying[] = quarkOnGame.map((f) => ({
+            name: f.displayName,
+            avatar: getAvatarUrl(f.avatarFileId) || undefined,
+            status: 'playing' as const,
+          }));
+
+          for (const friend of steamFriends) {
+            const isPlayingThis = friend.currentGame?.toLowerCase() === game.name.toLowerCase();
+            if (isPlayingThis && !friendsWithGame.some((x) => x.name === friend.personaName)) {
+              friendsWithGame.push({
+                name: friend.personaName,
+                avatar: friend.avatarUrl,
+                status: 'playing',
+              });
             }
-            
-            setFriendsPlaying(friendsWithGame);
           }
+
+          setFriendsPlaying(friendsWithGame);
         } catch (error) {
           console.error('Error fetching friends with game:', error);
         } finally {
           setIsLoadingFriends(false);
         }
+      } else if (quarkOnGame.length > 0) {
+        setFriendsPlaying(
+          quarkOnGame.map((f) => ({
+            name: f.displayName,
+            avatar: getAvatarUrl(f.avatarFileId) || undefined,
+            status: 'playing' as const,
+          }))
+        );
       }
     }
     fetchFriendsWithGame();
-  }, [activeTab, game.id, game.name, game.platform, isLoggedIn, settings.steamApiKey, steamFriends]);
+  }, [activeTab, game.id, game.name, game.platform, isLoggedIn, settings.steamApiKey, steamFriends, quarkFriends]);
 
   const handlePlay = () => {
     launchGame(game);
@@ -187,6 +252,40 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
       day: 'numeric'
     });
   };
+
+  const handleOpenFolder = async () => {
+    if (game.installDir && typeof window !== 'undefined' && window.electronAPI?.openFolder) {
+      await window.electronAPI.openFolder(game.installDir);
+    }
+  };
+
+  const handleCopyLink = () => {
+    const url =
+      game.platform === 'steam'
+        ? `https://store.steampowered.com/app/${game.id}`
+        : game.platform === 'epic'
+          ? 'https://store.epicgames.com/browse'
+          : `https://www.xbox.com/games/store/${game.id}`;
+    void navigator.clipboard.writeText(url);
+  };
+
+  const handleNoteBlur = () => {
+    void saveGameNote(game.id, gameNote);
+  };
+
+  const sortedAchievements = [...achievements].sort((a, b) => {
+    if (a.achieved !== b.achieved) return a.achieved ? -1 : 1;
+    return (b.unlocktime || 0) - (a.unlocktime || 0);
+  });
+
+  const lastAchievement = achievements
+    .filter((a) => a.achieved && a.unlocktime)
+    .sort((a, b) => (b.unlocktime || 0) - (a.unlocktime || 0))[0];
+
+  const friendAchievementAvg =
+    quarkFriendsOnGame.length > 0 && achievementProgress > 0
+      ? `${Math.round(achievementProgress)}% (ty)`
+      : null;
 
   const achievedCount = achievements.filter(a => a.achieved).length;
   const achievementProgress = achievements.length > 0 ? (achievedCount / achievements.length) * 100 : 0;
@@ -242,10 +341,16 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
                 game.isFavorite ? 'fill-yellow-500 text-yellow-500' : 'text-zinc-400'
               )} />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleCopyLink} title="Kopiuj link">
               <Share2 className="h-4 w-4 text-zinc-400" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => hideGame(game.id)}
+              title="Ukryj grę"
+            >
               <Settings className="h-4 w-4 text-zinc-400" />
             </Button>
           </div>
@@ -381,7 +486,7 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
                       </div>
                     ) : achievements.length > 0 ? (
                       <div className="grid grid-cols-1 gap-3 max-h-[70vh] overflow-y-auto pr-2">
-                        {achievements.map(achievement => (
+                        {sortedAchievements.map(achievement => (
                           <div
                             key={achievement.apiname}
                             className={cn(
@@ -482,8 +587,7 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
 
                 {activeTab === 'overview' && (
                   <>
-                    {/* Quick Stats Cards */}
-                    <div className="grid grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5">
                         <div className="flex items-center gap-2 text-zinc-400 mb-2">
                           <Clock className="h-4 w-4" />
@@ -495,12 +599,44 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
                       </div>
                       <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5">
                         <div className="flex items-center gap-2 text-zinc-400 mb-2">
+                          <Clock className="h-4 w-4" />
+                          <span className="text-xs uppercase">Ostatnie 2 tyg.</span>
+                        </div>
+                        <p className="text-xl font-bold text-white">
+                          {game.playtime2weeks ? `${Math.floor(game.playtime2weeks / 60)}h` : '0h'}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5">
+                        <div className="flex items-center gap-2 text-zinc-400 mb-2">
+                          <RotateCcw className="h-4 w-4" />
+                          <span className="text-xs uppercase">Uruchomienia</span>
+                        </div>
+                        <p className="text-xl font-bold text-white">
+                          {launchStats?.launchCount ?? 0}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5">
+                        <div className="flex items-center gap-2 text-zinc-400 mb-2">
+                          <Calendar className="h-4 w-4" />
+                          <span className="text-xs uppercase">Pierwsze w Quark</span>
+                        </div>
+                        <p className="text-sm font-bold text-white">
+                          {launchStats?.firstPlayed
+                            ? new Date(launchStats.firstPlayed).toLocaleDateString('pl-PL')
+                            : '—'}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5">
+                        <div className="flex items-center gap-2 text-zinc-400 mb-2">
                           <Trophy className="h-4 w-4" />
                           <span className="text-xs uppercase">Osiągnięcia</span>
                         </div>
                         <p className="text-xl font-bold text-white">
                           {achievements.length > 0 ? `${achievedCount}/${achievements.length}` : '-'}
                         </p>
+                        {achievementProgress > 0 && (
+                          <Progress value={achievementProgress} className="h-1 mt-2" />
+                        )}
                       </div>
                       <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5">
                         <div className="flex items-center gap-2 text-zinc-400 mb-2">
@@ -513,13 +649,102 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
                       </div>
                       <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5">
                         <div className="flex items-center gap-2 text-zinc-400 mb-2">
+                          <Gamepad2 className="h-4 w-4" />
+                          <span className="text-xs uppercase">Znajomi Quark</span>
+                        </div>
+                        <p className="text-xl font-bold text-white">{quarkFriendsOnGame.length}</p>
+                      </div>
+                      <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5">
+                        <div className="flex items-center gap-2 text-zinc-400 mb-2">
                           <Calendar className="h-4 w-4" />
                           <span className="text-xs uppercase">Ostatnia aktualizacja</span>
                         </div>
-                        <p className="text-xl font-bold text-white">
+                        <p className="text-sm font-bold text-white">
                           {game.lastUpdated ? formatDate(game.lastUpdated) : 'Nieznana'}
                         </p>
                       </div>
+                    </div>
+
+                    {lastAchievement && (
+                      <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
+                        <p className="text-xs text-yellow-400/80 uppercase mb-1">Ostatnie osiągnięcie</p>
+                        <p className="text-white font-medium">{lastAchievement.name}</p>
+                        {lastAchievement.unlocktime ? (
+                          <p className="text-xs text-zinc-500 mt-1">
+                            {new Date(lastAchievement.unlocktime * 1000).toLocaleDateString('pl-PL')}
+                          </p>
+                        ) : null}
+                      </div>
+                    )}
+
+                    {friendAchievementAvg && achievements.length > 0 && (
+                      <div className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/20">
+                        <p className="text-xs text-violet-300 uppercase mb-1">Porównanie osiągnięć</p>
+                        <p className="text-white text-sm">
+                          Twój postęp: {Math.round(achievementProgress)}%
+                          {quarkFriendsOnGame.length > 0 && ` · ${quarkFriendsOnGame.length} znajomych gra w tę grę`}
+                        </p>
+                      </div>
+                    )}
+
+                    {newsItems.length > 0 && (
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
+                          <Newspaper className="h-4 w-4" /> Aktualności
+                        </h3>
+                        <div className="space-y-2">
+                          {newsItems.map((item, i) => (
+                            <a
+                              key={i}
+                              href={item.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block p-3 rounded-xl bg-zinc-800/50 border border-white/5 hover:border-violet-500/30 transition-colors"
+                            >
+                              <p className="text-sm text-white font-medium">{item.title}</p>
+                              <p className="text-xs text-zinc-500 mt-1">
+                                {new Date(item.date * 1000).toLocaleDateString('pl-PL')}
+                              </p>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {quarkFriendsOnGame.length > 0 && (
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
+                          <Users className="h-4 w-4" /> Znajomi Quark na tej grze
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {quarkFriendsOnGame.map((f) => (
+                            <Badge key={f.userId} className="bg-green-500/20 text-green-300 border-green-500/30">
+                              {f.displayName}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {game.installDir && (
+                      <Button variant="outline" className="gap-2 border-white/10" onClick={handleOpenFolder}>
+                        <FolderOpen className="h-4 w-4" />
+                        Otwórz folder instalacji
+                      </Button>
+                    )}
+
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
+                        <StickyNote className="h-4 w-4" /> Notatki
+                      </h3>
+                      <textarea
+                        value={gameNote}
+                        onChange={(e) => setGameNote(e.target.value)}
+                        onBlur={handleNoteBlur}
+                        placeholder="Twoje notatki do tej gry..."
+                        className="w-full min-h-[80px] rounded-xl bg-zinc-800/50 border border-white/5 p-3 text-sm text-zinc-200 placeholder:text-zinc-600 resize-y focus:outline-none focus:border-violet-500/40"
+                        maxLength={500}
+                      />
                     </div>
 
                     {/* Description */}
@@ -591,8 +816,7 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
             {/* Show overview for non-steam or Steam without API key */}
             {(game.platform !== 'steam' || !settings.steamApiKey) && (
               <>
-                {/* Quick Stats Cards */}
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5">
                     <div className="flex items-center gap-2 text-zinc-400 mb-2">
                       <Clock className="h-4 w-4" />
@@ -604,29 +828,46 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
                   </div>
                   <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5">
                     <div className="flex items-center gap-2 text-zinc-400 mb-2">
-                      <Trophy className="h-4 w-4" />
-                      <span className="text-xs uppercase">Osiągnięcia</span>
+                      <RotateCcw className="h-4 w-4" />
+                      <span className="text-xs uppercase">Uruchomienia</span>
                     </div>
-                    <p className="text-xl font-bold text-white">-</p>
+                    <p className="text-xl font-bold text-white">{launchStats?.launchCount ?? 0}</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5">
+                    <div className="flex items-center gap-2 text-zinc-400 mb-2">
+                      <Gamepad2 className="h-4 w-4" />
+                      <span className="text-xs uppercase">Znajomi Quark</span>
+                    </div>
+                    <p className="text-xl font-bold text-white">{quarkFriendsOnGame.length}</p>
                   </div>
                   <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5">
                     <div className="flex items-center gap-2 text-zinc-400 mb-2">
                       <HardDrive className="h-4 w-4" />
                       <span className="text-xs uppercase">Rozmiar</span>
                     </div>
-                    <p className="text-xl font-bold text-white">
-                      {formatBytes(game.sizeOnDisk)}
-                    </p>
+                    <p className="text-xl font-bold text-white">{formatBytes(game.sizeOnDisk)}</p>
                   </div>
-                  <div className="p-4 rounded-xl bg-zinc-800/50 border border-white/5">
-                    <div className="flex items-center gap-2 text-zinc-400 mb-2">
-                      <Calendar className="h-4 w-4" />
-                      <span className="text-xs uppercase">Ostatnia aktualizacja</span>
-                    </div>
-                    <p className="text-xl font-bold text-white">
-                      {game.lastUpdated ? formatDate(game.lastUpdated) : 'Nieznana'}
-                    </p>
-                  </div>
+                </div>
+
+                {game.installDir && (
+                  <Button variant="outline" className="gap-2 border-white/10" onClick={handleOpenFolder}>
+                    <FolderOpen className="h-4 w-4" />
+                    Otwórz folder instalacji
+                  </Button>
+                )}
+
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
+                    <StickyNote className="h-4 w-4" /> Notatki
+                  </h3>
+                  <textarea
+                    value={gameNote}
+                    onChange={(e) => setGameNote(e.target.value)}
+                    onBlur={handleNoteBlur}
+                    placeholder="Twoje notatki do tej gry..."
+                    className="w-full min-h-[80px] rounded-xl bg-zinc-800/50 border border-white/5 p-3 text-sm text-zinc-200 placeholder:text-zinc-600 resize-y focus:outline-none focus:border-violet-500/40"
+                    maxLength={500}
+                  />
                 </div>
 
                 {/* Description */}

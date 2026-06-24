@@ -119,6 +119,7 @@
     "empty": "Brak nowych powiadomień",
     "friendRequest": "{name} wysłał(a) Ci zaproszenie do znajomych",
     "friendAccepted": "{name} zaakceptował(a) Twoje zaproszenie",
+    "friendPlaying": "{name} uruchomił(a) grę: {game}",
     "someone": "Ktoś",
     "markAllRead": "Oznacz wszystkie jako przeczytane",
     "pendingRequests": "Oczekujące zaproszenia",
@@ -168,6 +169,26 @@
     "diagnosticsEnabledDesc": "Błędy API i crashy ze sanityzowanym kontekstem",
     "privacyBetaNote": "Wersja beta: analityka domyślnie włączona (opt-out). Nie zbieramy haseł, tokenów ani treści wiadomości.",
     "on": "Wł.",
-    "off": "Wył."
+    "off": "Wył.",
+    "notifyFriendPlaying": "Powiadomienia o grze znajomych",
+    "notifyFriendPlayingDesc": "Powiadom gdy znajomy Quark uruchomi grę"
+  },
+  "friends": {
+    "title": "Znajomi",
+    "addFriend": "Dodaj znajomego",
+    "hidePanel": "Ukryj panel",
+    "loading": "Ładowanie...",
+    "empty": "Brak znajomych Quark",
+    "addFirst": "Dodaj pierwszego znajomego",
+    "nowPlaying": "Teraz grają",
+    "online": "Online",
+    "offline": "Offline",
+    "statusOnline": "Online",
+    "statusOffline": "Offline",
+    "statusIdle": "Zaraz wraca",
+    "statusDnd": "Nie przeszkadzać",
+    "playingGame": "Gra w: {game}",
+    "launchSameGame": "Uruchom tę samą grę",
+    "watchPartySoon": "Watch party — wkrótce"
   }
 }

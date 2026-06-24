@@ -35,7 +35,23 @@ let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 let initialized = false;
 let sessionEnded = false;
 let flushing = false;
-let appLaunched = false;
+let flushBackoffMs = 0;
+let flushBackoffUntil = 0;
+let flushWarnedThisSession = false;
+
+function scheduleFlushBackoff() {
+  flushBackoffMs = flushBackoffMs ? Math.min(flushBackoffMs * 2, 300_000) : 30_000;
+  flushBackoffUntil = Date.now() + flushBackoffMs;
+  if (!flushWarnedThisSession) {
+    flushWarnedThisSession = true;
+    console.warn('[Telemetry] Ingest failed — retry with backoff. Run migrate-telemetry if persistent.');
+  }
+}
+
+function clearFlushBackoff() {
+  flushBackoffMs = 0;
+  flushBackoffUntil = 0;
+}
 
 async function getEnvironment() {
   const appVersion = getAppVersion();
@@ -220,6 +236,7 @@ export function endSession(reason: SessionEndReason = 'unknown'): void {
 export async function flushTelemetry(): Promise<void> {
   if (flushing || typeof window === 'undefined' || isFullyOptedOut()) return;
   if (!session || !installationId) return;
+  if (Date.now() < flushBackoffUntil) return;
 
   flushing = true;
   try {
@@ -254,8 +271,11 @@ export async function flushTelemetry(): Promise<void> {
 
     const result = await ingestTelemetry(payload);
     if (!result.success) {
+      scheduleFlushBackoff();
       for (const event of batch.events) await enqueueEvent(event);
       for (const log of batch.logs) await enqueueLog(log);
+    } else {
+      clearFlushBackoff();
     }
   } catch {
     /* re-queue handled above on failure */

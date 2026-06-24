@@ -123,6 +123,10 @@ Profil Quark powiązany 1:1 z kontem Appwrite (`userId` = document ID).
 | `subscriptionStatus` | enum | nie | `active` | `active \| canceled \| expired \| trialing` |
 | `subscriptionExpiresAt` | datetime | nie | — | Koniec subskrypcji |
 | `subscriptionProvider` | enum | nie | — | `stripe \| manual` |
+| `currentGameId` | string(50) | nie | — | ID gry (rich presence) |
+| `currentGameName` | string(128) | nie | — | Nazwa gry (rich presence) |
+| `currentActivity` | enum | nie | `none` | `playing \| menu \| idle \| none` |
+| `activityUpdatedAt` | datetime | nie | — | Ostatnia aktualizacja aktywności |
 
 **Indeksy:** `userId_idx`, `friendCode_unique` (unique)
 
@@ -251,7 +255,7 @@ Jedna instalacja aplikacji (urządzenie), niezależna od konta. Document ID = `i
 | `installationId` | string(36) | — | UUID z klienta |
 | `firstSeenAt` | datetime | — | Pierwszy ingest |
 | `lastSeenAt` | datetime | — | Ostatni ingest |
-| `appVersion` | string(32) | — | np. `0.0.5-beta01a` |
+| `appVersion` | string(32) | — | np. `0.0.5-beta01b` |
 | `platform` | enum | — | `win32 \| darwin \| linux \| web` |
 | `arch` | string(16) | — | np. `x64` |
 | `locale` | string(10) | — | np. `pl-PL` |
@@ -614,10 +618,14 @@ Usunięcie znajomości (dokument z `friendships`).
 
 ### `POST /friends/presence`
 
-| Body | `{ presence, customStatus? }` |
-| Działanie | Aktualizuje `user_profiles.presence` i `lastSeen` |
+| Body | `{ presence, customStatus?, currentGameId?, currentGameName?, currentActivity? }` |
+| Działanie | Aktualizuje `user_profiles.presence`, `lastSeen` oraz opcjonalnie rich presence (gra) |
 
-Używane przez `friends-context.tsx` (heartbeat co 30s, respektuje ręczny DND/offline).
+`currentActivity`: `playing | menu | idle | none`. Przy `none`/`idle` serwer czyści `currentGameId` i `currentGameName`.
+
+Używane przez `friends-context.tsx` (heartbeat co 30s, raport gry z `launchGame`, respektuje ręczny DND/offline).
+
+Publiczny profil znajomego (`toPublicProfile`) zwraca pola `currentGameId`, `currentGameName`, `currentActivity`.
 
 ---
 
@@ -676,7 +684,7 @@ Główny endpoint zbierania danych (batch).
 {
   "installation": {
     "installationId": "uuid",
-    "appVersion": "0.0.5-beta01a",
+    "appVersion": "0.0.5-beta01b",
     "platform": "win32",
     "arch": "x64",
     "locale": "pl-PL",
@@ -785,6 +793,7 @@ Gdy `analyticsEnabled === false && diagnosticsEnabled === false`:
 | `error.api` | error | Błąd API (nie `/telemetry`) |
 | `error.client` | error | (zarezerwowane) |
 | `error.uncaught` | error | Global error handler |
+| `overlay.toggled` | feature | Toggle nakładki Ctrl+Alt+F10 (Electron) |
 
 ---
 
@@ -1082,6 +1091,8 @@ New/
 │       └── settings-modal.tsx  # zakładka Prywatność
 ├── Windows app/
 │   ├── main.js
+│   ├── overlay-manager.js   # Ctrl+Alt+F10 nakładka
+│   ├── overlay.html
 │   └── preload.js
 └── docs/
     ├── API-REFERENCE.md      # ten dokument
@@ -1099,6 +1110,8 @@ New/
 cd functions
 # .env z APPWRITE_API_KEY
 npm run setup-db
+npm run migrate-telemetry   # brakujące atrybuty telemetry_events/logs
+npm run migrate-presence    # rich presence na user_profiles
 ```
 
 ### Build Function
@@ -1143,7 +1156,22 @@ npm run build
 | `NETWORK_ERROR` | — | Sieć (klient) |
 | `INVALID_INSTALLATION` | 400 | Telemetria — zły UUID |
 | `BATCH_TOO_LARGE` | 400 | Telemetria — za duży batch |
-| `INGEST_FAILED` | 500 | Telemetria — błąd zapisu |
+| `INGEST_FAILED` | 500 | Telemetria — błąd zapisu (sprawdź `/health` → `telemetrySchema`) |
+| `INVALID_ACTIVITY` | 400 | Nieprawidłowe `currentActivity` w presence |
+
+---
+
+## 17. Test plan — Beta feedback v2
+
+| # | Scenariusz | Oczekiwany wynik |
+|---|------------|------------------|
+| 1 | Po `migrate-telemetry` + redeploy: uruchom launcher, graj 2 min | Brak `INGEST_FAILED` w konsoli; `/health` → `telemetrySchema.ok: true` |
+| 2 | Otwórz szczegóły gry, naciśnij ESC | Widok zamyka się z dowolnego miejsca w `GameDetails` |
+| 3 | Konto A uruchamia grę; konto B odświeża znajomych | A w sekcji „Teraz grają” z nazwą tytułu |
+| 4 | Szczegóły gry (Steam + API key) | Min. 5 sekcji: playtime 2w, launch count, news, folder, znajomi Quark, notatki |
+| 5 | Uruchom grę w Electron, Ctrl+Alt+F10 ×2 | Nakładka „Quark” (#d4ff00) w lewym górnym rogu; drugie naciśnięcie chowa |
+| 6 | Znajomy uruchamia grę (powiadomienia włączone) | Powiadomienie w dzwonku; wyłączenie w Ustawienia → Prywatność |
+| 7 | Profil znajomego grającego w grę z Twojej biblioteki | Przycisk „Uruchom tę samą grę” |
 
 ---
 

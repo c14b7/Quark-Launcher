@@ -119,6 +119,7 @@
     "empty": "No new notifications",
     "friendRequest": "{name} sent you a friend request",
     "friendAccepted": "{name} accepted your friend request",
+    "friendPlaying": "{name} started playing: {game}",
     "someone": "Someone",
     "markAllRead": "Mark all as read",
     "pendingRequests": "Pending requests",
@@ -168,6 +169,26 @@
     "diagnosticsEnabledDesc": "API errors and crashes with sanitized context",
     "privacyBetaNote": "Beta: analytics on by default (opt-out). We never collect passwords, tokens, or message content.",
     "on": "On",
-    "off": "Off"
+    "off": "Off",
+    "notifyFriendPlaying": "Friend game notifications",
+    "notifyFriendPlayingDesc": "Notify when a Quark friend starts playing a game"
+  },
+  "friends": {
+    "title": "Friends",
+    "addFriend": "Add friend",
+    "hidePanel": "Hide panel",
+    "loading": "Loading...",
+    "empty": "No Quark friends yet",
+    "addFirst": "Add your first friend",
+    "nowPlaying": "Now playing",
+    "online": "Online",
+    "offline": "Offline",
+    "statusOnline": "Online",
+    "statusOffline": "Offline",
+    "statusIdle": "Away",
+    "statusDnd": "Do not disturb",
+    "playingGame": "Playing: {game}",
+    "launchSameGame": "Launch same game",
+    "watchPartySoon": "Watch party — coming soon"
   }
 }

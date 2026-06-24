@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, Check, UserPlus, UserCheck } from 'lucide-react';
+import { Bell, Check, UserPlus, UserCheck, Gamepad2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -24,9 +24,10 @@ export function NotificationsMenu() {
     incomingRequests,
   } = useFriends();
 
-  const getMessage = (type: string, name: string) => {
+  const getMessage = (type: string, name: string, gameName?: string) => {
     if (type === 'friend_request') return t('friendRequest', { name });
     if (type === 'friend_accepted') return t('friendAccepted', { name });
+    if (type === 'friend_playing') return t('friendPlaying', { name, game: gameName || 'grę' });
     return name;
   };
 
@@ -100,12 +101,14 @@ export function NotificationsMenu() {
               >
                 {notif.type === 'friend_request' ? (
                   <UserPlus className="h-4 w-4 text-violet-400 shrink-0 mt-0.5" />
+                ) : notif.type === 'friend_playing' ? (
+                  <Gamepad2 className="h-4 w-4 text-green-400 shrink-0 mt-0.5" />
                 ) : (
                   <UserCheck className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-zinc-200 leading-snug">
-                    {getMessage(notif.type, notif.displayName)}
+                    {getMessage(notif.type, notif.displayName, notif.gameName)}
                   </p>
                   <p className="text-[10px] text-zinc-500 mt-0.5">
                     {new Date(notif.createdAt).toLocaleString()}

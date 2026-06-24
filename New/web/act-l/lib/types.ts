@@ -12,6 +12,9 @@ export interface QuarkFriend {
   cardTheme?: string;
   lastSeen?: string | null;
   createdAt?: string;
+  currentGameId?: string;
+  currentGameName?: string;
+  currentActivity?: 'playing' | 'menu' | 'idle' | 'none';
 }
 
 export interface CardTheme {
@@ -33,6 +36,7 @@ export interface Game {
   lastUpdated?: number;
   lastPlayed?: string;
   playtime?: number; // in minutes
+  playtime2weeks?: number; // in minutes
   
   // Images
   image: string;        // Header (460x215)
@@ -231,6 +235,7 @@ export interface IElectronAPI {
   onUpdateDownloadProgress: (callback: (info: UpdateDownloadProgress) => void) => () => void;
   onUpdateError: (callback: (info: UpdateErrorInfo) => void) => () => void;
   onTelemetryMainEvent: (callback: (data: { name: string; properties?: Record<string, unknown>; category?: string }) => void) => () => void;
+  onOverlayToggled: (callback: (data: { visible: boolean }) => void) => () => void;
   startInstallation: () => Promise<{ success: boolean; error?: string }>;
   
   // Platform & Versions

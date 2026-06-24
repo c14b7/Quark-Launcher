@@ -1,7 +1,8 @@
-const { app, BrowserWindow, ipcMain, shell, dialog, protocol } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, dialog, protocol, globalShortcut } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
 const { spawn, exec } = require('child_process');
+const { OverlayManager } = require('./overlay-manager');
 
 
 
@@ -24,6 +25,7 @@ class QuarkLauncher {
     this.runningProcesses = new Map();
     this.userDataPath = app.getPath('userData');
     this._updaterListenersAttached = false;
+    this.overlayManager = null;
     this.initializeApp();
   }
 
@@ -50,6 +52,13 @@ class QuarkLauncher {
     app.on('window-all-closed', () => {
       if (process.platform !== 'darwin') {
         app.quit();
+      }
+    });
+
+    app.on('will-quit', () => {
+      if (this.overlayManager) this.overlayManager.dispose();
+      if (globalShortcut.isRegistered('Control+Alt+F10')) {
+        globalShortcut.unregister('Control+Alt+F10');
       }
     });
   }
@@ -115,6 +124,12 @@ class QuarkLauncher {
       shell.openExternal(url);
       return { action: 'deny' };
     });
+
+    if (!this.overlayManager) {
+      this.overlayManager = new OverlayManager(this.mainWindow);
+    } else {
+      this.overlayManager.setMainWindow(this.mainWindow);
+    }
   }
   // Wklej tę metodę wewnątrz klasy QuarkLauncher:
   setupAutoUpdater() {
@@ -817,6 +832,10 @@ class QuarkLauncher {
             break;
           default:
             throw new Error(`Unknown platform: ${platform}`);
+        }
+
+        if (this.overlayManager) {
+          this.overlayManager.onGameLaunched();
         }
 
         return { success: true };

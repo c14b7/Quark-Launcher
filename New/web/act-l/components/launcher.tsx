@@ -195,16 +195,16 @@ export function Launcher() {
     <TooltipProvider>
       <AuthProvider>
         <TelemetryWrapper>
-          <FriendsProvider>
-            <SettingsProvider>
+          <SettingsProvider>
+            <FriendsProvider>
               <IntlProvider>
                 <GamesProvider>
                   <SteamSync />
                   <LauncherContent />
                 </GamesProvider>
               </IntlProvider>
-            </SettingsProvider>
-          </FriendsProvider>
+            </FriendsProvider>
+          </SettingsProvider>
         </TelemetryWrapper>
       </AuthProvider>
     </TooltipProvider>

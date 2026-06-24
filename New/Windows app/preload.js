@@ -75,6 +75,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('telemetry-main-event', subscription);
   },
 
+  onOverlayToggled: (callback) => {
+    const subscription = (event, data) => callback(data);
+    ipcRenderer.on('overlay-toggled', subscription);
+    return () => ipcRenderer.removeListener('overlay-toggled', subscription);
+  },
+
   startInstallation: () => ipcRenderer.invoke('start-installation')
 });
 

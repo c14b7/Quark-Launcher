@@ -128,6 +128,9 @@ function toPublicProfile(doc: Record<string, unknown>) {
     location: display.location || undefined,
     lastSeen: doc.lastSeen ?? null,
     createdAt: doc.createdAt,
+    currentGameId: doc.currentGameId ?? undefined,
+    currentGameName: doc.currentGameName ?? undefined,
+    currentActivity: doc.currentActivity ?? undefined,
   };
 }
 

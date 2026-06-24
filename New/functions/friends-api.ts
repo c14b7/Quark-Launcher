@@ -307,6 +307,26 @@ export async function handleFriendsApiRequest(
         updates.customStatus = body.customStatus;
       }
 
+      if (body.currentActivity !== undefined) {
+        const act = String(body.currentActivity);
+        if (!['playing', 'menu', 'idle', 'none'].includes(act)) {
+          return errorResponse(res, 'INVALID_ACTIVITY', 'Invalid activity', 400);
+        }
+        updates.currentActivity = act;
+        updates.activityUpdatedAt = new Date().toISOString();
+        if (act === 'none' || act === 'idle') {
+          updates.currentGameId = '';
+          updates.currentGameName = '';
+        }
+      }
+
+      if (body.currentGameId !== undefined) {
+        updates.currentGameId = String(body.currentGameId).slice(0, 50);
+      }
+      if (body.currentGameName !== undefined) {
+        updates.currentGameName = String(body.currentGameName).slice(0, 128);
+      }
+
       await databases.updateDocument(DATABASE_ID, COLLECTIONS.userProfiles, userId, updates);
       return jsonResponse(res, { success: true });
     }

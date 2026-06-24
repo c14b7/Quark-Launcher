@@ -9,7 +9,9 @@ import { UserCard } from './user-card';
 import { Button } from '@/components/ui/button';
 import type { QuarkFriend } from '@/lib/types';
 import { useFriends } from '@/lib/friends-context';
-import { UserMinus } from 'lucide-react';
+import { useGames } from '@/lib/games-context';
+import { UserMinus, Gamepad2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface UserCardPopoverProps {
   friend: QuarkFriend | null;
@@ -19,12 +21,26 @@ interface UserCardPopoverProps {
 
 export function UserCardPopover({ friend, open, onOpenChange }: UserCardPopoverProps) {
   const { removeFriend } = useFriends();
+  const { games, launchGame } = useGames();
+  const t = useTranslations('friends');
 
   if (!friend) return null;
 
   const handleRemove = async () => {
     await removeFriend(friend.userId);
     onOpenChange(false);
+  };
+
+  const sameGame =
+    friend.currentActivity === 'playing' && friend.currentGameId
+      ? games.find((g) => g.id === friend.currentGameId)
+      : undefined;
+
+  const handleLaunchSame = () => {
+    if (sameGame) {
+      launchGame(sameGame);
+      onOpenChange(false);
+    }
   };
 
   return (
@@ -34,7 +50,19 @@ export function UserCardPopover({ friend, open, onOpenChange }: UserCardPopoverP
           {friend.displayName}
         </DialogTitle>
         <UserCard profile={friend} />
-        <div className="p-4 pt-0">
+        <div className="p-4 pt-0 space-y-2">
+          {sameGame && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-2 border-green-500/30 text-green-400 hover:bg-green-500/10"
+              onClick={handleLaunchSame}
+            >
+              <Gamepad2 className="h-4 w-4" />
+              {t('launchSameGame')}
+            </Button>
+          )}
+          <p className="text-[11px] text-center text-zinc-600">{t('watchPartySoon')}</p>
           <Button
             variant="ghost"
             size="sm"

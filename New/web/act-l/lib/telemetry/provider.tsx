@@ -46,6 +46,14 @@ export function TelemetryProvider({ children, userId, isAuthenticated }: Telemet
     });
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.electronAPI?.onOverlayToggled) return;
+
+    return window.electronAPI.onOverlayToggled((data) => {
+      track('overlay.toggled', { visible: !!data?.visible }, 'feature');
+    });
+  }, []);
+
   const value: TelemetryContextValue = {
     track,
     consent: getTelemetryConsent(),

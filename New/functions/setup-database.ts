@@ -64,6 +64,10 @@ const COLLECTIONS: CollectionConfig[] = [
       { key: 'subscriptionStatus', type: 'enum', elements: ['active', 'canceled', 'expired', 'trialing'], required: false, default: 'active' },
       { key: 'subscriptionExpiresAt', type: 'datetime', required: false },
       { key: 'subscriptionProvider', type: 'enum', elements: ['stripe', 'manual'], required: false },
+      { key: 'currentGameId', type: 'string', size: 50, required: false },
+      { key: 'currentGameName', type: 'string', size: 128, required: false },
+      { key: 'currentActivity', type: 'enum', elements: ['playing', 'menu', 'idle', 'none'], required: false, default: 'none' },
+      { key: 'activityUpdatedAt', type: 'datetime', required: false },
     ],
   },
   {
