@@ -28,9 +28,11 @@ import { useGames } from '@/lib/games-context';
 import { useSettings } from '@/lib/settings-context';
 import { CategoryIcon } from '@/lib/category-icons';
 import { Game } from '@/lib/types';
+import { SortableGameItem } from '@/components/sortable-game-item';
+import { sortGamesByOrder, buildOrderFromGames, reorderIds } from '@/lib/game-order';
 import { cn } from '@/lib/utils';
 
-type SortOption = 'name' | 'lastPlayed' | 'playtime' | 'recent';
+type SortOption = 'name' | 'lastPlayed' | 'playtime' | 'recent' | 'custom';
 type FilterOption = 'all' | 'favorites' | 'installed' | 'steam' | 'xbox' | 'epic' | string;
 
 interface LibraryViewProps {
@@ -39,9 +41,9 @@ interface LibraryViewProps {
 
 export function LibraryView({ onGameSelect }: LibraryViewProps) {
   const { games } = useGames();
-  const { settings } = useSettings();
+  const { settings, setLibraryGameOrder } = useSettings();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortBy, setSortBy] = useState<SortOption>('name');
+  const [sortBy, setSortBy] = useState<SortOption>(settings.librarySortBy || 'name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [filter, setFilter] = useState<FilterOption>('all');
   const [localSearch, setLocalSearch] = useState('');
@@ -82,38 +84,61 @@ export function LibraryView({ onGameSelect }: LibraryViewProps) {
     }
 
     // Apply sort
-    result.sort((a, b) => {
-      let aVal: string | number = a.name;
-      let bVal: string | number = b.name;
+    if (sortBy === 'custom' && settings.libraryGameOrder?.length) {
+      result = sortGamesByOrder(result, settings.libraryGameOrder);
+    } else {
+      result.sort((a, b) => {
+        let aVal: string | number = a.name;
+        let bVal: string | number = b.name;
 
-      switch (sortBy) {
-        case 'lastPlayed':
-          aVal = a.lastPlayed ? new Date(a.lastPlayed).getTime() : 0;
-          bVal = b.lastPlayed ? new Date(b.lastPlayed).getTime() : 0;
-          break;
-        case 'playtime':
-          aVal = a.playtime || 0;
-          bVal = b.playtime || 0;
-          break;
-        case 'recent':
-          aVal = a.lastUpdated || 0;
-          bVal = b.lastUpdated || 0;
-          break;
-      }
+        switch (sortBy) {
+          case 'lastPlayed':
+            aVal = a.lastPlayed ? new Date(a.lastPlayed).getTime() : 0;
+            bVal = b.lastPlayed ? new Date(b.lastPlayed).getTime() : 0;
+            break;
+          case 'playtime':
+            aVal = a.playtime || 0;
+            bVal = b.playtime || 0;
+            break;
+          case 'recent':
+            aVal = a.lastUpdated || 0;
+            bVal = b.lastUpdated || 0;
+            break;
+        }
 
-      if (typeof aVal === 'string') {
-        aVal = aVal.toLowerCase();
-        bVal = (bVal as string).toLowerCase();
-      }
+        if (typeof aVal === 'string') {
+          aVal = aVal.toLowerCase();
+          bVal = (bVal as string).toLowerCase();
+        }
 
-      if (sortOrder === 'asc') {
-        return aVal > bVal ? 1 : -1;
-      }
-      return aVal < bVal ? 1 : -1;
-    });
+        if (sortOrder === 'asc') {
+          return aVal > bVal ? 1 : -1;
+        }
+        return aVal < bVal ? 1 : -1;
+      });
+    }
 
     return result;
-  }, [games, filter, localSearch, sortBy, sortOrder, settings.hiddenGames, settings.customCategories]);
+  }, [games, filter, localSearch, sortBy, sortOrder, settings.hiddenGames, settings.customCategories, settings.libraryGameOrder]);
+
+  const handleLibraryReorder = (fromIndex: number, toIndex: number) => {
+    const ids = settings.libraryGameOrder?.length
+      ? [...settings.libraryGameOrder]
+      : buildOrderFromGames(filteredAndSortedGames);
+    const visibleIds = filteredAndSortedGames.map((g) => g.id);
+    const fromId = visibleIds[fromIndex];
+    const toId = visibleIds[toIndex];
+    if (!fromId || !toId) return;
+    let order = ids.filter((id) => visibleIds.includes(id));
+    for (const id of visibleIds) {
+      if (!order.includes(id)) order.push(id);
+    }
+    const fromOrder = order.indexOf(fromId);
+    const toOrder = order.indexOf(toId);
+    if (fromOrder < 0 || toOrder < 0) return;
+    setLibraryGameOrder(reorderIds(order, fromOrder, toOrder));
+    setSortBy('custom');
+  };
 
   const toggleSortOrder = () => {
     setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -212,6 +237,9 @@ export function LibraryView({ onGameSelect }: LibraryViewProps) {
               <DropdownMenuItem onClick={() => setSortBy('recent')}>
                 Ostatnio dodane
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortBy('custom')}>
+                Własna kolejność (przeciąganie)
+              </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-white/10" />
               <DropdownMenuItem onClick={toggleSortOrder}>
                 {sortOrder === 'asc' ? 'Rosnąco' : 'Malejąco'}
@@ -284,22 +312,36 @@ export function LibraryView({ onGameSelect }: LibraryViewProps) {
           {viewMode === 'grid' ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
               {filteredAndSortedGames.map((game, index) => (
-                <GameCard
+                <SortableGameItem
                   key={`library-grid-${game.id}-${index}`}
-                  game={game}
-                  variant="medium"
-                  onClick={() => onGameSelect(game)}
-                />
+                  id={game.id}
+                  index={index}
+                  enabled
+                  onReorder={handleLibraryReorder}
+                >
+                  <GameCard
+                    game={game}
+                    variant="medium"
+                    onClick={() => onGameSelect(game)}
+                  />
+                </SortableGameItem>
               ))}
             </div>
           ) : (
             <div className="space-y-2">
               {filteredAndSortedGames.map((game, index) => (
-                <GameListItem
+                <SortableGameItem
                   key={`library-list-${game.id}-${index}`}
-                  game={game}
-                  onClick={() => onGameSelect(game)}
-                />
+                  id={game.id}
+                  index={index}
+                  enabled
+                  onReorder={handleLibraryReorder}
+                >
+                  <GameListItem
+                    game={game}
+                    onClick={() => onGameSelect(game)}
+                  />
+                </SortableGameItem>
               ))}
             </div>
           )}

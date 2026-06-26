@@ -1,27 +1,24 @@
 {
   "name": "quark",
-  "version": "0.0.5-beta01b",
+  "version": "0.0.5-beta01c",
   "description": "game launcher for Windows",
-  "main": "main.js",              
+  "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dev": "concurrently \"npm run next:dev\" \"wait-on http://localhost:30211 && electron .\"",
-    "next:dev": "cd ../web/act-l && npm run dev -- -p 30211",
+    "dev": "electron .",
     "next:build": "cd ../web/act-l && npm run build",
     "build": "npm run next:build && electron-builder",
     "pack": "npm run next:build && electron-builder --dir",
     "release": "npm run next:build && electron-builder --publish always"
-  },              
+  },
   "author": "c14b7",
   "license": "MIT",
   "devDependencies": {
-    "concurrently": "^8.2.2",
     "electron": "^39.8.5",
     "electron-builder": "^25.0.0",
-    "electron-packager": "^17.1.2",
-    "wait-on": "^7.2.0"
+    "electron-packager": "^17.1.2"
   },
-"build": {
+  "build": {
     "appId": "com.quark.launcher",
     "productName": "Quark Launcher",
     "directories": {
@@ -36,7 +33,14 @@
     ],
     "files": [
       "main.js",
+      "dev-server.js",
       "preload.js",
+      "overlay-manager.js",
+      "overlay.html",
+      "overlay.css",
+      "overlay-renderer.js",
+      "overlay-preload.js",
+      "overlay-performance.js",
       "dev-app-update.yml",
       "assets/**/*",
       "package.json"

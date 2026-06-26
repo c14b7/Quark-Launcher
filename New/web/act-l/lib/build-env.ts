@@ -4,7 +4,7 @@ const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? '0.0.0';
 /**
  * Dev settings tab is visible when:
  * - NODE_ENV is development, or
- * - package version contains "-dev" (case-insensitive), e.g. 0.0.5-beta01b
+ * - package version contains "-dev" (case-insensitive), e.g. 0.0.5-beta03a
  */
 export function isDevSettingsEnabled(): boolean {
   if (process.env.NODE_ENV === 'development') return true;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { X, Moon, Monitor, EyeOff, FolderPlus, Trash2, Bot, Server, Key, Shield, RefreshCw, Trash, Database, Info, AlertTriangle, ChevronDown, ChevronUp, Plus, Search, Terminal } from 'lucide-react';
+import { X, Moon, Monitor, EyeOff, FolderPlus, Trash2, Bot, Server, Key, Shield, RefreshCw, Trash, Database, Info, AlertTriangle, ChevronDown, ChevronUp, Plus, Search, Terminal, Layers, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -13,27 +13,37 @@ import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { CategoryIcon, CATEGORY_ICON_OPTIONS, CATEGORY_COLOR_PRESETS, type CategoryIconId } from '@/lib/category-icons';
-import { isDevSettingsEnabled, getAppVersion } from '@/lib/build-env';
+import { getAppVersion } from '@/lib/build-env';
+import { isDevUnlockedSession, subscribeDevUnlock } from '@/lib/dev-unlock';
 import { getTelemetryConsent, updateTelemetryConsent } from '@/lib/telemetry';
+import { resetAppTour } from '@/components/onboarding/app-tour';
+import { DEFAULT_OVERLAY_SETTINGS, type OverlaySettings } from '@/lib/overlay-settings';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialTab?: 'general' | 'hidden' | 'categories' | 'overlay' | 'ai' | 'privacy' | 'admin';
 }
 
-export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProps) {
   const ts = useTranslations('settings');
-  const { settings, updateSettings, unhideGame, addCategory, updateCategory, removeCategory, addGameToCategory, removeGameFromCategory } = useSettings();
+  const { settings, updateSettings, unhideGame, addCategory, updateCategory, removeCategory, addGameToCategory, removeGameFromCategory, updateOverlaySettings } = useSettings();
   const { games } = useGames();
-  const { logout } = useAuth();
+  const { logout, resetOnboardingFlow } = useAuth();
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [activeTab, setActiveTab] = useState<'general' | 'hidden' | 'categories' | 'ai' | 'privacy' | 'admin'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'hidden' | 'categories' | 'overlay' | 'ai' | 'privacy' | 'admin'>('general');
   const [telemetryConsent, setTelemetryConsent] = useState(getTelemetryConsent);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [categoryGameSearch, setCategoryGameSearch] = useState('');
+  const [devUnlocked, setDevUnlocked] = useState(false);
 
-  const showDevSettings = isDevSettingsEnabled();
+  useEffect(() => {
+    setDevUnlocked(isDevUnlockedSession());
+    return subscribeDevUnlock(() => setDevUnlocked(true));
+  }, []);
+
+  const showDevSettings = devUnlocked;
   const appVersion = getAppVersion();
 
   const settingsTabs = useMemo(
@@ -41,11 +51,18 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       { id: 'general' as const, label: ts('tabs.general') },
       { id: 'hidden' as const, label: ts('tabs.hidden') },
       { id: 'categories' as const, label: ts('tabs.categories') },
+      { id: 'overlay' as const, label: ts('tabs.overlay') },
       { id: 'privacy' as const, label: ts('tabs.privacy') },
-      ...(showDevSettings ? [{ id: 'admin' as const, label: ts('tabs.admin') }] : []),
+      ...(showDevSettings ? [{ id: 'admin' as const, label: ts('tabs.dev') }] : []),
     ],
     [showDevSettings, ts]
   );
+
+  useEffect(() => {
+    if (isOpen && initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
 
   useEffect(() => {
     if (!showDevSettings && activeTab === 'admin') {
@@ -561,6 +578,47 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               </div>
             )}
 
+            {activeTab === 'overlay' && (
+              <div className="space-y-5">
+                <div className="rounded-2xl border border-lime-500/20 bg-lime-500/5 p-5 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Layers className="h-5 w-5 text-lime-400" />
+                    <div>
+                      <h3 className="text-sm font-medium text-white">{ts('overlayTitle')}</h3>
+                      <p className="text-xs text-zinc-400 mt-0.5">{ts('overlayDesc')}</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-zinc-500">
+                    {ts('overlayShortcut')}: <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-lime-300">Ctrl+Alt+F10</kbd>
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/8 bg-zinc-900/50 p-5 space-y-1">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3 flex items-center gap-2">
+                    <Activity className="h-3.5 w-3.5" />
+                    {ts('overlayElements')}
+                  </h4>
+                  {(Object.keys(DEFAULT_OVERLAY_SETTINGS) as (keyof OverlaySettings)[]).map((key) => (
+                    <OverlayToggleRow
+                      key={key}
+                      label={ts(`overlay.${key}`)}
+                      description={ts(`overlay.${key}Desc`)}
+                      enabled={(settings.overlay ?? DEFAULT_OVERLAY_SETTINGS)[key]}
+                      onToggle={() =>
+                        updateOverlaySettings({
+                          [key]: !(settings.overlay ?? DEFAULT_OVERLAY_SETTINGS)[key],
+                        })
+                      }
+                    />
+                  ))}
+                </div>
+
+                <div className="rounded-2xl border border-white/8 bg-zinc-900/30 p-4 text-xs text-zinc-500 leading-relaxed">
+                  {ts('overlayFpsNote')}
+                </div>
+              </div>
+            )}
+
             {activeTab === 'privacy' && (
               <div className="space-y-5">
                 <div className="rounded-2xl border border-white/8 bg-zinc-900/50 p-5 space-y-4">
@@ -748,19 +806,28 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <Button
                       variant="outline"
                       className="gap-2 rounded-xl border-white/10 text-zinc-400 hover:text-white hover:bg-zinc-800"
-                      onClick={() => {
-                        if (typeof window !== 'undefined') {
-                          localStorage.removeItem('quark_onboarding_complete');
-                          window.location.reload();
-                        }
+                      onClick={async () => {
+                        await resetOnboardingFlow();
+                        window.location.reload();
                       }}
                     >
                       <RefreshCw className="h-4 w-4" />
                       Resetuj onboarding
                     </Button>
+                    <Button
+                      variant="outline"
+                      className="gap-2 rounded-xl border-white/10 text-zinc-400 hover:text-white hover:bg-zinc-800"
+                      onClick={() => {
+                        resetAppTour();
+                        window.location.reload();
+                      }}
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      Resetuj przewodnik aplikacji
+                    </Button>
                   </div>
                   <p className="text-xs text-zinc-500">
-                    Wyczyść cache aby odświeżyć dane. Resetuj onboarding aby ponownie przejść przez konfigurację.
+                    Wyczyść cache aby odświeżyć dane. Resetuj onboarding lub przewodnik aby ponownie zobaczyć wprowadzenie.
                   </p>
                 </div>
 
@@ -846,6 +913,38 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function OverlayToggleRow({
+  label,
+  description,
+  enabled,
+  onToggle,
+}: {
+  label: string;
+  description: string;
+  enabled: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3 border-t border-white/5 first:border-t-0">
+      <div className="min-w-0">
+        <p className="text-sm text-white">{label}</p>
+        <p className="text-xs text-zinc-500">{description}</p>
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        className={cn(
+          'rounded-xl min-w-[4.5rem] shrink-0',
+          enabled && 'bg-lime-500/15 border-lime-500/40 text-lime-200'
+        )}
+        onClick={onToggle}
+      >
+        {enabled ? 'Wł.' : 'Wył.'}
+      </Button>
     </div>
   );
 }

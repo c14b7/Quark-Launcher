@@ -81,6 +81,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('overlay-toggled', subscription);
   },
 
+  overlayUpdateConfig: (config) => ipcRenderer.invoke('overlay-update-config', config),
+
   startInstallation: () => ipcRenderer.invoke('start-installation')
 });
 

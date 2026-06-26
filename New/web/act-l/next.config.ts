@@ -1,13 +1,20 @@
 import type { NextConfig } from "next";
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
-const pkg = JSON.parse(readFileSync(join(__dirname, "package.json"), "utf8")) as { version: string };
+const appDir = resolve(__dirname);
+
+const pkg = JSON.parse(readFileSync(join(appDir, "package.json"), "utf8")) as { version: string };
 
 const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_APP_VERSION: pkg.version,
   },
+  // Jawny root — tailwind/postcss muszą resolve'ować z web/act-l/node_modules
+  turbopack: {
+    root: appDir,
+  },
+  outputFileTracingRoot: appDir,
   output: 'export',
   trailingSlash: true,
   images: {

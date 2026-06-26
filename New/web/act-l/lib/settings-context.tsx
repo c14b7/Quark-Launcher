@@ -2,6 +2,15 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { SteamUser, SteamFriend } from '@/lib/types';
+import {
+  DEFAULT_OVERLAY_SETTINGS,
+  mergeOverlaySettings,
+  syncOverlayConfigToElectron,
+  type OverlaySettings,
+} from '@/lib/overlay-settings';
+import { reorderIds } from '@/lib/game-order';
+
+export type { OverlaySettings };
 
 export interface AppSettings {
   theme: 'dark' | 'oled';
@@ -9,6 +18,9 @@ export interface AppSettings {
   locale: 'pl' | 'en';
   hiddenGames: string[];
   customCategories: Category[];
+  libraryGameOrder?: string[];
+  librarySortBy?: 'name' | 'lastPlayed' | 'playtime' | 'recent' | 'custom';
+  overlay?: OverlaySettings;
   notifyFriendPlaying?: boolean;
   steamApiKey?: string;
   steamUserId?: string;
@@ -36,6 +48,11 @@ interface SettingsContextType {
   removeCategory: (categoryId: string) => void;
   addGameToCategory: (categoryId: string, gameId: string) => void;
   removeGameFromCategory: (categoryId: string, gameId: string) => void;
+  reorderCategories: (fromIndex: number, toIndex: number) => void;
+  reorderCategoryGames: (categoryId: string, fromIndex: number, toIndex: number) => void;
+  reorderLibraryGames: (fromIndex: number, toIndex: number) => void;
+  setLibraryGameOrder: (ids: string[]) => void;
+  updateOverlaySettings: (updates: Partial<OverlaySettings>) => void;
   isSettingsOpen: boolean;
   openSettings: () => void;
   closeSettings: () => void;
@@ -54,6 +71,9 @@ const defaultSettings: AppSettings = {
   locale: 'pl',
   hiddenGames: [],
   customCategories: [],
+  libraryGameOrder: [],
+  librarySortBy: 'name',
+  overlay: DEFAULT_OVERLAY_SETTINGS,
   notifyFriendPlaying: true,
 };
 
@@ -128,12 +148,22 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (typeof window !== 'undefined' && window.electronAPI) {
         const result = await window.electronAPI.loadUserData('settings');
         if (result.success && result.data) {
-          setSettings({ ...defaultSettings, ...(result.data as AppSettings) });
+          const loaded = result.data as AppSettings;
+          setSettings({
+            ...defaultSettings,
+            ...loaded,
+            overlay: mergeOverlaySettings(loaded.overlay),
+          });
         }
       } else {
         const saved = localStorage.getItem('quark-settings');
         if (saved) {
-          setSettings({ ...defaultSettings, ...JSON.parse(saved) });
+          const loaded = JSON.parse(saved) as AppSettings;
+          setSettings({
+            ...defaultSettings,
+            ...loaded,
+            overlay: mergeOverlaySettings(loaded.overlay),
+          });
         }
       }
     } catch (err) {
@@ -173,6 +203,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     const timer = setTimeout(() => saveSettings(), 400);
     return () => clearTimeout(timer);
   }, [settings, isLoaded, saveSettings]);
+
+  // Sync overlay config to Electron when settings change
+  useEffect(() => {
+    if (!isLoaded) return;
+    void syncOverlayConfigToElectron(mergeOverlaySettings(settings.overlay));
+  }, [settings.overlay, isLoaded]);
 
   // Callbacki dla akcji użytkownika
   const handleSetSteamUser = useCallback((user: SteamUser | null) => {
@@ -258,6 +294,54 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const reorderCategories = useCallback((fromIndex: number, toIndex: number) => {
+    setSettings(prev => ({
+      ...prev,
+      customCategories: reorderIds(prev.customCategories.map(c => c.id), fromIndex, toIndex).map(
+        (id) => prev.customCategories.find((c) => c.id === id)!
+      ),
+    }));
+  }, []);
+
+  const reorderCategoryGames = useCallback((categoryId: string, fromIndex: number, toIndex: number) => {
+    setSettings(prev => ({
+      ...prev,
+      customCategories: prev.customCategories.map((c) =>
+        c.id === categoryId
+          ? { ...c, gameIds: reorderIds(c.gameIds, fromIndex, toIndex) }
+          : c
+      ),
+    }));
+  }, []);
+
+  const setLibraryGameOrder = useCallback((ids: string[]) => {
+    setSettings(prev => ({
+      ...prev,
+      libraryGameOrder: ids,
+      librarySortBy: 'custom',
+    }));
+  }, []);
+
+  const reorderLibraryGames = useCallback((fromIndex: number, toIndex: number) => {
+    setSettings(prev => {
+      const order = prev.libraryGameOrder?.length
+        ? [...prev.libraryGameOrder]
+        : [];
+      return {
+        ...prev,
+        libraryGameOrder: reorderIds(order, fromIndex, toIndex),
+        librarySortBy: 'custom',
+      };
+    });
+  }, []);
+
+  const updateOverlaySettings = useCallback((updates: Partial<OverlaySettings>) => {
+    setSettings(prev => ({
+      ...prev,
+      overlay: mergeOverlaySettings({ ...prev.overlay, ...updates }),
+    }));
+  }, []);
+
   const openSettings = () => setIsSettingsOpen(true);
   const closeSettings = () => setIsSettingsOpen(false);
 
@@ -275,6 +359,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         removeCategory,
         addGameToCategory,
         removeGameFromCategory,
+        reorderCategories,
+        reorderCategoryGames,
+        reorderLibraryGames,
+        setLibraryGameOrder,
+        updateOverlaySettings,
         isSettingsOpen,
         openSettings,
         closeSettings,

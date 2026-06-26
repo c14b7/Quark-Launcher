@@ -236,6 +236,17 @@ export interface IElectronAPI {
   onUpdateError: (callback: (info: UpdateErrorInfo) => void) => () => void;
   onTelemetryMainEvent: (callback: (data: { name: string; properties?: Record<string, unknown>; category?: string }) => void) => () => void;
   onOverlayToggled: (callback: (data: { visible: boolean }) => void) => () => void;
+  overlayUpdateConfig: (config: {
+    showLogo?: boolean;
+    showCpu?: boolean;
+    showGpu?: boolean;
+    showFps?: boolean;
+    showCpuChart?: boolean;
+    showRam?: boolean;
+    showSessionTimer?: boolean;
+    showDateTime?: boolean;
+    showPing?: boolean;
+  }) => Promise<{ success: boolean }>;
   startInstallation: () => Promise<{ success: boolean; error?: string }>;
   
   // Platform & Versions

@@ -255,7 +255,7 @@ Jedna instalacja aplikacji (urządzenie), niezależna od konta. Document ID = `i
 | `installationId` | string(36) | — | UUID z klienta |
 | `firstSeenAt` | datetime | — | Pierwszy ingest |
 | `lastSeenAt` | datetime | — | Ostatni ingest |
-| `appVersion` | string(32) | — | np. `0.0.5-beta01b` |
+| `appVersion` | string(32) | — | np. `0.0.5-beta03a` |
 | `platform` | enum | — | `win32 \| darwin \| linux \| web` |
 | `arch` | string(16) | — | np. `x64` |
 | `locale` | string(10) | — | np. `pl-PL` |
@@ -684,7 +684,7 @@ Główny endpoint zbierania danych (batch).
 {
   "installation": {
     "installationId": "uuid",
-    "appVersion": "0.0.5-beta01b",
+    "appVersion": "0.0.5-beta03a",
     "platform": "win32",
     "arch": "x64",
     "locale": "pl-PL",

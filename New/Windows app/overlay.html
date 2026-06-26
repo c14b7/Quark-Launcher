@@ -2,31 +2,28 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700&display=swap" rel="stylesheet">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-      width: 200px;
-      height: 60px;
-      background: transparent;
-      overflow: hidden;
-    }
-    .quark-splash-title {
-      font-family: 'Outfit', system-ui, sans-serif;
-      font-size: 42px;
-      font-weight: 700;
-      color: #d4ff00;
-      letter-spacing: 0.04em;
-      text-shadow: 0 0 24px rgba(212, 255, 0, 0.45);
-      line-height: 60px;
-      padding-left: 4px;
-    }
-  </style>
+  <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=array@700&display=swap">
+  <link rel="stylesheet" href="overlay.css">
 </head>
 <body>
-  <div class="quark-splash-title">Quark</div>
+  <div class="overlay-root">
+    <div id="logo-block" class="logo-block">
+      <span class="quark-title">Quark</span>
+    </div>
+
+    <div id="perf-block" class="perf-block">
+      <canvas id="cpu-chart" class="cpu-chart" width="120" height="36" data-overlay="showCpuChart"></canvas>
+      <div class="perf-stats">
+        <div class="stat" data-overlay="showCpu"><span class="label">CPU</span><span id="cpu-val" class="val">0%</span></div>
+        <div class="stat" data-overlay="showGpu"><span class="label">GPU</span><span id="gpu-val" class="val">0%</span></div>
+        <div class="stat" data-overlay="showFps"><span class="label">FPS</span><span id="fps-val" class="val">0</span></div>
+        <div class="stat" data-overlay="showRam"><span class="label">RAM</span><span id="ram-val" class="val">0%</span></div>
+        <div class="stat" data-overlay="showSessionTimer"><span class="label">SESJA</span><span id="timer-val" class="val">0:00</span></div>
+        <div class="stat" data-overlay="showDateTime"><span class="label">ZEGAR</span><span id="clock-val" class="val">--:--</span></div>
+        <div class="stat" data-overlay="showPing"><span class="label">PING</span><span id="ping-val" class="val">—</span></div>
+      </div>
+    </div>
+  </div>
+  <script src="overlay-renderer.js"></script>
 </body>
 </html>

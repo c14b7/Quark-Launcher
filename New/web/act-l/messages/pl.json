@@ -37,7 +37,11 @@
     "searchResults": "Wyniki wyszukiwania",
     "library": "Biblioteka gier",
     "recentlyPlayed": "Ostatnio grane",
-    "noSearchResults": "Brak wyników dla \"{query}\""
+    "noSearchResults": "Brak wyników dla \"{query}\"",
+    "noCategories": "Brak kategorii",
+    "noCategoriesHint": "Utwórz kategorie, aby grupować gry na stronie głównej — jak playlisty.",
+    "addCategory": "Dodaj kategorię",
+    "dragHint": "Przeciągnij karty lub sekcje, aby zmienić kolejność"
   },
   "profile": {
     "guest": "Użytkownik",
@@ -138,8 +142,9 @@
       "general": "Ogólne",
       "hidden": "Ukryte gry",
       "categories": "Kategorie",
+      "overlay": "Nakładka",
       "privacy": "Prywatność",
-      "admin": "Dev settings"
+      "dev": "Dev"
     },
     "language": "Język",
     "languageDesc": "Wybierz język interfejsu aplikacji",
@@ -171,7 +176,32 @@
     "on": "Wł.",
     "off": "Wył.",
     "notifyFriendPlaying": "Powiadomienia o grze znajomych",
-    "notifyFriendPlayingDesc": "Powiadom gdy znajomy Quark uruchomi grę"
+    "notifyFriendPlayingDesc": "Powiadom gdy znajomy Quark uruchomi grę",
+    "overlayTitle": "Nakładka w grze",
+    "overlayDesc": "Panel HUD widoczny podczas sesji gry po uruchomieniu z Quark. Logo po lewej, wydajność po prawej.",
+    "overlayShortcut": "Skrót przełączania nakładki",
+    "overlayElements": "Elementy nakładki",
+    "overlayFpsNote": "FPS pokazuje odświeżanie okna nakładki (szacunek), nie klatek w grze. GPU wymaga NVIDIA (nvidia-smi) lub licznika Windows.",
+    "overlay": {
+      "showLogo": "Logo Quark",
+      "showLogoDesc": "Napis Quark w lewym górnym rogu ekranu",
+      "showCpu": "Zużycie CPU",
+      "showCpuDesc": "Procent obciążenia procesora",
+      "showGpu": "Zużycie GPU",
+      "showGpuDesc": "Procent obciążenia karty graficznej",
+      "showFps": "Klatki na sekundę (FPS)",
+      "showFpsDesc": "Szacunek FPS okna nakładki",
+      "showCpuChart": "Wykres CPU",
+      "showCpuChartDesc": "Mini wykres historii obciążenia CPU",
+      "showRam": "Zużycie RAM",
+      "showRamDesc": "Procent wykorzystanej pamięci systemowej",
+      "showSessionTimer": "Timer sesji",
+      "showSessionTimerDesc": "Czas od uruchomienia gry z launchera",
+      "showDateTime": "Zegar",
+      "showDateTimeDesc": "Aktualna godzina w nakładce",
+      "showPing": "Ping",
+      "showPingDesc": "Szacowany ping do serwera Quark (co ~15 s)"
+    }
   },
   "friends": {
     "title": "Znajomi",

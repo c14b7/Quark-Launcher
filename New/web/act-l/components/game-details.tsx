@@ -8,12 +8,10 @@ import {
   Calendar, 
   HardDrive, 
   ChevronLeft,
-  Settings,
   Share2,
   ExternalLink,
   Trophy,
   Users,
-  FolderOpen,
   Newspaper,
   Gamepad2,
   StickyNote,
@@ -21,7 +19,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
@@ -35,6 +32,7 @@ import { getAvatarUrl } from '@/lib/avatar-service';
 import type { QuarkFriend } from '@/lib/types';
 import { steamIntegration, SteamAchievement, SteamFriend } from '@/lib/steam-integration';
 import { PlaytimeBadge } from '@/components/steam-profile';
+import { GameActionsMenu } from '@/components/game-actions-menu';
 
 interface GameDetailsProps {
   game: Game;
@@ -50,7 +48,7 @@ interface FriendPlaying {
 
 export function GameDetails({ game, onClose }: GameDetailsProps) {
   const { launchGame, toggleFavorite } = useGames();
-  const { isLoggedIn, settings, steamFriends, hideGame } = useSettings();
+  const { isLoggedIn, settings, steamFriends } = useSettings();
   const { profile } = useAuth();
   const { friends: quarkFriends } = useFriends();
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -253,12 +251,6 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
     });
   };
 
-  const handleOpenFolder = async () => {
-    if (game.installDir && typeof window !== 'undefined' && window.electronAPI?.openFolder) {
-      await window.electronAPI.openFolder(game.installDir);
-    }
-  };
-
   const handleCopyLink = () => {
     const url =
       game.platform === 'steam'
@@ -278,6 +270,9 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
     return (b.unlocktime || 0) - (a.unlocktime || 0);
   });
 
+  const achievedCount = achievements.filter(a => a.achieved).length;
+  const achievementProgress = achievements.length > 0 ? (achievedCount / achievements.length) * 100 : 0;
+
   const lastAchievement = achievements
     .filter((a) => a.achieved && a.unlocktime)
     .sort((a, b) => (b.unlocktime || 0) - (a.unlocktime || 0))[0];
@@ -286,9 +281,6 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
     quarkFriendsOnGame.length > 0 && achievementProgress > 0
       ? `${Math.round(achievementProgress)}% (ty)`
       : null;
-
-  const achievedCount = achievements.filter(a => a.achieved).length;
-  const achievementProgress = achievements.length > 0 ? (achievedCount / achievements.length) * 100 : 0;
 
   return (
     <div className="fixed inset-0 z-50 flex">
@@ -299,7 +291,7 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
       />
 
       {/* Content */}
-      <div className="relative flex-1 flex flex-col m-4 ml-[220px] rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 shadow-2xl">
+      <div className="relative flex-1 flex flex-col min-h-0 m-4 ml-[220px] rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 shadow-2xl">
         {/* Hero Background */}
         <div className="absolute inset-0">
           {(game.background || game.hero) && (
@@ -344,20 +336,12 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleCopyLink} title="Kopiuj link">
               <Share2 className="h-4 w-4 text-zinc-400" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => hideGame(game.id)}
-              title="Ukryj grę"
-            >
-              <Settings className="h-4 w-4 text-zinc-400" />
-            </Button>
+            <GameActionsMenu game={game} onHidden={onClose} />
           </div>
         </div>
 
-        {/* Main Content */}
-        <ScrollArea className="flex-1">
+        {/* Main Content — native scroll (ScrollArea breaks in nested flex) */}
+        <div className="relative flex-1 min-h-0 overflow-y-auto overscroll-contain">
           <div className="relative p-8 space-y-8">
             {/* Game Logo & Info */}
             <div className="flex items-end gap-8">
@@ -727,10 +711,10 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
                     )}
 
                     {game.installDir && (
-                      <Button variant="outline" className="gap-2 border-white/10" onClick={handleOpenFolder}>
-                        <FolderOpen className="h-4 w-4" />
-                        Otwórz folder instalacji
-                      </Button>
+                      <div className="space-y-2 col-span-3">
+                        <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">Folder instalacji</h3>
+                        <p className="text-white font-mono text-sm truncate">{game.installDir}</p>
+                      </div>
                     )}
 
                     <div className="space-y-2">
@@ -849,13 +833,6 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
                   </div>
                 </div>
 
-                {game.installDir && (
-                  <Button variant="outline" className="gap-2 border-white/10" onClick={handleOpenFolder}>
-                    <FolderOpen className="h-4 w-4" />
-                    Otwórz folder instalacji
-                  </Button>
-                )}
-
                 <div className="space-y-2">
                   <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
                     <StickyNote className="h-4 w-4" /> Notatki
@@ -920,7 +897,7 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
               </>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </div>
     </div>
   );

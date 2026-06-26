@@ -6,6 +6,7 @@ import { parseSubscription, type UserSubscription } from './subscription';
 import { apiRequest } from './api-client';
 import { Models } from 'appwrite';
 import { track, endSession, flushTelemetry } from './telemetry/client';
+import { resetAppTour } from '@/components/onboarding/app-tour';
 
 const PROFILE_CACHE_KEY = 'quark_profile_cache';
 
@@ -68,6 +69,7 @@ interface AuthContextType {
   unlinkSteam: () => Promise<{ success: boolean; error?: string }>;
 
   completeOnboarding: () => void;
+  resetOnboardingFlow: () => Promise<void>;
   refreshUser: () => Promise<void>;
   clearError: () => void;
 }
@@ -269,6 +271,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const resetOnboardingFlow = async () => {
+    endSession('logout');
+    await flushTelemetry();
+    try {
+      await authService.logout();
+    } catch {
+      /* ignore */
+    }
+    setUser(null);
+    setProfile(null);
+    setSteamIntegration(null);
+    setMeLoaded(false);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(ONBOARDING_KEY);
+      resetAppTour();
+      setIsOnboardingComplete(false);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     profile,
@@ -296,6 +317,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     linkSteam,
     unlinkSteam,
     completeOnboarding,
+    resetOnboardingFlow,
     refreshUser: loadUser,
     clearError: () => setError(null),
   };

@@ -10,7 +10,14 @@ publish:
 files:
   - filter:
       - main.js
+      - dev-server.js
       - preload.js
+      - overlay-manager.js
+      - overlay.html
+      - overlay.css
+      - overlay-renderer.js
+      - overlay-preload.js
+      - overlay-performance.js
       - dev-app-update.yml
       - assets/**/*
       - package.json

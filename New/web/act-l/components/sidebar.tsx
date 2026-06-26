@@ -26,6 +26,7 @@ import { Game } from '@/lib/types';
 import { CardPost } from '@/components/side_banner';
 import { useFriends } from '@/lib/friends-context';
 import { useTranslations } from 'next-intl';
+import { isDevUnlockSearch, unlockDevSession } from '@/lib/dev-unlock';
 
 interface SidebarProps {
   currentView: string;
@@ -67,9 +68,21 @@ export function Sidebar({
   });
   const displayedGames = sortedGames.filter((game) => !game.isHidden);
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!e.ctrlKey || !e.shiftKey || e.key.toLowerCase() !== 'n') return;
+      if (!isDevUnlockSearch(searchQuery)) return;
+      if (displayedGames.length > 0) return;
+      e.preventDefault();
+      unlockDevSession();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [searchQuery, displayedGames.length]);
+
   return (
     <aside className="w-[240px] bg-zinc-950/80 backdrop-blur-xl border-r border-white/5 flex flex-col h-full">
-      <div className="px-3 pt-3 pb-2">
+      <div className="px-3 pt-3 pb-2" data-tour="search">
         <div className="relative group">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 transition-colors group-focus-within:text-violet-500" />
           <Input
@@ -86,7 +99,7 @@ export function Sidebar({
         </div>
       </div>
 
-      <nav className="px-2 py-1 space-y-0.5">
+      <nav className="px-2 py-1 space-y-0.5" data-tour="nav">
         {navItems.map((item) => (
           <Button
             key={item.id}
@@ -125,7 +138,7 @@ export function Sidebar({
 
         {isGamesExpanded && (
           <div className="flex-1 overflow-hidden px-2">
-            <ScrollArea className="h-full">
+            <ScrollArea className="h-full" data-tour="game-list">
               <div className="space-y-0.5 pb-4 pr-2">
                 {displayedGames.map((game) => (
                   <button
@@ -157,6 +170,7 @@ export function Sidebar({
       <div className="p-3 border-t border-white/5 space-y-2">
         <Button
           variant="ghost"
+          data-tour="friends"
           className={cn(
             'w-full justify-start gap-2 h-9 text-xs font-medium rounded-xl transition-all',
             isFriendsOpen
@@ -192,6 +206,7 @@ export function Sidebar({
           <Button
             variant="ghost"
             size="icon"
+            data-tour="settings"
             className="h-8 w-8 hover:bg-white/10 rounded-xl"
             onClick={onOpenSettings}
             aria-label={tc('settings')}

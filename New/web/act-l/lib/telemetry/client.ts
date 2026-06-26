@@ -38,6 +38,7 @@ let flushing = false;
 let flushBackoffMs = 0;
 let flushBackoffUntil = 0;
 let flushWarnedThisSession = false;
+let appLaunched = false;
 
 function scheduleFlushBackoff() {
   flushBackoffMs = flushBackoffMs ? Math.min(flushBackoffMs * 2, 300_000) : 30_000;
@@ -276,9 +277,12 @@ export async function flushTelemetry(): Promise<void> {
       for (const log of batch.logs) await enqueueLog(log);
     } else {
       clearFlushBackoff();
+      if (isDevSettingsEnabled() && (batch.events.length > 0 || batch.logs.length > 0)) {
+        console.debug('[Telemetry] Flushed', batch.events.length, 'events,', batch.logs.length, 'logs');
+      }
     }
   } catch {
-    /* re-queue handled above on failure */
+    scheduleFlushBackoff();
   } finally {
     flushing = false;
   }

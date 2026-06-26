@@ -37,7 +37,11 @@
     "searchResults": "Search results",
     "library": "Game library",
     "recentlyPlayed": "Recently played",
-    "noSearchResults": "No results for \"{query}\""
+    "noSearchResults": "No results for \"{query}\"",
+    "noCategories": "No categories",
+    "noCategoriesHint": "Create categories to group games on the home page — like playlists.",
+    "addCategory": "Add category",
+    "dragHint": "Drag cards or sections to reorder"
   },
   "profile": {
     "guest": "User",
@@ -138,8 +142,9 @@
       "general": "General",
       "hidden": "Hidden games",
       "categories": "Categories",
+      "overlay": "Overlay",
       "privacy": "Privacy",
-      "admin": "Dev settings"
+      "dev": "Dev"
     },
     "language": "Language",
     "languageDesc": "Choose the application interface language",
@@ -171,7 +176,32 @@
     "on": "On",
     "off": "Off",
     "notifyFriendPlaying": "Friend game notifications",
-    "notifyFriendPlayingDesc": "Notify when a Quark friend starts playing a game"
+    "notifyFriendPlayingDesc": "Notify when a Quark friend starts playing a game",
+    "overlayTitle": "In-game overlay",
+    "overlayDesc": "HUD panel during a game session launched from Quark. Logo on the left, performance on the right.",
+    "overlayShortcut": "Toggle overlay shortcut",
+    "overlayElements": "Overlay elements",
+    "overlayFpsNote": "FPS reflects overlay window refresh (estimate), not in-game frames. GPU needs NVIDIA (nvidia-smi) or Windows performance counters.",
+    "overlay": {
+      "showLogo": "Quark logo",
+      "showLogoDesc": "Quark title in the top-left corner",
+      "showCpu": "CPU usage",
+      "showCpuDesc": "Processor load percentage",
+      "showGpu": "GPU usage",
+      "showGpuDesc": "Graphics card load percentage",
+      "showFps": "Frames per second (FPS)",
+      "showFpsDesc": "Overlay window FPS estimate",
+      "showCpuChart": "CPU chart",
+      "showCpuChartDesc": "Mini chart of CPU load history",
+      "showRam": "RAM usage",
+      "showRamDesc": "System memory usage percentage",
+      "showSessionTimer": "Session timer",
+      "showSessionTimerDesc": "Time since launch from Quark",
+      "showDateTime": "Clock",
+      "showDateTimeDesc": "Current time on the overlay",
+      "showPing": "Ping",
+      "showPingDesc": "Estimated ping to Quark server (~every 15s)"
+    }
   },
   "friends": {
     "title": "Friends",

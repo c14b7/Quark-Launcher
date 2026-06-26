@@ -23,6 +23,7 @@ import { Game } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { OnboardingScreen } from '@/components/onboarding/onboarding-screen';
+import { AppTour, shouldShowAppTour } from '@/components/onboarding/app-tour';
 import { LoadingScreen } from '@/components/loading-screen';
 import {
   Dialog,
@@ -43,8 +44,12 @@ function LauncherContent() {
   const tc = useTranslations('common');
   const [currentView, setCurrentView] = useState('home');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<
+    'general' | 'hidden' | 'categories' | 'overlay' | 'ai' | 'privacy' | 'admin'
+  >('general');
   const [isSteamIntegrationOpen, setIsSteamIntegrationOpen] = useState(false);
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
+  const [tourActive, setTourActive] = useState(false);
 
   const [isFriendsOpen, setIsFriendsOpen] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -59,6 +64,22 @@ function LauncherContent() {
   const { isAuthenticated, profile, steamIntegration, isLoading, meLoaded, apiUnavailable, updateProfile, user } = useAuth();
 
   useTrackView(isAuthenticated ? currentView : 'onboarding');
+
+  useEffect(() => {
+    if (isAuthenticated && shouldShowAppTour()) {
+      const timer = setTimeout(() => setTourActive(true), 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    const onDevUnlocked = () => {
+      setSettingsInitialTab('admin');
+      setIsSettingsOpen(true);
+    };
+    window.addEventListener('quark-dev-unlocked', onDevUnlocked);
+    return () => window.removeEventListener('quark-dev-unlocked', onDevUnlocked);
+  }, []);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && meLoaded && !apiUnavailable) {
@@ -81,6 +102,13 @@ function LauncherContent() {
   if (!isAuthenticated) {
     return <OnboardingScreen />;
   }
+
+  const openSettings = (
+    tab: 'general' | 'hidden' | 'categories' | 'overlay' | 'ai' | 'privacy' | 'admin' = 'general'
+  ) => {
+    setSettingsInitialTab(tab);
+    setIsSettingsOpen(true);
+  };
 
   const toggleFriendsSidebar = () => {
     setIsFriendsOpen((prev) => {
@@ -123,7 +151,7 @@ function LauncherContent() {
     >
       <TitleBar
         onNavigate={setCurrentView}
-        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenSettings={() => openSettings()}
         onOpenSteamIntegration={() => setIsSteamIntegrationOpen(true)}
         onOpenProfileEdit={() => setIsProfileEditOpen(true)}
       />
@@ -140,13 +168,15 @@ function LauncherContent() {
           currentView={currentView}
           onNavigate={setCurrentView}
           onGameSelect={handleGameSelect}
-          onOpenSettings={() => setIsSettingsOpen(true)}
+          onOpenSettings={() => openSettings()}
           onToggleFriends={toggleFriendsSidebar}
           isFriendsOpen={isFriendsOpen}
         />
 
         <main className="flex-1 flex flex-col overflow-hidden bg-launcher-main">
-          {currentView === 'home' && <HomeView onGameSelect={handleGameSelect} />}
+          {currentView === 'home' && (
+            <HomeView onGameSelect={handleGameSelect} onOpenSettings={(tab) => openSettings(tab || 'categories')} />
+          )}
           {currentView === 'library' && <LibraryView onGameSelect={handleGameSelect} />}
           {currentView === 'downloads' && <DownloadsView />}
           {currentView === 'news' && <NewsView />}
@@ -174,7 +204,12 @@ function LauncherContent() {
       </div>
 
       {selectedGame && <GameDetails game={selectedGame} onClose={handleCloseDetails} />}
-      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      <AppTour active={tourActive} onComplete={() => setTourActive(false)} />
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        initialTab={settingsInitialTab}
+      />
       <ProfileQuickSheet open={isProfileEditOpen} onOpenChange={setIsProfileEditOpen} />
 
       <Dialog open={isSteamIntegrationOpen} onOpenChange={handleSteamDialogClose}>

@@ -55,6 +55,7 @@ export function TitleBar({
   return (
     <div
       className="h-10 bg-zinc-950/90 backdrop-blur-xl flex items-center gap-2 px-3 border-b border-white/5 select-none"
+      data-tour="titlebar"
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
       <div className="flex items-center gap-2 shrink-0">
