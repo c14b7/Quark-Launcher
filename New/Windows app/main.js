@@ -3,7 +3,6 @@ const path = require('path');
 const fs = require('fs').promises;
 const { spawn, exec } = require('child_process');
 const { OverlayManager } = require('./overlay-manager');
-const { startNextDevServer, stopNextDevServer } = require('./dev-server');
 
 
 
@@ -27,8 +26,6 @@ class QuarkLauncher {
     this.userDataPath = app.getPath('userData');
     this._updaterListenersAttached = false;
     this.overlayManager = null;
-    this.devServer = null;
-    this.devServerUrl = null;
     this.initializeApp();
   }
 
@@ -38,18 +35,6 @@ class QuarkLauncher {
     
     app.whenReady().then(async () => {
       await this.ensureUserDataDir();
-
-      if (isDev) {
-        try {
-          this.devServer = await startNextDevServer();
-          this.devServerUrl = this.devServer.url;
-        } catch (err) {
-          console.error('[Dev] Nie udało się uruchomić serwera Next.js:', err);
-          app.quit();
-          return;
-        }
-      }
-
       this.createMainWindow();
       this.setupIpcHandlers();
       this.setupAutoUpdater();
@@ -71,10 +56,6 @@ class QuarkLauncher {
     });
 
     app.on('will-quit', () => {
-      if (isDev && this.devServer) {
-        stopNextDevServer(this.devServer);
-        this.devServer = null;
-      }
       if (this.overlayManager) this.overlayManager.dispose();
       if (globalShortcut.isRegistered('Control+Alt+F10')) {
         globalShortcut.unregister('Control+Alt+F10');
@@ -125,7 +106,7 @@ class QuarkLauncher {
 
     // Ładowanie aplikacji Next.js
     const startUrl = isDev
-      ? (this.devServerUrl || 'http://127.0.0.1:30211')
+      ? 'http://localhost:30211'
       : `file://${path.join(process.resourcesPath, 'app', 'index.html')}`;
 
     this.mainWindow.loadURL(startUrl);
@@ -159,27 +140,20 @@ class QuarkLauncher {
   setupDevReloadHandlers(startUrl) {
     const wc = this.mainWindow.webContents;
     let reloadTimer = null;
-    let devOrigin = 'http://127.0.0.1';
-    try {
-      devOrigin = new URL(startUrl).origin;
-    } catch {
-      // fallback
-    }
 
     const scheduleReload = () => {
       if (reloadTimer) return;
       reloadTimer = setTimeout(() => {
         reloadTimer = null;
         if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-          const url = this.devServerUrl || startUrl;
           console.log('[Dev] Reloading after dev server recovery…');
-          this.mainWindow.loadURL(url).catch(() => {});
+          this.mainWindow.loadURL(startUrl).catch(() => {});
         }
       }, 1500);
     };
 
     wc.on('did-fail-load', (_event, errorCode, _desc, validatedURL) => {
-      if (validatedURL?.startsWith(devOrigin)) {
+      if (validatedURL?.startsWith('http://localhost:30211')) {
         console.warn('[Dev] Page load failed:', errorCode, '— waiting for Next.js…');
         scheduleReload();
       }

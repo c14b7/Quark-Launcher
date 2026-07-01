@@ -168,7 +168,6 @@ Przełączenie nakładki skrótem wysyła event `overlay.toggled` z `{ visible: 
 | GPU zawsze 0% | Brak `nvidia-smi` / brak liczników GPU w Windows |
 | Nakładka niewidoczna | Pełny ekran exclusive — spróbuj okna lub borderless |
 | Ustawienia nie stosują się | Uruchom z buildem Electron (nie sam `next dev` w przeglądarce) |
-| Port 30211 zajęty | Electron automatycznie wybierze 30212, 30213… (`dev-server.js`) |
 
 ---
 

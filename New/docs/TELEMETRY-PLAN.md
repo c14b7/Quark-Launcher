@@ -1,7 +1,7 @@
 # Quark Launcher — plan systemu telemetrii i analityki
 
 > **Status:** wdrożone (Faza 1)  
-> **Cel:** zbieranie danych od wersji następnej po `0.0.5-beta03a`, przygotowanie pod panel administracyjny  
+> **Cel:** zbieranie danych od wersji następnej po `0.0.5-beta01b`, przygotowanie pod panel administracyjny  
 > **Data:** 2026-06-23
 
 ---
