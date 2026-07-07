@@ -6,6 +6,7 @@ const config_1 = require("./lib/config");
 const middleware_1 = require("./lib/middleware");
 const rate_limit_1 = require("./lib/rate-limit");
 const runtime_1 = require("./lib/runtime");
+const telemetry_schema_1 = require("./lib/telemetry-schema");
 const noopLogger = { log: () => { }, error: console.error };
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const EVENT_CATEGORIES = new Set([
@@ -21,6 +22,9 @@ const ALLOWED_EVENTS = new Set([
     'steam.linked', 'steam.unlinked',
     'settings.changed', 'feature.used', 'telemetry.consent_changed',
     'update.available', 'update.download_started', 'update.download_complete', 'update.installed', 'update.failed',
+    'overlay.toggled',
+    'chat.message_sent', 'chat.message_received', 'chat.group_created', 'chat.deal_shared',
+    'store.search', 'overlay.chat_notification',
     'error.api', 'error.client', 'error.uncaught',
 ]);
 const PRE_AUTH_EVENTS = new Set(['app.launch', 'session.start', 'session.end', 'session.heartbeat']);
@@ -145,7 +149,7 @@ async function upsertSession(databases, session, installationId, userId, appVers
         });
     }
 }
-async function createEventDoc(databases, event, installationId, sessionId, userId, appVersion, now) {
+async function createEventDoc(databases, event, installationId, sessionId, userId, _appVersion, _now, logger) {
     if (!ALLOWED_EVENTS.has(event.name))
         return false;
     if (!EVENT_CATEGORIES.has(event.category))
@@ -159,18 +163,38 @@ async function createEventDoc(databases, event, installationId, sessionId, userI
     catch {
         /* new event */
     }
-    await databases.createDocument(config_1.DATABASE_ID, config_1.COLLECTIONS.telemetryEvents, event.eventId, {
+    const base = {
         installationId,
         sessionId,
         userId: userId || '',
         name: event.name,
         category: event.category,
         timestamp: event.timestamp,
-        properties: stringifyProperties(event.properties),
-    });
-    return true;
+    };
+    try {
+        await databases.createDocument(config_1.DATABASE_ID, config_1.COLLECTIONS.telemetryEvents, event.eventId, {
+            ...base,
+            properties: stringifyProperties(event.properties),
+        });
+        return true;
+    }
+    catch (err) {
+        if ((0, telemetry_schema_1.isUnknownAttributeError)(err)) {
+            try {
+                await databases.createDocument(config_1.DATABASE_ID, config_1.COLLECTIONS.telemetryEvents, event.eventId, base);
+                logger.log(`Event ${event.name} stored without properties (schema partial)`);
+                return true;
+            }
+            catch (retryErr) {
+                logger.error(`Event create failed: ${(0, runtime_1.formatError)(retryErr)}`);
+                return false;
+            }
+        }
+        logger.error(`Event create failed: ${(0, runtime_1.formatError)(err)}`);
+        return false;
+    }
 }
-async function createLogDoc(databases, log, installationId, sessionId, userId, appVersion, now) {
+async function createLogDoc(databases, log, installationId, sessionId, userId, _appVersion, _now, logger) {
     if (!LOG_LEVELS.has(log.level))
         return false;
     if (!isUuid(log.logId))
@@ -182,16 +206,36 @@ async function createLogDoc(databases, log, installationId, sessionId, userId, a
     catch {
         /* new log */
     }
-    await databases.createDocument(config_1.DATABASE_ID, config_1.COLLECTIONS.telemetryLogs, log.logId, {
+    const base = {
         installationId,
         sessionId,
         userId: userId || '',
         level: log.level,
         message: sanitizeString(String(log.message || '').slice(0, 500)),
-        details: stringifyLogDetails(log.context, log.stack),
         timestamp: log.timestamp,
-    });
-    return true;
+    };
+    try {
+        await databases.createDocument(config_1.DATABASE_ID, config_1.COLLECTIONS.telemetryLogs, log.logId, {
+            ...base,
+            details: stringifyLogDetails(log.context, log.stack),
+        });
+        return true;
+    }
+    catch (err) {
+        if ((0, telemetry_schema_1.isUnknownAttributeError)(err)) {
+            try {
+                await databases.createDocument(config_1.DATABASE_ID, config_1.COLLECTIONS.telemetryLogs, log.logId, base);
+                logger.log(`Log stored without details (schema partial)`);
+                return true;
+            }
+            catch (retryErr) {
+                logger.error(`Log create failed: ${(0, runtime_1.formatError)(retryErr)}`);
+                return false;
+            }
+        }
+        logger.error(`Log create failed: ${(0, runtime_1.formatError)(err)}`);
+        return false;
+    }
 }
 async function handleTelemetryApiRequest(req, res, logger = noopLogger) {
     const method = (req.method || 'POST').toUpperCase();
@@ -239,42 +283,59 @@ async function handleTelemetryApiRequest(req, res, logger = noopLogger) {
         }
         const now = new Date().toISOString();
         const appVersion = installation.appVersion || '';
+        let partial = false;
+        let acceptedEvents = 0;
+        let acceptedLogs = 0;
+        let installOk = false;
+        let sessionOk = false;
         try {
             await upsertInstallation(databases, installation, userId, now);
-            await upsertSession(databases, session, installation.installationId, userId, appVersion, now);
-            let acceptedEvents = 0;
-            let acceptedLogs = 0;
-            if (!analyticsOff) {
-                for (const event of events) {
-                    if (!event?.name || !event?.category || !event?.timestamp)
-                        continue;
-                    if (!userId && !PRE_AUTH_EVENTS.has(event.name))
-                        continue;
-                    const ok = await createEventDoc(databases, event, installation.installationId, session.sessionId, userId, appVersion, now);
-                    if (ok)
-                        acceptedEvents++;
-                }
-            }
-            if (!diagnosticsOff) {
-                for (const log of logs) {
-                    if (!log?.level || !log?.message || !log?.timestamp)
-                        continue;
-                    if (log.level === 'debug' || log.level === 'info')
-                        continue;
-                    const ok = await createLogDoc(databases, log, installation.installationId, session.sessionId, userId, appVersion, now);
-                    if (ok)
-                        acceptedLogs++;
-                }
-            }
-            return (0, middleware_1.jsonResponse)(res, {
-                success: true,
-                accepted: { events: acceptedEvents, logs: acceptedLogs },
-            });
+            installOk = true;
         }
         catch (err) {
-            logger.error(`Telemetry ingest failed: ${(0, runtime_1.formatError)(err)}`);
-            return (0, middleware_1.errorResponse)(res, 'INGEST_FAILED', 'Failed to store telemetry', 500);
+            logger.error(`Installation upsert failed: ${(0, runtime_1.formatError)(err)}`);
         }
+        try {
+            await upsertSession(databases, session, installation.installationId, userId, appVersion, now);
+            sessionOk = true;
+        }
+        catch (err) {
+            logger.error(`Session upsert failed: ${(0, runtime_1.formatError)(err)}`);
+        }
+        if (!analyticsOff) {
+            for (const event of events) {
+                if (!event?.name || !event?.category || !event?.timestamp)
+                    continue;
+                if (!userId && !PRE_AUTH_EVENTS.has(event.name))
+                    continue;
+                const ok = await createEventDoc(databases, event, installation.installationId, session.sessionId, userId, appVersion, now, logger);
+                if (ok)
+                    acceptedEvents++;
+            }
+        }
+        if (!diagnosticsOff) {
+            for (const log of logs) {
+                if (!log?.level || !log?.message || !log?.timestamp)
+                    continue;
+                if (log.level === 'debug' || log.level === 'info')
+                    continue;
+                const ok = await createLogDoc(databases, log, installation.installationId, session.sessionId, userId, appVersion, now, logger);
+                if (ok)
+                    acceptedLogs++;
+            }
+        }
+        if (!installOk && !sessionOk && acceptedEvents === 0 && acceptedLogs === 0 && (events.length > 0 || logs.length > 0)) {
+            return (0, middleware_1.errorResponse)(res, 'INGEST_FAILED', 'Failed to store telemetry — check DB schema (run migrate-telemetry)', 500);
+        }
+        if (acceptedEvents < events.length || acceptedLogs < logs.length)
+            partial = true;
+        return (0, middleware_1.jsonResponse)(res, {
+            success: true,
+            accepted: { events: acceptedEvents, logs: acceptedLogs },
+            partial,
+            installOk,
+            sessionOk,
+        });
     }
     if (path === '/telemetry/consent' && method === 'POST') {
         if (!userId)

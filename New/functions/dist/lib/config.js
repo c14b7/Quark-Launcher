@@ -19,6 +19,10 @@ exports.COLLECTIONS = {
     telemetrySessions: 'telemetry_sessions',
     telemetryEvents: 'telemetry_events',
     telemetryLogs: 'telemetry_logs',
+    conversations: 'conversations',
+    conversationMembers: 'conversation_members',
+    messages: 'messages',
+    messageReactions: 'message_reactions',
 };
 exports.BUCKETS = {
     userMedia: 'user_media',

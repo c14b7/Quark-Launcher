@@ -105,7 +105,7 @@ function formatConversation(
     ownerId: conv.ownerId || null,
     memberIds,
     members: otherProfiles.map((p) => toPublicProfile(p)),
-    lastMessageAt: conv.lastMessageAt || null,
+    lastMessageAt: (conv.lastMessageAt as string | null) || null,
     lastMessagePreview: conv.lastMessagePreview || '',
     lastMessageSenderId: conv.lastMessageSenderId || null,
     settings: conv.settings ? JSON.parse(String(conv.settings)) : {},

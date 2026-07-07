@@ -2,7 +2,7 @@
 
 ## Duża czerwcowa aktualizacja 🏳️‍🌈
 
-Obecna wersja: **0.0.5-beta04**
+Obecna wersja: **0.0.5-beta04a**
 
 ### 🚀 Co nowego:
 - Poprawiono automatyczne aktualizacje

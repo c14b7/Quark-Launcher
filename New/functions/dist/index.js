@@ -8,8 +8,10 @@ const steam_api_1 = require("./steam-api");
 const auth_api_1 = require("./auth-api");
 const friends_api_1 = require("./friends-api");
 const telemetry_api_1 = require("./telemetry-api");
+const chat_api_1 = require("./chat-api");
 const middleware_1 = require("./lib/middleware");
 const config_1 = require("./lib/config");
+const telemetry_schema_1 = require("./lib/telemetry-schema");
 const runtime_1 = require("./lib/runtime");
 async function default_1({ req, res, log, error }) {
     const logger = (0, runtime_1.createLogger)(log, error);
@@ -26,11 +28,13 @@ async function default_1({ req, res, log, error }) {
             }, 500);
         }
         if (path === '/health' && method === 'GET') {
+            const telemetrySchema = await (0, telemetry_schema_1.getTelemetrySchemaStatus)();
             return res.json({
                 success: true,
-                version: '2.0.1',
+                version: '2.1.0',
                 apiKeyConfigured: true,
                 path,
+                telemetrySchema,
             });
         }
         if (path.startsWith('/auth')) {
@@ -42,6 +46,9 @@ async function default_1({ req, res, log, error }) {
         if (path.startsWith('/steam')) {
             return (0, steam_api_1.handleSteamApiRequest)(req, res, logger);
         }
+        if (path.startsWith('/chat')) {
+            return (0, chat_api_1.handleChatApiRequest)(req, res, logger);
+        }
         if (path.startsWith('/telemetry')) {
             return (0, telemetry_api_1.handleTelemetryApiRequest)(req, res, logger);
         }
@@ -51,7 +58,7 @@ async function default_1({ req, res, log, error }) {
             code: 'NOT_FOUND',
             error: `Unknown route: ${path || '/'}`,
             version: '2.0.1',
-            endpoints: ['/auth', '/friends', '/steam', '/telemetry', '/health'],
+            endpoints: ['/auth', '/friends', '/chat', '/steam', '/telemetry', '/health'],
         }, 404);
     }
     catch (err) {

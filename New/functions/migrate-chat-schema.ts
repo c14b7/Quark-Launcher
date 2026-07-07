@@ -151,11 +151,8 @@ async function main() {
         DATABASE_ID,
         idx.collection,
         idx.key,
-        IndexType.Key,
-        idx.attributes,
-        undefined,
-        undefined,
-        (idx as { unique?: boolean }).unique ? ['unique'] : undefined
+        (idx as { unique?: boolean }).unique ? IndexType.Unique : IndexType.Key,
+        idx.attributes
       );
       console.log(`✅ index ${idx.key}`);
     } catch (e: unknown) {

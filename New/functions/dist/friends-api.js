@@ -261,6 +261,24 @@ async function handleFriendsApiRequest(req, res, logger = noopLogger) {
                     return (0, middleware_1.errorResponse)(res, statusErr, 'Invalid custom status');
                 updates.customStatus = body.customStatus;
             }
+            if (body.currentActivity !== undefined) {
+                const act = String(body.currentActivity);
+                if (!['playing', 'menu', 'idle', 'none'].includes(act)) {
+                    return (0, middleware_1.errorResponse)(res, 'INVALID_ACTIVITY', 'Invalid activity', 400);
+                }
+                updates.currentActivity = act;
+                updates.activityUpdatedAt = new Date().toISOString();
+                if (act === 'none' || act === 'idle') {
+                    updates.currentGameId = '';
+                    updates.currentGameName = '';
+                }
+            }
+            if (body.currentGameId !== undefined) {
+                updates.currentGameId = String(body.currentGameId).slice(0, 50);
+            }
+            if (body.currentGameName !== undefined) {
+                updates.currentGameName = String(body.currentGameName).slice(0, 128);
+            }
             await databases.updateDocument(config_1.DATABASE_ID, config_1.COLLECTIONS.userProfiles, userId, updates);
             return (0, middleware_1.jsonResponse)(res, { success: true });
         }
