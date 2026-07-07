@@ -42,13 +42,17 @@ async function steamStoreFeatured(cc = 'pl') {
   const url = `https://store.steampowered.com/api/featuredcategories?l=${cc}&cc=${cc}`;
   const data = await fetchJson(url);
   const items = [];
+  const seen = new Set();
   const sections = ['specials', 'coming_soon', 'top_sellers', 'new_releases'];
   for (const key of sections) {
     const section = data[key];
     if (!section?.items) continue;
     for (const item of section.items.slice(0, 12)) {
+      const id = String(item.id);
+      if (seen.has(id)) continue;
+      seen.add(id);
       items.push({
-        id: String(item.id),
+        id,
         name: item.name,
         platform: 'steam',
         discountPercent: item.discount_percent || 0,

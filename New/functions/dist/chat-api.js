@@ -75,7 +75,14 @@ function formatConversation(conv, member, otherProfiles) {
         lastMessageAt: conv.lastMessageAt || null,
         lastMessagePreview: conv.lastMessagePreview || '',
         lastMessageSenderId: conv.lastMessageSenderId || null,
-        settings: conv.settings ? JSON.parse(String(conv.settings)) : {},
+        settings: (() => {
+            try {
+                return conv.settings ? JSON.parse(String(conv.settings)) : {};
+            }
+            catch {
+                return {};
+            }
+        })(),
         pinnedMessageIds: conv.pinnedMessageIds || [],
         createdAt: conv.createdAt,
         unread: member ? computeUnread(conv, member) : false,
@@ -242,11 +249,13 @@ async function handleChatApiRequest(req, res, logger = noopLogger) {
                 }
             }
             const now = new Date().toISOString();
-            const conv = await databases.createDocument(config_1.DATABASE_ID, config_1.COLLECTIONS.conversations, node_appwrite_1.ID.unique(), {
+            const convId = node_appwrite_1.ID.unique();
+            const conv = await databases.createDocument(config_1.DATABASE_ID, config_1.COLLECTIONS.conversations, convId, {
                 type: 'group',
                 name,
                 ownerId: userId,
                 memberIds,
+                dmKey: `group:${convId}`,
                 createdAt: now,
                 settings: JSON.stringify({ whoCanInvite: 'admins' }),
             });
@@ -512,7 +521,8 @@ async function handleChatApiRequest(req, res, logger = noopLogger) {
         return (0, middleware_1.errorResponse)(res, 'NOT_FOUND', `Unknown chat route: ${path}`, 404);
     }
     catch (err) {
-        logger.error(`Chat error: ${(0, runtime_1.formatError)(err)}`);
-        return (0, middleware_1.errorResponse)(res, 'INTERNAL_ERROR', 'Chat request failed', 500);
+        const detail = (0, runtime_1.formatError)(err);
+        logger.error(`Chat error: ${detail}`);
+        return (0, middleware_1.errorResponse)(res, 'INTERNAL_ERROR', detail || 'Chat request failed', 500);
     }
 }

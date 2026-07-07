@@ -122,7 +122,7 @@ async function main() {
         }
     }
     const indexes = [
-        { collection: 'conversations', key: 'dmKey_unique', attributes: ['dmKey'], unique: true },
+        { collection: 'conversations', key: 'dmKey_idx', attributes: ['dmKey'] },
         { collection: 'conversations', key: 'lastMessageAt_idx', attributes: ['lastMessageAt'] },
         { collection: 'conversation_members', key: 'userId_idx', attributes: ['userId'] },
         { collection: 'conversation_members', key: 'conversationId_idx', attributes: ['conversationId'] },

@@ -108,7 +108,13 @@ function formatConversation(
     lastMessageAt: (conv.lastMessageAt as string | null) || null,
     lastMessagePreview: conv.lastMessagePreview || '',
     lastMessageSenderId: conv.lastMessageSenderId || null,
-    settings: conv.settings ? JSON.parse(String(conv.settings)) : {},
+    settings: (() => {
+      try {
+        return conv.settings ? JSON.parse(String(conv.settings)) : {};
+      } catch {
+        return {};
+      }
+    })(),
     pinnedMessageIds: conv.pinnedMessageIds || [],
     createdAt: conv.createdAt,
     unread: member ? computeUnread(conv, member) : false,
@@ -278,15 +284,17 @@ export async function handleChatApiRequest(
       }
 
       const now = new Date().toISOString();
+      const convId = ID.unique();
       const conv = await databases.createDocument(
         DATABASE_ID,
         COLLECTIONS.conversations,
-        ID.unique(),
+        convId,
         {
           type: 'group',
           name,
           ownerId: userId,
           memberIds,
+          dmKey: `group:${convId}`,
           createdAt: now,
           settings: JSON.stringify({ whoCanInvite: 'admins' }),
         }
@@ -565,7 +573,8 @@ export async function handleChatApiRequest(
 
     return errorResponse(res, 'NOT_FOUND', `Unknown chat route: ${path}`, 404);
   } catch (err) {
-    logger.error(`Chat error: ${formatError(err)}`);
-    return errorResponse(res, 'INTERNAL_ERROR', 'Chat request failed', 500);
+    const detail = formatError(err);
+    logger.error(`Chat error: ${detail}`);
+    return errorResponse(res, 'INTERNAL_ERROR', detail || 'Chat request failed', 500);
   }
 }

@@ -427,7 +427,7 @@ async function setupDatabase() {
     { collection: 'steam_integrations', key: 'steamId_idx', attributes: ['steamId'] },
     { collection: 'friend_requests', key: 'fromUserId_idx', attributes: ['fromUserId'] },
     { collection: 'friend_requests', key: 'toUserId_status_idx', attributes: ['toUserId', 'status'] },
-    { collection: 'conversations', key: 'dmKey_unique', attributes: ['dmKey'], unique: true },
+    { collection: 'conversations', key: 'dmKey_idx', attributes: ['dmKey'] },
     { collection: 'conversations', key: 'lastMessageAt_idx', attributes: ['lastMessageAt'] },
     { collection: 'conversation_members', key: 'userId_idx', attributes: ['userId'] },
     { collection: 'conversation_members', key: 'conversationId_idx', attributes: ['conversationId'] },

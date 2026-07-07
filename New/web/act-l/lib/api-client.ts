@@ -67,7 +67,12 @@ export async function apiRequest<T = unknown>(
     });
 
     if (execution.status === 'failed') {
-      const errMsg = execution.errors || execution.responseBody || 'Function execution failed';
+      const parsed = parseResponseBody(execution.responseBody || execution.errors || '');
+      const errMsg =
+        (parsed.error as string) ||
+        execution.errors ||
+        execution.responseBody ||
+        'Function execution failed';
       console.error(`[API] ${httpMethod} ${path} failed (status=${execution.status}):`, errMsg);
       if (!path.startsWith('/telemetry')) {
         track('error.api', { path, code: 'FUNCTION_ERROR', latencyMs: Date.now() - startedAt }, 'error');
@@ -75,8 +80,8 @@ export async function apiRequest<T = unknown>(
       }
       return {
         success: false,
-        code: 'FUNCTION_ERROR',
-        error: execution.errors || 'Function execution failed',
+        code: (parsed.code as string) || 'FUNCTION_ERROR',
+        error: errMsg,
       };
     }
 

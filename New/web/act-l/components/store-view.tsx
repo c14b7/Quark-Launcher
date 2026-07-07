@@ -91,12 +91,12 @@ export function StoreView({ onGameSelect }: StoreViewProps) {
           {!isLoading && listings.length === 0 && (
             <p className="col-span-full text-center text-zinc-500 py-12">{t('empty')}</p>
           )}
-          {listings.map((item) => {
+          {listings.map((item, index) => {
             const owned = tab === 'steam' && ownedIds.has(item.id);
             const libGame = games.find((g) => g.id === item.id);
             return (
               <div
-                key={`${item.platform}-${item.id}`}
+                key={`${item.platform}-${item.id}-${index}`}
                 className="group rounded-xl overflow-hidden bg-zinc-900/60 border border-white/10 hover:border-lime-500/30 transition-colors"
               >
                 <div className="aspect-[16/9] relative bg-zinc-800">
