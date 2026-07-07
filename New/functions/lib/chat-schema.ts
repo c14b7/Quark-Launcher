@@ -18,6 +18,10 @@ export type ConversationType = (typeof CONVERSATION_TYPES)[number];
 export const MEMBER_ROLES = ['owner', 'admin', 'member'] as const;
 export type MemberRole = (typeof MEMBER_ROLES)[number];
 
+/** Appwrite string attribute limits (collection total size budget) */
+export const CHAT_BODY_MAX = 2048;
+export const CHAT_ATTACHMENTS_MAX = 2048;
+
 export function buildDmKey(userA: string, userB: string): string {
   const [a, b] = userA < userB ? [userA, userB] : [userB, userA];
   return `${a}:${b}`;

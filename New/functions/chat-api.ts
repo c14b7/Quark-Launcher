@@ -11,7 +11,7 @@ import {
 } from './lib/middleware';
 import { checkRateLimit } from './lib/rate-limit';
 import { sortUserIds } from './lib/friend-code';
-import { buildDmKey, MESSAGE_TYPES } from './lib/chat-schema';
+import { buildDmKey, MESSAGE_TYPES, CHAT_BODY_MAX, CHAT_ATTACHMENTS_MAX } from './lib/chat-schema';
 import { toPublicProfile, getProfileByUserId } from './auth-api';
 import { formatError } from './lib/runtime';
 import type { FunctionRequest, FunctionResponse } from './lib/runtime';
@@ -79,8 +79,6 @@ async function createMemberRecords(
         userId: memberId,
         role,
         joinedAt: now,
-        notifications: 'all',
-        pinned: false,
       }
     );
   }
@@ -351,8 +349,6 @@ export async function handleChatApiRequest(
         userId: newUserId,
         role: 'member',
         joinedAt: now,
-        notifications: 'all',
-        pinned: false,
       });
       await databases.updateDocument(DATABASE_ID, COLLECTIONS.conversations, convId, {
         memberIds: [...memberIds, newUserId],
@@ -439,8 +435,10 @@ export async function handleChatApiRequest(
       if (!MESSAGE_TYPES.includes(type as (typeof MESSAGE_TYPES)[number])) {
         return errorResponse(res, 'INVALID_TYPE', 'Invalid message type');
       }
-      const textBody = String(body.body || '').slice(0, 4000);
-      const attachments = body.attachments ? JSON.stringify(body.attachments) : undefined;
+      const textBody = String(body.body || '').slice(0, CHAT_BODY_MAX);
+      const attachments = body.attachments
+        ? JSON.stringify(body.attachments).slice(0, CHAT_ATTACHMENTS_MAX)
+        : undefined;
       if (type === 'text' && !textBody.trim()) {
         return errorResponse(res, 'INVALID_INPUT', 'Message body required');
       }
@@ -552,7 +550,7 @@ export async function handleChatApiRequest(
         return errorResponse(res, 'EXPIRED', 'Edit window expired', 400);
       }
       const updated = await databases.updateDocument(DATABASE_ID, COLLECTIONS.messages, msgId, {
-        body: String(body.body || '').slice(0, 4000),
+        body: String(body.body || '').slice(0, CHAT_BODY_MAX),
         editedAt: new Date().toISOString(),
       });
       return jsonResponse(res, { success: true, message: formatMessage(updated as Record<string, unknown>) });

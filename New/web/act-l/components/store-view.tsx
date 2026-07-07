@@ -49,8 +49,8 @@ export function StoreView({ onGameSelect }: StoreViewProps) {
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-      <div className="p-4 border-b border-white/10 space-y-3">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden">
+      <div className="p-4 border-b border-white/10 space-y-3 shrink-0">
         <h1 className="text-xl font-bold text-white">{t('title')}</h1>
         <div className="flex gap-2 flex-wrap">
           {tabs.map((tb) => (
@@ -83,7 +83,7 @@ export function StoreView({ onGameSelect }: StoreViewProps) {
         )}
       </div>
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0 h-full">
         <div className="p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pb-20">
           {isLoading && (
             <p className="col-span-full text-center text-zinc-500 py-12">{t('loading')}</p>

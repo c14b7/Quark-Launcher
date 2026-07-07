@@ -52,8 +52,8 @@ const COLLECTIONS: { id: string; name: string; attributes: Attr[] }[] = [
       { key: 'joinedAt', type: 'datetime', required: true },
       { key: 'lastReadAt', type: 'datetime', required: false },
       { key: 'lastReadMessageId', type: 'string', size: 36, required: false },
-      { key: 'notifications', type: 'enum', elements: ['all', 'mentions', 'muted'], required: true, default: 'all' },
-      { key: 'pinned', type: 'boolean', required: true, default: false },
+      { key: 'notifications', type: 'enum', elements: ['all', 'mentions', 'muted'], required: false, default: 'all' },
+      { key: 'pinned', type: 'boolean', required: false, default: false },
     ],
   },
   {
@@ -63,8 +63,8 @@ const COLLECTIONS: { id: string; name: string; attributes: Attr[] }[] = [
       { key: 'conversationId', type: 'string', size: 36, required: true },
       { key: 'senderId', type: 'string', size: 36, required: true },
       { key: 'type', type: 'enum', elements: ['text', 'game_share', 'achievement_share', 'store_deal', 'party_invite', 'system', 'lfg'], required: true },
-      { key: 'body', type: 'string', size: 4000, required: true },
-      { key: 'attachments', type: 'string', size: 8000, required: false },
+      { key: 'body', type: 'string', size: 2048, required: true },
+      { key: 'attachments', type: 'string', size: 2048, required: false },
       { key: 'replyToId', type: 'string', size: 36, required: false },
       { key: 'editedAt', type: 'datetime', required: false },
       { key: 'deletedAt', type: 'datetime', required: false },
@@ -95,12 +95,23 @@ async function createAttr(databases: Databases, collectionId: string, attr: Attr
       break;
     case 'enum':
       await databases.createEnumAttribute(
-        DATABASE_ID, collectionId, attr.key, attr.elements, attr.required, attr.default, false
+        DATABASE_ID,
+        collectionId,
+        attr.key,
+        attr.elements,
+        attr.required,
+        attr.required ? undefined : attr.default,
+        false
       );
       break;
     case 'boolean':
       await databases.createBooleanAttribute(
-        DATABASE_ID, collectionId, attr.key, attr.required, attr.default, false
+        DATABASE_ID,
+        collectionId,
+        attr.key,
+        attr.required,
+        attr.required ? undefined : attr.default,
+        false
       );
       break;
   }
@@ -163,6 +174,7 @@ async function main() {
   }
 
   console.log('\n🎉 Chat migration done');
+  console.log('ℹ️  If chat fails on unknown attributes, re-run after attributes finish building in Appwrite (~1 min).');
 }
 
 main().catch(console.error);

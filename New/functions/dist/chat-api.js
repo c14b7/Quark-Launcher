@@ -52,8 +52,6 @@ async function createMemberRecords(databases, conversationId, memberIds, ownerId
             userId: memberId,
             role,
             joinedAt: now,
-            notifications: 'all',
-            pinned: false,
         });
     }
 }
@@ -316,8 +314,6 @@ async function handleChatApiRequest(req, res, logger = noopLogger) {
                 userId: newUserId,
                 role: 'member',
                 joinedAt: now,
-                notifications: 'all',
-                pinned: false,
             });
             await databases.updateDocument(config_1.DATABASE_ID, config_1.COLLECTIONS.conversations, convId, {
                 memberIds: [...memberIds, newUserId],
@@ -396,8 +392,10 @@ async function handleChatApiRequest(req, res, logger = noopLogger) {
             if (!chat_schema_1.MESSAGE_TYPES.includes(type)) {
                 return (0, middleware_1.errorResponse)(res, 'INVALID_TYPE', 'Invalid message type');
             }
-            const textBody = String(body.body || '').slice(0, 4000);
-            const attachments = body.attachments ? JSON.stringify(body.attachments) : undefined;
+            const textBody = String(body.body || '').slice(0, chat_schema_1.CHAT_BODY_MAX);
+            const attachments = body.attachments
+                ? JSON.stringify(body.attachments).slice(0, chat_schema_1.CHAT_ATTACHMENTS_MAX)
+                : undefined;
             if (type === 'text' && !textBody.trim()) {
                 return (0, middleware_1.errorResponse)(res, 'INVALID_INPUT', 'Message body required');
             }
@@ -500,7 +498,7 @@ async function handleChatApiRequest(req, res, logger = noopLogger) {
                 return (0, middleware_1.errorResponse)(res, 'EXPIRED', 'Edit window expired', 400);
             }
             const updated = await databases.updateDocument(config_1.DATABASE_ID, config_1.COLLECTIONS.messages, msgId, {
-                body: String(body.body || '').slice(0, 4000),
+                body: String(body.body || '').slice(0, chat_schema_1.CHAT_BODY_MAX),
                 editedAt: new Date().toISOString(),
             });
             return (0, middleware_1.jsonResponse)(res, { success: true, message: formatMessage(updated) });

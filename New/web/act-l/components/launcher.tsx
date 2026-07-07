@@ -186,7 +186,7 @@ function LauncherContent() {
           isFriendsOpen={isFriendsOpen}
         />
 
-        <main className="flex-1 flex flex-col overflow-hidden bg-launcher-main">
+        <main className="flex-1 flex flex-col overflow-hidden min-h-0 h-full bg-launcher-main">
           {currentView === 'home' && (
             <HomeView onGameSelect={handleGameSelect} onOpenSettings={(tab) => openSettings(tab || 'categories')} />
           )}
