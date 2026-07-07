@@ -83,6 +83,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   overlayUpdateConfig: (config) => ipcRenderer.invoke('overlay-update-config', config),
 
+  showOverlayNotification: (payload) => ipcRenderer.invoke('show-overlay-notification', payload),
+
+  onOverlayNotificationClick: (callback) => {
+    const subscription = (event, data) => callback(data);
+    ipcRenderer.on('overlay-notification-click', subscription);
+    return () => ipcRenderer.removeListener('overlay-notification-click', subscription);
+  },
+
+  getGameSessionState: () => ipcRenderer.invoke('get-game-session-state'),
+
+  steamStoreSearch: (term, cc) => ipcRenderer.invoke('steam-store-search', { term, cc }),
+  steamStoreFeatured: (cc) => ipcRenderer.invoke('steam-store-featured', { cc }),
+  cheapSharkDeals: (storeID, pageSize) => ipcRenderer.invoke('cheapshark-deals', { storeID, pageSize }),
+  epicFreeGames: () => ipcRenderer.invoke('epic-free-games'),
+
   startInstallation: () => ipcRenderer.invoke('start-installation')
 });
 

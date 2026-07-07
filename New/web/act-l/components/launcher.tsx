@@ -23,8 +23,12 @@ import { Game } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { OnboardingScreen } from '@/components/onboarding/onboarding-screen';
-import { AppTour, shouldShowAppTour } from '@/components/onboarding/app-tour';
 import { LoadingScreen } from '@/components/loading-screen';
+import { AppTour, shouldShowAppTour } from '@/components/onboarding/app-tour';
+import { ChatView } from '@/components/chat/chat-view';
+import { StoreView } from '@/components/store-view';
+import { ChatProvider } from '@/lib/chat-context';
+import { StoreProvider } from '@/lib/store-context';
 import {
   Dialog,
   DialogContent,
@@ -79,6 +83,15 @@ function LauncherContent() {
     };
     window.addEventListener('quark-dev-unlocked', onDevUnlocked);
     return () => window.removeEventListener('quark-dev-unlocked', onDevUnlocked);
+  }, []);
+
+  useEffect(() => {
+    const onNav = (e: Event) => {
+      const detail = (e as CustomEvent<string>).detail;
+      if (detail) setCurrentView(detail);
+    };
+    window.addEventListener('quark-navigate', onNav);
+    return () => window.removeEventListener('quark-navigate', onNav);
   }, []);
 
   useEffect(() => {
@@ -183,14 +196,8 @@ function LauncherContent() {
           {currentView === 'accounts' && (
             <AccountsView onOpenProfileEdit={() => setIsProfileEditOpen(true)} />
           )}
-          {currentView === 'store' && (
-            <div className="flex-1 flex items-center justify-center text-zinc-500">
-              <div className="text-center">
-                <p className="text-lg font-medium mb-2">{t('storeTitle')}</p>
-                <p className="text-sm text-zinc-600">{tc('soon')}</p>
-              </div>
-            </div>
-          )}
+          {currentView === 'store' && <StoreView onGameSelect={handleGameSelect} />}
+          {currentView === 'chat' && <ChatView />}
         </main>
 
         <aside
@@ -232,12 +239,16 @@ export function Launcher() {
         <TelemetryWrapper>
           <SettingsProvider>
             <FriendsProvider>
-              <IntlProvider>
-                <GamesProvider>
-                  <SteamSync />
-                  <LauncherContent />
-                </GamesProvider>
-              </IntlProvider>
+              <ChatProvider>
+                <StoreProvider>
+                  <IntlProvider>
+                    <GamesProvider>
+                      <SteamSync />
+                      <LauncherContent />
+                    </GamesProvider>
+                  </IntlProvider>
+                </StoreProvider>
+              </ChatProvider>
             </FriendsProvider>
           </SettingsProvider>
         </TelemetryWrapper>

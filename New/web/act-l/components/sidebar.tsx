@@ -12,6 +12,7 @@ import {
   Bell,
   Command,
   Users,
+  MessageSquare,
   User,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -25,6 +26,7 @@ import { useGames } from '@/lib/games-context';
 import { Game } from '@/lib/types';
 import { CardPost } from '@/components/side_banner';
 import { useFriends } from '@/lib/friends-context';
+import { useChat } from '@/lib/chat-context';
 import { useTranslations } from 'next-intl';
 import { isDevUnlockSearch, unlockDevSession } from '@/lib/dev-unlock';
 
@@ -49,6 +51,7 @@ export function Sidebar({
   const tc = useTranslations('common');
   const { games, searchQuery, setSearchQuery, filteredGames } = useGames();
   const { friends } = useFriends();
+  const { unreadTotal } = useChat();
   const onlineCount = friends.filter((f) => f.presence === 'online').length;
   const [isGamesExpanded, setIsGamesExpanded] = useState(true);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -58,6 +61,7 @@ export function Sidebar({
     { id: 'library', label: t('library'), icon: Library },
     { id: 'news', label: t('news'), icon: Bell },
     { id: 'store', label: t('store'), icon: Gamepad2 },
+    { id: 'chat', label: t('chat'), icon: MessageSquare, badge: unreadTotal },
     { id: 'accounts', label: t('account'), icon: User },
   ];
 
@@ -103,6 +107,7 @@ export function Sidebar({
         {navItems.map((item) => (
           <Button
             key={item.id}
+            data-tour={item.id === 'chat' ? 'chat' : undefined}
             variant="ghost"
             className={cn(
               'w-full justify-start gap-2.5 h-9 text-xs font-medium transition-all rounded-xl',
@@ -113,7 +118,12 @@ export function Sidebar({
             onClick={() => onNavigate(item.id)}
           >
             <item.icon className="h-4 w-4 shrink-0" />
-            {item.label}
+            <span className="flex-1 text-left">{item.label}</span>
+            {'badge' in item && (item.badge ?? 0) > 0 && (
+              <Badge className="h-5 min-w-5 px-1.5 bg-lime-500 text-black text-[10px]">
+                {(item.badge ?? 0) > 9 ? '9+' : item.badge}
+              </Badge>
+            )}
           </Button>
         ))}
       </nav>

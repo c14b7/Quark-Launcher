@@ -37,6 +37,13 @@
     "files": [
       "main.js",
       "preload.js",
+      "store-api.js",
+      "overlay-manager.js",
+      "overlay-performance.js",
+      "overlay.html",
+      "overlay.css",
+      "overlay-renderer.js",
+      "overlay-preload.js",
       "dev-app-update.yml",
       "assets/**/*",
       "package.json"

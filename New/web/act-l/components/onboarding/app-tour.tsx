@@ -34,6 +34,12 @@ export const TOUR_STEPS = [
     body: 'Zobacz kto jest online i w co gra. Dodawaj znajomych kodem Quark.',
   },
   {
+    id: 'chat',
+    target: '[data-tour="chat"]',
+    title: 'Chat gamingowy',
+    body: 'Pisz do znajomych, twórz grupy i udostępniaj gry, osiągnięcia oraz okazje ze sklepu.',
+  },
+  {
     id: 'settings',
     target: '[data-tour="settings"]',
     title: 'Ustawienia',

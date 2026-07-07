@@ -33,6 +33,8 @@ const ALLOWED_EVENTS = new Set([
   'settings.changed', 'feature.used', 'telemetry.consent_changed',
   'update.available', 'update.download_started', 'update.download_complete', 'update.installed', 'update.failed',
   'overlay.toggled',
+  'chat.message_sent', 'chat.message_received', 'chat.group_created', 'chat.deal_shared',
+  'store.search', 'overlay.chat_notification',
   'error.api', 'error.client', 'error.uncaught',
 ]);
 

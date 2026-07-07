@@ -10,6 +10,7 @@
     "library": "Library",
     "news": "News",
     "store": "Store",
+    "chat": "Chat",
     "account": "Account",
     "yourGames": "Your games ({count})",
     "friends": "Friends",
@@ -127,7 +128,11 @@
     "someone": "Someone",
     "markAllRead": "Mark all as read",
     "pendingRequests": "Pending requests",
-    "openFriendsHint": "Open the friends panel to accept"
+    "openFriendsHint": "Open the friends panel to accept",
+    "chatSection": "Messages",
+    "chatMessage": "{title}: {body}",
+    "chatMention": "Mention in {title}: {body}",
+    "chatGroupInvite": "Group invite: {title}"
   },
   "launcher": {
     "storeTitle": "Store",
@@ -200,7 +205,11 @@
       "showDateTime": "Clock",
       "showDateTimeDesc": "Current time on the overlay",
       "showPing": "Ping",
-      "showPingDesc": "Estimated ping to Quark server (~every 15s)"
+      "showPingDesc": "Estimated ping to Quark server (~every 15s)",
+      "showChatNotifications": "Chat notifications",
+      "showChatNotificationsDesc": "Overlay toast when a message arrives during a game",
+      "chatNotificationsWhenHidden": "OS notifications",
+      "chatNotificationsWhenHiddenDesc": "System notification when the overlay is hidden"
     }
   },
   "friends": {
@@ -219,6 +228,44 @@
     "statusDnd": "Do not disturb",
     "playingGame": "Playing: {game}",
     "launchSameGame": "Launch same game",
-    "watchPartySoon": "Watch party — coming soon"
+    "watchPartySoon": "Watch party — coming soon",
+    "recentChats": "Recent chats",
+    "openChat": "Open chat"
+  },
+  "chat": {
+    "title": "Chat",
+    "selectConversation": "Select a conversation",
+    "selectHint": "Message a friend from the friends panel or create a group.",
+    "members": "members",
+    "newGroup": "New group",
+    "noConversations": "No conversations",
+    "startDm": "Message a friend",
+    "typing": "typing…",
+    "sendLfg": "Looking for group (LFG)",
+    "placeholder": "Write a message…",
+    "deleted": "Message deleted",
+    "edited": "edited",
+    "createGroupTitle": "Create group",
+    "groupName": "Group name",
+    "selectMembers": "Select members",
+    "create": "Create"
+  },
+  "store": {
+    "title": "Store",
+    "steam": "Steam",
+    "deals": "Key deals",
+    "epic": "Epic — free",
+    "searchPlaceholder": "Search games…",
+    "featured": "Featured",
+    "searchResults": "Search results",
+    "noResults": "No results",
+    "loading": "Loading…",
+    "owned": "Owned",
+    "installed": "Installed",
+    "shareChat": "Share in chat",
+    "openStore": "Open in store",
+    "free": "Free",
+    "discount": "-{percent}%",
+    "comingSoon": "Coming soon: GOG, Xbox"
   }
 }

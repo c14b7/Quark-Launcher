@@ -100,8 +100,41 @@ sequenceDiagram
 | `showSessionTimer` | `true` | Czas sesji od launchera |
 | `showDateTime` | `false` | Zegar HH:MM |
 | `showPing` | `false` | Ping do `fra.cloud.appwrite.io/health` |
+| `showChatNotifications` | `true` | Toast w nakładce przy nowej wiadomości chatu |
+| `chatNotificationsWhenHidden` | `true` | Powiadomienie systemowe gdy nakładka ukryta |
 
 Ustawienia zapisywane są w `settings.json` (klucz `overlay`) przez `saveUserData('settings', …)`.
+
+---
+
+## Powiadomienia chatu
+
+Gdy użytkownik gra w tytuł uruchomiony z Quark i przyjdzie wiadomość (Appwrite Realtime → `chat-context.tsx`):
+
+1. Jeśli `showChatNotifications` — wywołanie `electronAPI.showOverlayNotification(payload)`.
+2. `OverlayManager.showNotification()`:
+   - nakładka **widoczna** → toast w `#toast-stack` (`overlay-renderer.js`);
+   - nakładka **ukryta** + `chatNotificationsWhenHidden` → `electron.Notification` (OS).
+
+### Pliki toastów
+
+| Plik | Rola |
+|------|------|
+| `overlay.html` | Region `#toast-stack` |
+| `overlay.css` | Style toastów (avatar, preview, auto-dismiss ~6 s) |
+| `overlay-renderer.js` | `showToast()`, escape HTML |
+| `overlay-preload.js` | `onNotification` |
+| `overlay-manager.js` | `showNotification()`, `getGameSessionState` |
+
+### IPC
+
+| Kanał | Kierunek | Opis |
+|-------|----------|------|
+| `show-overlay-notification` | Renderer → Main | `{ title, body, conversationId, type }` |
+| `overlay-notification` | Main → Overlay | Payload toastu |
+| `get-game-session-state` | Renderer → Main | `{ active, overlayVisible }` |
+
+Telemetria: `overlay.chat_notification`.
 
 ---
 
@@ -174,4 +207,5 @@ Przełączenie nakładki skrótem wysyła event `overlay.toggled` z `{ visible: 
 ## Powiązana dokumentacja
 
 - `docs/API-REFERENCE.md` — IPC launchera i telemetria
-- Onboarding tour — krok „overlay” w `web/act-l/components/onboarding/app-tour.tsx`
+- `docs/CHAT.md` — chat, Realtime, powiadomienia
+- Onboarding tour — kroki „overlay” i „chat” w `web/act-l/components/onboarding/app-tour.tsx`

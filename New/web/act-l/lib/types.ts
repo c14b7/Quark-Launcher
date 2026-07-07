@@ -246,7 +246,21 @@ export interface IElectronAPI {
     showSessionTimer?: boolean;
     showDateTime?: boolean;
     showPing?: boolean;
+    showChatNotifications?: boolean;
+    chatNotificationsWhenHidden?: boolean;
   }) => Promise<{ success: boolean }>;
+  showOverlayNotification: (payload: {
+    title?: string;
+    body?: string;
+    conversationId?: string;
+    type?: string;
+  }) => Promise<{ success: boolean; error?: string }>;
+  onOverlayNotificationClick: (callback: (data: { conversationId?: string }) => void) => () => void;
+  getGameSessionState: () => Promise<{ active: boolean; overlayVisible: boolean }>;
+  steamStoreSearch: (term: string, cc?: string) => Promise<{ success: boolean; data?: import('./store-service').StoreListing[]; error?: string }>;
+  steamStoreFeatured: (cc?: string) => Promise<{ success: boolean; data?: import('./store-service').StoreListing[]; error?: string }>;
+  cheapSharkDeals: (storeID?: number, pageSize?: number) => Promise<{ success: boolean; data?: import('./store-service').StoreListing[]; error?: string }>;
+  epicFreeGames: () => Promise<{ success: boolean; data?: import('./store-service').StoreListing[]; error?: string }>;
   startInstallation: () => Promise<{ success: boolean; error?: string }>;
   
   // Platform & Versions

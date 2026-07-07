@@ -10,6 +10,7 @@
     "library": "Biblioteka",
     "news": "Aktualności",
     "store": "Sklep",
+    "chat": "Chat",
     "account": "Konto",
     "yourGames": "Twoje gry ({count})",
     "friends": "Znajomi",
@@ -127,7 +128,11 @@
     "someone": "Ktoś",
     "markAllRead": "Oznacz wszystkie jako przeczytane",
     "pendingRequests": "Oczekujące zaproszenia",
-    "openFriendsHint": "Otwórz panel znajomych, aby zaakceptować"
+    "openFriendsHint": "Otwórz panel znajomych, aby zaakceptować",
+    "chatSection": "Wiadomości",
+    "chatMessage": "{title}: {body}",
+    "chatMention": "Wzmianka w {title}: {body}",
+    "chatGroupInvite": "Zaproszenie do grupy: {title}"
   },
   "launcher": {
     "storeTitle": "Sklep",
@@ -200,7 +205,11 @@
       "showDateTime": "Zegar",
       "showDateTimeDesc": "Aktualna godzina w nakładce",
       "showPing": "Ping",
-      "showPingDesc": "Szacowany ping do serwera Quark (co ~15 s)"
+      "showPingDesc": "Szacowany ping do serwera Quark (co ~15 s)",
+      "showChatNotifications": "Powiadomienia chatu",
+      "showChatNotificationsDesc": "Toast w nakładce podczas gry, gdy przyjdzie wiadomość",
+      "chatNotificationsWhenHidden": "Powiadomienia OS",
+      "chatNotificationsWhenHiddenDesc": "Systemowe powiadomienie, gdy nakładka jest ukryta"
     }
   },
   "friends": {
@@ -219,6 +228,44 @@
     "statusDnd": "Nie przeszkadzać",
     "playingGame": "Gra w: {game}",
     "launchSameGame": "Uruchom tę samą grę",
-    "watchPartySoon": "Watch party — wkrótce"
+    "watchPartySoon": "Watch party — wkrótce",
+    "recentChats": "Ostatnie rozmowy",
+    "openChat": "Otwórz chat"
+  },
+  "chat": {
+    "title": "Chat",
+    "selectConversation": "Wybierz rozmowę",
+    "selectHint": "Napisz do znajomego z panelu znajomych lub utwórz grupę.",
+    "members": "członków",
+    "newGroup": "Nowa grupa",
+    "noConversations": "Brak rozmów",
+    "startDm": "Napisz do znajomego",
+    "typing": "pisze…",
+    "sendLfg": "Szukam grupy (LFG)",
+    "placeholder": "Napisz wiadomość…",
+    "deleted": "Wiadomość usunięta",
+    "edited": "edytowano",
+    "createGroupTitle": "Utwórz grupę",
+    "groupName": "Nazwa grupy",
+    "selectMembers": "Wybierz członków",
+    "create": "Utwórz"
+  },
+  "store": {
+    "title": "Sklep",
+    "steam": "Steam",
+    "deals": "Okazje kluczy",
+    "epic": "Epic — darmowe",
+    "searchPlaceholder": "Szukaj gier…",
+    "featured": "Polecane",
+    "searchResults": "Wyniki wyszukiwania",
+    "noResults": "Brak wyników",
+    "loading": "Ładowanie…",
+    "owned": "Posiadasz",
+    "installed": "Zainstalowana",
+    "shareChat": "Udostępnij w chacie",
+    "openStore": "Otwórz w sklepie",
+    "free": "Darmowa",
+    "discount": "-{percent}%",
+    "comingSoon": "Wkrótce: GOG, Xbox"
   }
 }

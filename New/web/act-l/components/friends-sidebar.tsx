@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Users, UserPlus, Loader2 } from 'lucide-react';
+import { Users, UserPlus, Loader2, MessageSquare } from 'lucide-react';
 import { FriendRow } from '@/components/user/friend-row';
 import { FriendCodeDisplay } from '@/components/user/friend-code-display';
 import { FriendRequestsPanel } from '@/components/user/friend-requests-panel';
 import { AddFriendDialog } from '@/components/user/add-friend-dialog';
 import { UserCardPopover } from '@/components/user/user-card-popover';
 import { useFriends } from '@/lib/friends-context';
+import { useChat } from '@/lib/chat-context';
 import { useAuth } from '@/lib/auth-context';
 import type { QuarkFriend } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -30,6 +31,7 @@ function friendSortRank(f: QuarkFriend): number {
 
 export function FriendsSidebar({ onClose, className }: FriendsSidebarProps) {
   const { friends, incomingRequests, isLoading } = useFriends();
+  const { conversations, setActiveConversationId } = useChat();
   const { profile, regenerateFriendCode } = useAuth();
   const t = useTranslations('friends');
   const [addOpen, setAddOpen] = useState(false);
@@ -49,6 +51,14 @@ export function FriendsSidebar({ onClose, className }: FriendsSidebarProps) {
     (f) => f.presence === 'dnd' || f.presence === 'offline'
   );
   const pendingCount = incomingRequests.length;
+  const recentChats = [...conversations]
+    .sort((a, b) => (b.lastMessageAt || '').localeCompare(a.lastMessageAt || ''))
+    .slice(0, 5);
+
+  const openChat = (conversationId: string) => {
+    setActiveConversationId(conversationId);
+    window.dispatchEvent(new CustomEvent('quark-navigate', { detail: 'chat' }));
+  };
 
   const openFriendProfile = (friend: QuarkFriend) => {
     setSelectedFriend(friend);
@@ -113,6 +123,29 @@ export function FriendsSidebar({ onClose, className }: FriendsSidebarProps) {
             </div>
           ) : (
             <div className="px-2 py-3 space-y-4">
+              {recentChats.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-lime-500/80 uppercase tracking-wider px-2 mb-1">
+                    {t('recentChats')}
+                  </p>
+                  <div className="space-y-0.5">
+                    {recentChats.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => openChat(c.id)}
+                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left hover:bg-white/5 transition-colors"
+                      >
+                        <MessageSquare className="h-3.5 w-3.5 text-lime-400 shrink-0" />
+                        <span className="text-xs text-zinc-300 truncate flex-1">{c.name}</span>
+                        {c.unread && (
+                          <span className="h-2 w-2 rounded-full bg-lime-400 shrink-0" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {nowPlaying.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-green-500/80 uppercase tracking-wider px-2 mb-1">

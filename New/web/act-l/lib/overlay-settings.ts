@@ -8,6 +8,8 @@ export interface OverlaySettings {
   showSessionTimer: boolean;
   showDateTime: boolean;
   showPing: boolean;
+  showChatNotifications: boolean;
+  chatNotificationsWhenHidden: boolean;
 }
 
 export const DEFAULT_OVERLAY_SETTINGS: OverlaySettings = {
@@ -20,6 +22,8 @@ export const DEFAULT_OVERLAY_SETTINGS: OverlaySettings = {
   showSessionTimer: true,
   showDateTime: false,
   showPing: false,
+  showChatNotifications: true,
+  chatNotificationsWhenHidden: true,
 };
 
 export function mergeOverlaySettings(raw?: Partial<OverlaySettings>): OverlaySettings {

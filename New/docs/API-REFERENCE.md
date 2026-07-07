@@ -2,7 +2,7 @@
 
 > **Cel dokumentu:** pełna referencja dla dalszego rozwoju launchera i budowy panelu administracyjnego.  
 > **Ostatnia aktualizacja:** 2026-06-23  
-> **Wersja API (Function):** 2.0.1
+> **Wersja API (Function):** 2.1.0
 
 ---
 
@@ -15,15 +15,16 @@
 5. [Appwrite Function — router](#5-appwrite-function--router)
 6. [API: Auth (`/auth/*`)](#6-api-auth-auth)
 7. [API: Friends (`/friends/*`)](#7-api-friends-friends)
-8. [API: Steam (`/steam`)](#8-api-steam-steam)
-9. [API: Telemetry (`/telemetry/*`)](#9-api-telemetry-telemetry) — **nowe**
-10. [Rate limiting](#10-rate-limiting)
-11. [Frontend — warstwa klienta](#11-frontend--warstwa-klienta)
-12. [Telemetria — SDK klienta](#12-telemetria--sdk-klienta) — **nowe**
-13. [Electron — IPC](#13-electron--ipc)
-14. [Panel administracyjny — wytyczne](#14-panel-administracyjny--wytyczne)
-15. [Mapa plików w repozytorium](#15-mapa-plików-w-repozytorium)
-16. [Operacje DevOps](#16-operacje-devops)
+8. [API: Chat (`/chat/*`)](#8-api-chat-chat) — **nowe**
+9. [API: Steam (`/steam`)](#9-api-steam-steam)
+10. [API: Telemetry (`/telemetry/*`)](#10-api-telemetry-telemetry) — **nowe**
+11. [Rate limiting](#11-rate-limiting)
+12. [Frontend — warstwa klienta](#12-frontend--warstwa-klienta)
+13. [Telemetria — SDK klienta](#13-telemetria--sdk-klienta) — **nowe**
+14. [Electron — IPC](#14-electron--ipc)
+15. [Panel administracyjny — wytyczne](#15-panel-administracyjny--wytyczne)
+16. [Mapa plików w repozytorium](#16-mapa-plików-w-repozytorium)
+17. [Operacje DevOps](#17-operacje-devops)
 
 ---
 
@@ -39,7 +40,7 @@
                                 │ HTTPS (sesja Appwrite JWT w nagłówkach)
 ┌───────────────────────────────▼─────────────────────────────────────────┐
 │  Jedna Appwrite Function (functions/index.ts)                            │
-│  Router: /health | /auth | /friends | /steam | /telemetry                │
+│  Router: /health | /auth | /friends | /chat | /steam | /telemetry        │
 └───────────────────────────────┬─────────────────────────────────────────┘
                                 │ API Key (server-side)
 ┌───────────────────────────────▼─────────────────────────────────────────┐
@@ -629,7 +630,56 @@ Publiczny profil znajomego (`toPublicProfile`) zwraca pola `currentGameId`, `cur
 
 ---
 
-## 8. API: Steam (`/steam`)
+## 8. API: Chat (`/chat`)
+
+**Handler:** `functions/chat-api.ts`  
+**Klient:** `web/act-l/lib/chat-service.ts`  
+**Realtime:** `web/act-l/lib/chat-realtime.ts` (Appwrite Realtime na kolekcji `messages`)
+
+Wymaga zalogowanego użytkownika i (dla DM) relacji znajomych (`areFriends`).
+
+### Kolekcje
+
+| Kolekcja | Opis |
+|----------|------|
+| `conversations` | DM i grupy; `dmKey` unikalny dla par użytkowników |
+| `conversation_members` | Członkostwo, `lastReadAt`, preferencje powiadomień |
+| `messages` | Wiadomości tekstowe i rich (`game_share`, `achievement_share`, `store_deal`, `lfg`, `system`) |
+
+Dokumenty `messages` mają `Permission.read(Role.user(memberId))` dla członków konwersacji — wymagane dla Realtime po stronie klienta.
+
+### Endpointy
+
+| Metoda | Ścieżka | Opis |
+|--------|---------|------|
+| GET | `/chat/conversations` | Lista konwersacji użytkownika |
+| POST | `/chat/conversations/dm` | Utwórz/odczytaj DM (`targetUserId`) |
+| POST | `/chat/conversations/group` | Utwórz grupę (`name`, `memberIds[]`) |
+| PATCH | `/chat/conversations/:id` | Edycja grupy |
+| POST | `/chat/conversations/:id/members` | Dodaj członka |
+| DELETE | `/chat/conversations/:id/members/:userId` | Opuść / wyrzuć |
+| GET | `/chat/conversations/:id/messages` | Historia (cursor `before`) |
+| POST | `/chat/conversations/:id/messages` | Wyślij wiadomość |
+| PATCH | `/chat/messages/:id` | Edytuj (autor, 15 min) |
+| DELETE | `/chat/messages/:id` | Soft delete |
+| POST | `/chat/conversations/:id/read` | Oznacz przeczytane |
+| POST | `/chat/conversations/:id/typing` | Typing indicator |
+| GET | `/chat/conversations/:id/typing` | Lista piszących |
+
+### Rich attachments (`attachments`)
+
+```json
+{ "kind": "game", "platform": "steam", "appId": "570", "name": "Dota 2", "image": "..." }
+{ "kind": "achievement", "platform": "steam", "appId": "570", "title": "...", "icon": "..." }
+{ "kind": "deal", "platform": "steam", "store": "Steam", "title": "...", "price": 9.99, "discount": 50, "url": "..." }
+{ "kind": "lfg", "gameName": "...", "mode": "co-op", "slots": 3, "platform": "steam" }
+```
+
+Migracja: `cd functions && npm run migrate-chat`
+
+---
+
+## 9. API: Steam (`/steam`)
 
 **Handler:** `functions/steam-api.ts`  
 **Klient:** `web/act-l/lib/steam-api-client.ts` → `callSteamApi(action, params)`
@@ -663,7 +713,7 @@ Wszystkie akcje: **POST** `/steam` z body:
 
 ---
 
-## 9. API: Telemetry (`/telemetry`)
+## 10. API: Telemetry (`/telemetry`)
 
 **Handler:** `functions/telemetry-api.ts`  
 **Klient:** `web/act-l/lib/telemetry/telemetry-service.ts`
@@ -805,7 +855,7 @@ Gdy `analyticsEnabled === false && diagnosticsEnabled === false`:
 
 ---
 
-## 10. Rate limiting
+## 11. Rate limiting
 
 Definicje w `functions/lib/rate-limit.ts`:
 
@@ -824,7 +874,7 @@ Przy błędzie sprawdzania limitu serwer **przepuszcza** żądanie (fail-open).
 
 ---
 
-## 11. Frontend — warstwa klienta
+## 12. Frontend — warstwa klienta
 
 ### 11.1 `apiRequest()` — `web/act-l/lib/api-client.ts`
 
@@ -873,7 +923,7 @@ apiRequest<T>(path, method, body?, requireAuth = true): Promise<ApiResponse<T>>
 
 ---
 
-## 12. Telemetria — SDK klienta
+## 13. Telemetria — SDK klienta
 
 **Katalog:** `web/act-l/lib/telemetry/`
 
@@ -908,7 +958,7 @@ apiRequest<T>(path, method, body?, requireAuth = true): Promise<ApiResponse<T>>
 
 ---
 
-## 13. Electron — IPC
+## 14. Electron — IPC
 
 **Main:** `Windows app/main.js`  
 **Preload:** `Windows app/preload.js` → `window.electronAPI`  
@@ -975,9 +1025,29 @@ apiRequest<T>(path, method, body?, requireAuth = true): Promise<ApiResponse<T>>
 | `update-error-to-ui` | main→renderer | Błąd |
 | `telemetry-main-event` | main→renderer | Eventy `update.*` do telemetrii |
 
+### Sklep (Store)
+
+| Kanał | Opis |
+|-------|------|
+| `steam-store-search` | Wyszukiwanie Steam Store (`query`) |
+| `steam-store-featured` | Promocje / bestsellery |
+| `steam-store-details` | Szczegóły gry (`appId`) |
+| `cheapshark-deals` | Okazje kluczy (CheapShark) |
+| `epic-free-games` | Darmowe gry Epic |
+
+Implementacja: `Windows app/store-api.js` (cache TTL 15 min w `userData/cache/store/`).
+
+### Nakładka i powiadomienia chatu
+
+| Kanał | Opis |
+|-------|------|
+| `overlay-update-config` | `OverlaySettings` z UI |
+| `show-overlay-notification` | Toast / OS notification dla chatu |
+| `get-game-session-state` | `{ active, overlayVisible }` |
+
 ---
 
-## 14. Panel administracyjny — wytyczne
+## 15. Panel administracyjny — wytyczne
 
 > Endpointy `/admin/*` **nie istnieją jeszcze** — poniżej specyfikacja do implementacji.
 
@@ -1055,7 +1125,7 @@ Cron (scheduled Function) — przeliczanie raz dziennie dla szybkiego dashboardu
 
 ---
 
-## 15. Mapa plików w repozytorium
+## 16. Mapa plików w repozytorium
 
 ```
 New/
@@ -1102,7 +1172,7 @@ New/
 
 ---
 
-## 16. Operacje DevOps
+## 17. Operacje DevOps
 
 ### Utworzenie / aktualizacja bazy
 
@@ -1161,7 +1231,7 @@ npm run build
 
 ---
 
-## 17. Test plan — Beta feedback v2
+## 18. Test plan — Beta feedback v2
 
 | # | Scenariusz | Oczekiwany wynik |
 |---|------------|------------------|

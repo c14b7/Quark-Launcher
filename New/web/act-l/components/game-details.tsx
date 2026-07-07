@@ -27,6 +27,7 @@ import { useGames } from '@/lib/games-context';
 import { useSettings } from '@/lib/settings-context';
 import { useAuth } from '@/lib/auth-context';
 import { useFriends } from '@/lib/friends-context';
+import { useChat } from '@/lib/chat-context';
 import { loadLaunchStats, loadGameNotes, saveGameNote, type GameLaunchStats } from '@/lib/play-history';
 import { getAvatarUrl } from '@/lib/avatar-service';
 import type { QuarkFriend } from '@/lib/types';
@@ -51,6 +52,7 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
   const { isLoggedIn, settings, steamFriends } = useSettings();
   const { profile } = useAuth();
   const { friends: quarkFriends } = useFriends();
+  const { setPendingShare } = useChat();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'achievements' | 'friends'>('overview');
   const [launchStats, setLaunchStats] = useState<GameLaunchStats | null>(null);
@@ -261,6 +263,37 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
     void navigator.clipboard.writeText(url);
   };
 
+  const shareGameToChat = () => {
+    setPendingShare({
+      type: 'game_share',
+      body: game.name,
+      attachments: {
+        kind: 'game',
+        platform: game.platform,
+        appId: game.id,
+        name: game.name,
+        image: game.image || game.hero,
+      },
+    });
+    window.dispatchEvent(new CustomEvent('quark-navigate', { detail: 'chat' }));
+  };
+
+  const shareAchievementToChat = (achievement: SteamAchievement) => {
+    setPendingShare({
+      type: 'achievement_share',
+      body: achievement.name,
+      attachments: {
+        kind: 'achievement',
+        platform: 'steam',
+        appId: game.id,
+        title: achievement.name,
+        name: achievement.name,
+        icon: achievement.achieved ? achievement.icon : achievement.iconGray,
+      },
+    });
+    window.dispatchEvent(new CustomEvent('quark-navigate', { detail: 'chat' }));
+  };
+
   const handleNoteBlur = () => {
     void saveGameNote(game.id, gameNote);
   };
@@ -333,8 +366,11 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
                 game.isFavorite ? 'fill-yellow-500 text-yellow-500' : 'text-zinc-400'
               )} />
             </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={shareGameToChat} title="Udostępnij w chacie">
+              <Share2 className="h-4 w-4 text-lime-400" />
+            </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleCopyLink} title="Kopiuj link">
-              <Share2 className="h-4 w-4 text-zinc-400" />
+              <ExternalLink className="h-4 w-4 text-zinc-400" />
             </Button>
             <GameActionsMenu game={game} onHidden={onClose} />
           </div>
@@ -499,10 +535,21 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
                                   )} />
                                 </div>
                               )}
-                              <div>
+                              <div className="flex-1 min-w-0">
                                 <p className="font-medium text-white text-sm">{achievement.name}</p>
                                 <p className="text-xs text-zinc-500">{achievement.description}</p>
                               </div>
+                              {achievement.achieved && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 shrink-0"
+                                  title="Udostępnij w chacie"
+                                  onClick={() => shareAchievementToChat(achievement)}
+                                >
+                                  <Share2 className="h-3.5 w-3.5 text-lime-400" />
+                                </Button>
+                              )}
                             </div>
                           </div>
                         ))}

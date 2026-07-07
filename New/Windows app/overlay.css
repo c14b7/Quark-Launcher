@@ -48,6 +48,38 @@ html, body {
   gap: 8px 12px;
   justify-content: flex-end;
 }
+.toast-stack {
+  position: fixed;
+  top: 108px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 320px;
+  z-index: 9999;
+}
+.toast-item {
+  background: rgba(8, 8, 12, 0.92);
+  border: 1px solid rgba(212, 255, 0, 0.25);
+  border-radius: 10px;
+  padding: 10px 12px;
+  backdrop-filter: blur(10px);
+  animation: toast-in 0.25s ease;
+}
+.toast-item .toast-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #d4ff00;
+}
+.toast-item .toast-body {
+  font-size: 11px;
+  color: #e8ffc0;
+  margin-top: 2px;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
 .stat {
   display: flex;
   flex-direction: column;

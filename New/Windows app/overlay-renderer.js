@@ -8,6 +8,8 @@ const DEFAULT_CONFIG = {
   showSessionTimer: true,
   showDateTime: false,
   showPing: false,
+  showChatNotifications: true,
+  chatNotificationsWhenHidden: true,
 };
 
 let config = { ...DEFAULT_CONFIG };
@@ -120,6 +122,22 @@ async function measurePing() {
   }
 }
 
+function showToast(payload) {
+  if (config.showChatNotifications === false) return;
+  const stack = document.getElementById('toast-stack');
+  if (!stack) return;
+  const el = document.createElement('div');
+  el.className = 'toast-item';
+  el.innerHTML = `<div class="toast-title">${escapeHtml(payload.title || 'Quark')}</div><div class="toast-body">${escapeHtml(payload.body || '')}</div>`;
+  stack.appendChild(el);
+  if (stack.children.length > 3) stack.removeChild(stack.firstChild);
+  setTimeout(() => el.remove(), 6000);
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 if (window.overlayAPI) {
   window.overlayAPI.onConfig((c) => {
     config = { ...DEFAULT_CONFIG, ...c };
@@ -129,6 +147,7 @@ if (window.overlayAPI) {
   window.overlayAPI.onSessionStart((d) => {
     sessionStart = d?.startedAt || Date.now();
   });
+  window.overlayAPI.onNotification(showToast);
 }
 
 applyConfig();

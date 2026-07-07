@@ -16,4 +16,9 @@ contextBridge.exposeInMainWorld('overlayAPI', {
     ipcRenderer.on('overlay-session-start', fn);
     return () => ipcRenderer.removeListener('overlay-session-start', fn);
   },
+  onNotification: (callback) => {
+    const fn = (_e, data) => callback(data);
+    ipcRenderer.on('overlay-notification', fn);
+    return () => ipcRenderer.removeListener('overlay-notification', fn);
+  },
 });

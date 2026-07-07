@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs').promises;
 const { spawn, exec } = require('child_process');
 const { OverlayManager } = require('./overlay-manager');
+const storeApi = require('./store-api');
 
 
 
@@ -880,6 +881,56 @@ class QuarkLauncher {
         return { success: false, error: error.message };
       }
     });
+
+    // ===== STORE API =====
+    ipcMain.handle('steam-store-search', async (_e, { term, cc }) => {
+      try {
+        const data = await storeApi.steamStoreSearch(term || '', cc || 'pl');
+        return { success: true, data };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('steam-store-featured', async (_e, { cc }) => {
+      try {
+        const data = await storeApi.steamStoreFeatured(cc || 'pl');
+        return { success: true, data };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('cheapshark-deals', async (_e, { storeID, pageSize }) => {
+      try {
+        const data = await storeApi.cheapSharkDeals(storeID || 1, pageSize || 24);
+        return { success: true, data };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('epic-free-games', async () => {
+      try {
+        const data = await storeApi.epicFreeGames();
+        return { success: true, data };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('show-overlay-notification', async (_e, payload) => {
+      if (this.overlayManager) {
+        this.overlayManager.showNotification(payload);
+        return { success: true };
+      }
+      return { success: false, error: 'Overlay not ready' };
+    });
+
+    ipcMain.handle('get-game-session-state', async () => ({
+      active: this.overlayManager?.gameSessionActive || false,
+      overlayVisible: this.overlayManager?.visible || false,
+    }));
 
     // ===== USER DATA =====
     ipcMain.handle('save-user-data', async (event, { key, data }) => {

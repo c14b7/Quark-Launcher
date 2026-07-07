@@ -1,4 +1,4 @@
-const { BrowserWindow, globalShortcut, screen, ipcMain } = require('electron');
+const { BrowserWindow, globalShortcut, screen, ipcMain, Notification } = require('electron');
 const path = require('path');
 const { OverlayPerformanceMonitor } = require('./overlay-performance');
 
@@ -15,6 +15,8 @@ const DEFAULT_OVERLAY_CONFIG = {
   showSessionTimer: true,
   showDateTime: false,
   showPing: false,
+  showChatNotifications: true,
+  chatNotificationsWhenHidden: true,
 };
 
 class OverlayManager {
@@ -178,6 +180,29 @@ class OverlayManager {
   notifyRenderer(visible) {
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
       this.mainWindow.webContents.send('overlay-toggled', { visible });
+    }
+  }
+
+  showNotification(payload) {
+    if (!this.gameSessionActive) return;
+    const title = payload?.title || 'Quark';
+    const body = payload?.body || '';
+    const cfg = { ...DEFAULT_OVERLAY_CONFIG, ...this.config };
+
+    if (this.visible && this.window && !this.window.isDestroyed()) {
+      this.window.webContents.send('overlay-notification', payload);
+      return;
+    }
+
+    if (cfg.chatNotificationsWhenHidden !== false && Notification.isSupported()) {
+      const n = new Notification({ title, body, silent: false });
+      n.show();
+      n.on('click', () => {
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+          this.mainWindow.show();
+          this.mainWindow.webContents.send('overlay-notification-click', payload);
+        }
+      });
     }
   }
 

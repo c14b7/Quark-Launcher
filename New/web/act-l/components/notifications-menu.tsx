@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, Check, UserPlus, UserCheck, Gamepad2 } from 'lucide-react';
+import { Bell, Check, UserPlus, UserCheck, Gamepad2, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -12,17 +12,27 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useTranslations } from 'next-intl';
 import { useFriends } from '@/lib/friends-context';
+import { useChat } from '@/lib/chat-context';
 import { cn } from '@/lib/utils';
 
 export function NotificationsMenu() {
   const t = useTranslations('notifications');
   const {
     notifications,
-    unreadCount,
+    unreadCount: friendsUnread,
     markNotificationRead,
     markAllNotificationsRead,
     incomingRequests,
   } = useFriends();
+  const {
+    chatNotifications,
+    markChatNotificationRead,
+    clearChatNotifications,
+    setActiveConversationId,
+  } = useChat();
+
+  const chatUnread = chatNotifications.filter((n) => !n.read).length;
+  const unreadCount = friendsUnread + chatUnread;
 
   const getMessage = (type: string, name: string, gameName?: string) => {
     if (type === 'friend_request') return t('friendRequest', { name });
@@ -31,7 +41,25 @@ export function NotificationsMenu() {
     return name;
   };
 
-  const hasContent = notifications.length > 0 || incomingRequests.length > 0;
+  const getChatMessage = (type: string, title: string, body: string) => {
+    if (type === 'chat_mention') return t('chatMention', { title, body });
+    if (type === 'chat_group_invite') return t('chatGroupInvite', { title });
+    return t('chatMessage', { title, body });
+  };
+
+  const openChatThread = (conversationId: string, notifId: string) => {
+    markChatNotificationRead(notifId);
+    setActiveConversationId(conversationId);
+    window.dispatchEvent(new CustomEvent('quark-navigate', { detail: 'chat' }));
+  };
+
+  const markAllRead = () => {
+    markAllNotificationsRead();
+    clearChatNotifications();
+  };
+
+  const hasContent =
+    notifications.length > 0 || incomingRequests.length > 0 || chatNotifications.length > 0;
 
   return (
     <DropdownMenu>
@@ -51,7 +79,7 @@ export function NotificationsMenu() {
           {unreadCount > 0 && (
             <button
               type="button"
-              onClick={markAllNotificationsRead}
+              onClick={markAllRead}
               className="text-[11px] text-violet-400 hover:text-violet-300 px-2"
             >
               {t('markAllRead')}
@@ -90,6 +118,40 @@ export function NotificationsMenu() {
               </>
             )}
 
+            {chatNotifications.length > 0 && (
+              <>
+                <div className="px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                  {t('chatSection')}
+                </div>
+                {chatNotifications.map((notif) => (
+                  <DropdownMenuItem
+                    key={notif.id}
+                    className={cn(
+                      'flex items-start gap-2.5 py-2.5 cursor-pointer',
+                      !notif.read && 'bg-lime-500/5'
+                    )}
+                    onClick={() => openChatThread(notif.conversationId, notif.id)}
+                  >
+                    <MessageSquare className="h-4 w-4 text-lime-400 shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-zinc-200 leading-snug">
+                        {getChatMessage(notif.type, notif.title, notif.body)}
+                      </p>
+                      <p className="text-[10px] text-zinc-500 mt-0.5">
+                        {new Date(notif.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                    {!notif.read && (
+                      <span className="h-1.5 w-1.5 rounded-full bg-lime-400 shrink-0 mt-1.5" />
+                    )}
+                  </DropdownMenuItem>
+                ))}
+                {(notifications.length > 0 || incomingRequests.length > 0) && (
+                  <DropdownMenuSeparator className="bg-white/10" />
+                )}
+              </>
+            )}
+
             {notifications.map((notif) => (
               <DropdownMenuItem
                 key={notif.id}
@@ -120,12 +182,12 @@ export function NotificationsMenu() {
           </>
         )}
 
-        {notifications.some((n) => n.read) && (
+        {(notifications.some((n) => n.read) || chatNotifications.some((n) => n.read)) && (
           <>
             <DropdownMenuSeparator className="bg-white/10" />
             <DropdownMenuItem
               className="gap-2 text-xs text-zinc-500 justify-center"
-              onClick={markAllNotificationsRead}
+              onClick={markAllRead}
             >
               <Check className="h-3.5 w-3.5" />
               {t('markAllRead')}
