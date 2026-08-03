@@ -91,10 +91,12 @@ function formatConversation(
 ) {
   const memberIds = (conv.memberIds as string[]) || [];
   const type = conv.type as string;
-  let title = (conv.name as string) || '';
-  if (type === 'dm' && otherProfiles.length > 0) {
+  const customName = String(conv.name || '').trim();
+  let title = customName;
+  if (type === 'dm' && !customName && otherProfiles.length > 0) {
     title = (otherProfiles[0].displayName as string) || 'Znajomy';
   }
+  if (!title) title = type === 'group' ? 'Grupa' : 'Rozmowa';
   return {
     id: conv.$id,
     type,
@@ -318,13 +320,17 @@ export async function handleChatApiRequest(
       const conv = await databases.getDocument(DATABASE_ID, COLLECTIONS.conversations, convId);
       const member = await requireMembership(databases, convId, userId);
       if (!member) return errorResponse(res, 'FORBIDDEN', 'Not a member', 403);
-      if (conv.type !== 'group') return errorResponse(res, 'INVALID', 'Only groups can be edited');
-      if (member.role !== 'owner' && member.role !== 'admin') {
-        return errorResponse(res, 'FORBIDDEN', 'Admin only', 403);
+      // Groups: owner/admin can rename + avatar. DMs: any member can set a custom display name.
+      if (conv.type === 'group') {
+        if (member.role !== 'owner' && member.role !== 'admin') {
+          return errorResponse(res, 'FORBIDDEN', 'Admin only', 403);
+        }
       }
       const updates: Record<string, unknown> = {};
-      if (body.name) updates.name = String(body.name).trim().slice(0, 128);
-      if (body.avatarFileId !== undefined) updates.avatarFileId = body.avatarFileId;
+      if (body.name !== undefined) updates.name = String(body.name).trim().slice(0, 128);
+      if (body.avatarFileId !== undefined && conv.type === 'group') {
+        updates.avatarFileId = body.avatarFileId;
+      }
       const updated = await databases.updateDocument(DATABASE_ID, COLLECTIONS.conversations, convId, updates);
       return jsonResponse(res, { success: true, conversation: formatConversation(updated as Record<string, unknown>, member, []) });
     }

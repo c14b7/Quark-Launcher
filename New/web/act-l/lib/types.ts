@@ -229,6 +229,8 @@ export interface IElectronAPI {
     nodeVersion: string;
   }>;
   openDevTools: () => Promise<{ success: boolean; error?: string }>;
+  openDevInspector: () => Promise<{ success: boolean; error?: string }>;
+  listUserDataKeys: () => Promise<{ success: boolean; keys?: string[]; error?: string }>;
   
   // --- UPDATE MECHANISM ---
   onUpdateAvailable: (callback: (info: UpdateInfo) => void) => () => void;

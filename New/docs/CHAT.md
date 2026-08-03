@@ -6,8 +6,7 @@ Chat Quark umożliwia rozmowy DM i grupowe między znajomymi Quark, z obsługą 
 
 1. Dodaj znajomego (kod Quark lub zaproszenie).
 2. Otwórz zakładkę **Chat** w sidebarze lub kliknij **Napisz** na karcie znajomego.
-3. Wyślij wiadomość tekstową lub użyj quick reply (GG, Dołącz, …).
-4. Udostępnij grę z **szczegółów gry** lub okazję ze **Sklepu**.
+3. Udostępnij grę z **szczegółów gry** lub okazję ze **Sklepu**.
 
 ---
 

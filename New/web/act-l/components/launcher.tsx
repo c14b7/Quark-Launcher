@@ -40,6 +40,10 @@ import { AlertCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { ProfileQuickSheet } from '@/components/user/profile-quick-sheet';
 import { isSteamPromptSkipped, mergeProfilePreferences } from '@/lib/profile-preferences';
+import { StatsView } from '@/components/stats/main';
+import { DevTestBannerHost } from '@/components/dev-test-banner-host';
+import { DevInspector } from '@/components/dev-inspector';
+import { startDevEventCapture } from '@/lib/dev-debug-bus';
 
 const STEAM_PROMPT_DISMISSED_KEY = 'quark_steam_prompt_dismissed';
 
@@ -54,6 +58,7 @@ function LauncherContent() {
   const [isSteamIntegrationOpen, setIsSteamIntegrationOpen] = useState(false);
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
   const [tourActive, setTourActive] = useState(false);
+  const [devInspectorOpen, setDevInspectorOpen] = useState(false);
 
   const [isFriendsOpen, setIsFriendsOpen] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -77,12 +82,22 @@ function LauncherContent() {
   }, [isAuthenticated]);
 
   useEffect(() => {
+    startDevEventCapture();
+  }, []);
+
+  useEffect(() => {
     const onDevUnlocked = () => {
       setSettingsInitialTab('admin');
       setIsSettingsOpen(true);
     };
     window.addEventListener('quark-dev-unlocked', onDevUnlocked);
     return () => window.removeEventListener('quark-dev-unlocked', onDevUnlocked);
+  }, []);
+
+  useEffect(() => {
+    const onOpenInspector = () => setDevInspectorOpen(true);
+    window.addEventListener('quark-open-dev-inspector', onOpenInspector);
+    return () => window.removeEventListener('quark-open-dev-inspector', onOpenInspector);
   }, []);
 
   useEffect(() => {
@@ -198,6 +213,7 @@ function LauncherContent() {
           )}
           {currentView === 'store' && <StoreView onGameSelect={handleGameSelect} />}
           {currentView === 'chat' && <ChatView />}
+          {currentView === 'stats' && <StatsView />}
         </main>
 
         <aside
@@ -218,6 +234,10 @@ function LauncherContent() {
         initialTab={settingsInitialTab}
       />
       <ProfileQuickSheet open={isProfileEditOpen} onOpenChange={setIsProfileEditOpen} />
+      <DevTestBannerHost />
+      {devInspectorOpen && (
+        <DevInspector mode="panel" onClose={() => setDevInspectorOpen(false)} />
+      )}
 
       <Dialog open={isSteamIntegrationOpen} onOpenChange={handleSteamDialogClose}>
         <DialogContent className="sm:max-w-[600px] bg-zinc-900 border-zinc-800">

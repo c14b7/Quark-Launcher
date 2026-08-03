@@ -52,6 +52,14 @@ interface ChatContextType {
   clearChatNotifications: () => void;
   pendingShare: { type: ChatMessage['type']; attachments: ChatAttachment; body?: string } | null;
   setPendingShare: (share: ChatContextType['pendingShare']) => void;
+  replyTo: ChatMessage | null;
+  setReplyTo: (msg: ChatMessage | null) => void;
+  updateConversation: (
+    conversationId: string,
+    updates: { name?: string; avatarFileId?: string }
+  ) => Promise<boolean>;
+  addMember: (conversationId: string, userId: string) => Promise<boolean>;
+  leaveConversation: (conversationId: string, userId: string) => Promise<boolean>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -100,6 +108,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [chatNotifications, setChatNotifications] = useState<ChatNotification[]>([]);
   const [pendingShare, setPendingShare] = useState<ChatContextType['pendingShare']>(null);
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
 
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -312,6 +321,57 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const updateConversation = useCallback(
+    async (conversationId: string, updates: { name?: string; avatarFileId?: string }) => {
+      const res = await chatService.updateGroup(conversationId, updates);
+      if (res.success && res.conversation) {
+        const conv = res.conversation as ChatConversation;
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === conversationId
+              ? {
+                  ...c,
+                  ...conv,
+                  members: conv.members?.length ? conv.members : c.members,
+                  name: conv.name || c.name,
+                }
+              : c
+          )
+        );
+        return true;
+      }
+      await refreshConversations();
+      return !!res.success;
+    },
+    [refreshConversations]
+  );
+
+  const addMember = useCallback(async (conversationId: string, userId: string) => {
+    const res = await chatService.addMember(conversationId, userId);
+    if (res.success) await refreshConversations();
+    return !!res.success;
+  }, [refreshConversations]);
+
+  const leaveConversation = useCallback(
+    async (conversationId: string, userId: string) => {
+      const res = await chatService.removeMember(conversationId, userId);
+      if (res.success) {
+        setConversations((prev) => prev.filter((c) => c.id !== conversationId));
+        if (activeConversationId === conversationId) {
+          setActiveConversationId(null);
+          setMessages([]);
+        }
+        return true;
+      }
+      return false;
+    },
+    [activeConversationId]
+  );
+
+  useEffect(() => {
+    setReplyTo(null);
+  }, [activeConversationId]);
+
   return (
     <ChatContext.Provider
       value={{
@@ -335,6 +395,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         clearChatNotifications,
         pendingShare,
         setPendingShare,
+        replyTo,
+        setReplyTo,
+        updateConversation,
+        addMember,
+        leaveConversation,
       }}
     >
       {children}

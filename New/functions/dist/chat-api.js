@@ -58,10 +58,13 @@ async function createMemberRecords(databases, conversationId, memberIds, ownerId
 function formatConversation(conv, member, otherProfiles) {
     const memberIds = conv.memberIds || [];
     const type = conv.type;
-    let title = conv.name || '';
-    if (type === 'dm' && otherProfiles.length > 0) {
+    const customName = String(conv.name || '').trim();
+    let title = customName;
+    if (type === 'dm' && !customName && otherProfiles.length > 0) {
         title = otherProfiles[0].displayName || 'Znajomy';
     }
+    if (!title)
+        title = type === 'group' ? 'Grupa' : 'Rozmowa';
     return {
         id: conv.$id,
         type,
@@ -278,16 +281,18 @@ async function handleChatApiRequest(req, res, logger = noopLogger) {
             const member = await requireMembership(databases, convId, userId);
             if (!member)
                 return (0, middleware_1.errorResponse)(res, 'FORBIDDEN', 'Not a member', 403);
-            if (conv.type !== 'group')
-                return (0, middleware_1.errorResponse)(res, 'INVALID', 'Only groups can be edited');
-            if (member.role !== 'owner' && member.role !== 'admin') {
-                return (0, middleware_1.errorResponse)(res, 'FORBIDDEN', 'Admin only', 403);
+            // Groups: owner/admin can rename + avatar. DMs: any member can set a custom display name.
+            if (conv.type === 'group') {
+                if (member.role !== 'owner' && member.role !== 'admin') {
+                    return (0, middleware_1.errorResponse)(res, 'FORBIDDEN', 'Admin only', 403);
+                }
             }
             const updates = {};
-            if (body.name)
+            if (body.name !== undefined)
                 updates.name = String(body.name).trim().slice(0, 128);
-            if (body.avatarFileId !== undefined)
+            if (body.avatarFileId !== undefined && conv.type === 'group') {
                 updates.avatarFileId = body.avatarFileId;
+            }
             const updated = await databases.updateDocument(config_1.DATABASE_ID, config_1.COLLECTIONS.conversations, convId, updates);
             return (0, middleware_1.jsonResponse)(res, { success: true, conversation: formatConversation(updated, member, []) });
         }

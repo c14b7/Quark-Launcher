@@ -22,6 +22,8 @@ export interface AppSettings {
   librarySortBy?: 'name' | 'lastPlayed' | 'playtime' | 'recent' | 'custom';
   overlay?: OverlaySettings;
   notifyFriendPlaying?: boolean;
+  /** Dev: show i18n message keys (e.g. nav.chat) instead of translated labels */
+  showI18nKeys?: boolean;
   steamApiKey?: string;
   steamUserId?: string;
   // AI Chat settings

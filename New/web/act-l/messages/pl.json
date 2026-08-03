@@ -14,7 +14,8 @@
     "account": "Konto",
     "yourGames": "Twoje gry ({count})",
     "friends": "Znajomi",
-    "online": "{count} online"
+    "online": "{count} online",
+    "stats_m": "Statystyki"
   },
   "account": {
     "title": "Konto",
@@ -28,7 +29,16 @@
     "emailVerifyHint": "Zweryfikuj email, aby dodawać znajomych Quark.",
     "planFree": "Plan Free",
     "planPremium": "Premium",
-    "logout": "Wyloguj się"
+    "logout": "Wyloguj się",
+    "emailLabel": "Email",
+    "presenceLabel": "Status",
+    "steamConnected": "Połączony",
+    "steamNotConnected": "Niepołączony",
+    "friendCodeSection": "Kod znajomego",
+    "quickTipsTitle": "Wskazówki",
+    "tipProfile": "Edytuj avatar, bio i kolory karty — tak widzą Cię znajomi.",
+    "tipSteam": "Połącz Steam, aby synchronizować bibliotekę i osiągnięcia.",
+    "tipFriends": "Udostępnij kod znajomego, aby dodać kogoś do Quark Chat."
   },
   "home": {
     "noGames": "Nie znaleziono gier",
@@ -167,10 +177,14 @@
     "categoryCustomColor": "Własny kolor",
     "categoryIcon": "Ikona kategorii",
     "devPanelTitle": "Panel deweloperski",
-    "devPanelDesc": "Dostępne tylko w buildach z sufiksem -dev lub w trybie development.",
+    "devPanelDesc": "Odblokuj przez wyszukiwanie „dev:5827” i Ctrl+Shift+N (gdy lista gier jest pusta).",
     "devTools": "Narzędzia deweloperskie",
     "openDevTools": "Otwórz DevTools",
     "devToolsHint": "Otwiera Chromium DevTools do debugowania UI (tylko Electron).",
+    "openDevInspector": "Otwórz Dev Inspector",
+    "devInspectorHint": "Osobne okno z zakładkami: env, settings, storage, rejestry, zdarzenia, testy banerów.",
+    "showI18nKeys": "Pokaż klucze i18n",
+    "showI18nKeysDesc": "Zamiast tłumaczeń pokazuje ścieżki kluczy (np. nav.stats_m zamiast „Statystyki”).",
     "privacyTitle": "Telemetria i diagnostyka",
     "privacyDesc": "Dane pomagają nam ulepszać Quark podczas fazy beta. Możesz wyłączyć zbieranie w dowolnym momencie.",
     "analyticsEnabled": "Analityka użytkowania",
@@ -241,7 +255,6 @@
     "noConversations": "Brak rozmów",
     "startDm": "Napisz do znajomego",
     "typing": "pisze…",
-    "sendLfg": "Szukam grupy (LFG)",
     "placeholder": "Napisz wiadomość…",
     "deleted": "Wiadomość usunięta",
     "edited": "edytowano",
@@ -254,7 +267,21 @@
     "loading": "Ładowanie…",
     "noMessages": "Brak wiadomości — napisz pierwszą!",
     "pendingShare": "Załącznik gotowy — wyślij wiadomość",
-    "writeMessage": "Napisz"
+    "cancelShare": "Anuluj",
+    "writeMessage": "Napisz",
+    "backToList": "Wróć do listy",
+    "conversationInfo": "Informacje o rozmowie",
+    "displayName": "Nazwa wyświetlana",
+    "rename": "Zmień nazwę",
+    "groupHint": "Nazwa widoczna dla wszystkich członków grupy.",
+    "dmRenameHint": "Własna etykieta rozmowy (zamiast nicku znajomego).",
+    "addMember": "Dodaj",
+    "noFriendsToAdd": "Wszyscy znajomi są już w grupie",
+    "leaveGroup": "Opuść grupę",
+    "owner": "właściciel",
+    "you": "Ty",
+    "searchConversations": "Szukaj rozmów…",
+    "replying": "Odpowiadasz"
   },
   "store": {
     "title": "Sklep",
@@ -279,5 +306,9 @@
     "free": "Darmowa",
     "discount": "-{percent}%",
     "comingSoon": "Wkrótce: GOG, Xbox"
+  },
+  "stats": {
+    "comingSoonTitle": "Statystyki wkrótce",
+    "comingSoonHint": "Quark Recap (top gry, gatunki, streak) pojawi się w kolejnej wersji."
   }
 }

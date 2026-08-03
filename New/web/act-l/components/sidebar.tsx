@@ -14,6 +14,7 @@ import {
   Users,
   MessageSquare,
   User,
+  ChartNoAxesCombined
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -59,10 +60,11 @@ export function Sidebar({
   const navItems = [
     { id: 'home', label: t('home'), icon: Home },
     { id: 'library', label: t('library'), icon: Library },
+    { id: 'chat', label: t('chat'), icon: MessageSquare, badge: unreadTotal },
     { id: 'news', label: t('news'), icon: Bell },
     { id: 'store', label: t('store'), icon: Gamepad2 },
-    { id: 'chat', label: t('chat'), icon: MessageSquare, badge: unreadTotal },
-    { id: 'accounts', label: t('account'), icon: User },
+  /*   { id: 'accounts', label: t('account'), icon: User }, */
+    { id: 'stats', label: t('stats_m'), icon: ChartNoAxesCombined },
   ];
 
   const sortedGames = [...(searchQuery ? filteredGames : games)].sort((a, b) => {

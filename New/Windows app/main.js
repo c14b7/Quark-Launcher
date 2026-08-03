@@ -23,6 +23,7 @@ if (isDev) {
 class QuarkLauncher {
   constructor() {
     this.mainWindow = null;
+    this.devInspectorWindow = null;
     this.runningProcesses = new Map();
     this.userDataPath = app.getPath('userData');
     this._updaterListenersAttached = false;
@@ -92,6 +93,7 @@ class QuarkLauncher {
       frame: false,
       titleBarStyle: 'hidden',
       titleBarOverlay: false,
+      icon: path.join(__dirname, 'assets', 'VERT_Q.ico'),
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
@@ -136,6 +138,47 @@ class QuarkLauncher {
       this.overlayManager.setMainWindow(this.mainWindow);
     }
     this.overlayManager.ensureShortcut();
+  }
+
+  createDevInspectorWindow() {
+    if (this.devInspectorWindow && !this.devInspectorWindow.isDestroyed()) {
+      this.devInspectorWindow.focus();
+      return;
+    }
+
+    const startUrl = isDev
+      ? 'http://localhost:30211/?devInspector=1'
+      : `file://${path.join(process.resourcesPath, 'app', 'index.html')}?devInspector=1`;
+
+    this.devInspectorWindow = new BrowserWindow({
+      width: 1100,
+      height: 760,
+      minWidth: 800,
+      minHeight: 560,
+      title: 'Quark Dev Inspector',
+      parent: this.mainWindow && !this.mainWindow.isDestroyed() ? this.mainWindow : undefined,
+      modal: false,
+      autoHideMenuBar: true,
+      icon: path.join(__dirname, 'assets', 'VERT_Q.ico'),
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        preload: path.join(__dirname, 'preload.js'),
+        webSecurity: true,
+      },
+      backgroundColor: '#0a0a0c',
+      show: false,
+    });
+
+    this.devInspectorWindow.loadURL(startUrl);
+    this.devInspectorWindow.once('ready-to-show', () => {
+      if (this.devInspectorWindow && !this.devInspectorWindow.isDestroyed()) {
+        this.devInspectorWindow.show();
+      }
+    });
+    this.devInspectorWindow.on('closed', () => {
+      this.devInspectorWindow = null;
+    });
   }
 
   setupDevReloadHandlers(startUrl) {
@@ -989,6 +1032,28 @@ class QuarkLauncher {
         return { success: true };
       }
       return { success: false, error: 'Window not available' };
+    });
+
+    ipcMain.handle('open-dev-inspector', () => {
+      try {
+        this.createDevInspectorWindow();
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: error?.message || String(error) };
+      }
+    });
+
+    ipcMain.handle('list-user-data-keys', async () => {
+      try {
+        const settingsDir = path.join(this.userDataPath, 'settings');
+        const files = await fs.readdir(settingsDir);
+        const keys = files
+          .filter((f) => f.endsWith('.json'))
+          .map((f) => f.replace(/\.json$/i, ''));
+        return { success: true, keys };
+      } catch (error) {
+        return { success: true, keys: [] };
+      }
     });
 
     ipcMain.handle('get-system-info', () => ({

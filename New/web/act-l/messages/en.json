@@ -14,7 +14,8 @@
     "account": "Account",
     "yourGames": "Your games ({count})",
     "friends": "Friends",
-    "online": "{count} online"
+    "online": "{count} online",
+    "stats_m": "Statistics"
   },
   "account": {
     "title": "Account",
@@ -28,7 +29,16 @@
     "emailVerifyHint": "Verify your email to add Quark friends.",
     "planFree": "Free plan",
     "planPremium": "Premium",
-    "logout": "Log out"
+    "logout": "Log out",
+    "emailLabel": "Email",
+    "presenceLabel": "Status",
+    "steamConnected": "Connected",
+    "steamNotConnected": "Not connected",
+    "friendCodeSection": "Friend code",
+    "quickTipsTitle": "Tips",
+    "tipProfile": "Edit your avatar, bio and card colors — that’s how friends see you.",
+    "tipSteam": "Link Steam to sync your library and achievements.",
+    "tipFriends": "Share your friend code to add someone on Quark Chat."
   },
   "home": {
     "noGames": "No games found",
@@ -167,10 +177,14 @@
     "categoryCustomColor": "Custom color",
     "categoryIcon": "Category icon",
     "devPanelTitle": "Developer panel",
-    "devPanelDesc": "Only available in builds with a -dev suffix or in development mode.",
+    "devPanelDesc": "Unlock by searching “dev:5827” and pressing Ctrl+Shift+N (when the game list is empty).",
     "devTools": "Developer tools",
     "openDevTools": "Open DevTools",
     "devToolsHint": "Opens Chromium DevTools for UI debugging (Electron only).",
+    "openDevInspector": "Open Dev Inspector",
+    "devInspectorHint": "Separate window with tabs: env, settings, storage, registries, events, banner tests.",
+    "showI18nKeys": "Show i18n keys",
+    "showI18nKeysDesc": "Shows message key paths instead of translations (e.g. nav.stats_m instead of “Statistics”).",
     "privacyTitle": "Telemetry & diagnostics",
     "privacyDesc": "Data helps us improve Quark during the beta. You can turn collection off anytime.",
     "analyticsEnabled": "Usage analytics",
@@ -241,7 +255,6 @@
     "noConversations": "No conversations",
     "startDm": "Message a friend",
     "typing": "typing…",
-    "sendLfg": "Looking for group (LFG)",
     "placeholder": "Write a message…",
     "deleted": "Message deleted",
     "edited": "edited",
@@ -254,7 +267,21 @@
     "loading": "Loading…",
     "noMessages": "No messages yet — say hello!",
     "pendingShare": "Attachment ready — send message",
-    "writeMessage": "Message"
+    "cancelShare": "Cancel",
+    "writeMessage": "Message",
+    "backToList": "Back to list",
+    "conversationInfo": "Conversation info",
+    "displayName": "Display name",
+    "rename": "Rename",
+    "groupHint": "Name visible to all group members.",
+    "dmRenameHint": "Custom label for this chat (instead of the friend’s nick).",
+    "addMember": "Add",
+    "noFriendsToAdd": "All friends are already in this group",
+    "leaveGroup": "Leave group",
+    "owner": "owner",
+    "you": "You",
+    "searchConversations": "Search chats…",
+    "replying": "Replying"
   },
   "store": {
     "title": "Store",
@@ -279,5 +306,9 @@
     "free": "Free",
     "discount": "-{percent}%",
     "comingSoon": "Coming soon: GOG, Xbox"
+  },
+  "stats": {
+    "comingSoonTitle": "Stats coming soon",
+    "comingSoonHint": "Quark Recap (top games, genres, streak) lands in the next release."
   }
 }

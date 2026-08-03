@@ -9,6 +9,7 @@ import {
 } from './consent';
 import { enqueueEvent, enqueueLog, takeBatch, clearQueue, queueSize } from './queue';
 import { ingestTelemetry, syncTelemetryConsent } from './telemetry-service';
+import { pushDevLog } from '../dev-debug-bus';
 import { sanitizeProperties, sanitizeString } from './sanitize';
 import type {
   EventCategory,
@@ -174,7 +175,11 @@ export function track(
   properties?: Record<string, unknown>,
   category: EventCategory = 'feature'
 ): void {
-  if (typeof window === 'undefined' || isFullyOptedOut()) return;
+  if (typeof window === 'undefined') return;
+
+  pushDevLog('telemetry', name, { category, properties });
+
+  if (isFullyOptedOut()) return;
   if (!consent.analyticsEnabled && !name.startsWith('session.') && name !== 'app.launch') return;
 
   const event: TelemetryEvent = {

@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { useChat } from '@/lib/chat-context';
 import { useAuth } from '@/lib/auth-context';
 import { MessageBubble } from './message-bubble';
@@ -13,38 +12,54 @@ interface MessageThreadProps {
 
 export function MessageThread({ conversationId }: MessageThreadProps) {
   const t = useTranslations('chat');
-  const { user } = useAuth();
-  const { messages, isLoading, activeConversation, typingUsers } = useChat();
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const { user, profile } = useAuth();
+  const { messages, isLoading, activeConversation, typingUsers, setReplyTo } = useChat();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
   }, [messages, conversationId]);
 
-  const memberNames = new Map(
-    (activeConversation?.members || []).map((m) => [m.userId, m.displayName])
+  const memberMap = new Map(
+    (activeConversation?.members || []).map((m) => [
+      m.userId,
+      { name: m.displayName, avatarFileId: m.avatarFileId },
+    ])
   );
 
+  const messageById = new Map(messages.map((m) => [m.id, m]));
+
   return (
-    <ScrollArea className="flex-1 h-full">
-      <div className="p-4 space-y-4 min-h-full flex flex-col">
+    <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+      <div className="p-4 space-y-3">
         {isLoading && <p className="text-center text-zinc-500 text-sm">{t('loading')}</p>}
         {!isLoading && messages.length === 0 && (
           <p className="text-center text-zinc-500 text-sm mt-12">{t('noMessages')}</p>
         )}
-        {messages.map((msg) => (
-          <MessageBubble
-            key={msg.id}
-            message={msg}
-            isOwn={msg.senderId === user?.$id}
-            senderName={memberNames.get(msg.senderId)}
-          />
-        ))}
+        {messages.map((msg) => {
+          const isOwn = msg.senderId === user?.$id;
+          const member = memberMap.get(msg.senderId);
+          const replySrc = msg.replyToId ? messageById.get(msg.replyToId) : null;
+          return (
+            <MessageBubble
+              key={msg.id}
+              message={msg}
+              isOwn={isOwn}
+              senderName={isOwn ? profile?.displayName || 'Ty' : member?.name}
+              senderAvatarFileId={
+                isOwn ? profile?.avatarFileId : member?.avatarFileId
+              }
+              replyPreview={replySrc?.body?.slice(0, 120) || null}
+              onReply={setReplyTo}
+            />
+          );
+        })}
         {typingUsers.length > 0 && (
-          <p className="text-xs text-zinc-500 animate-pulse">{t('typing')}</p>
+          <p className="text-xs text-zinc-500 animate-pulse px-1">{t('typing')}</p>
         )}
-        <div ref={bottomRef} />
       </div>
-    </ScrollArea>
+    </div>
   );
 }

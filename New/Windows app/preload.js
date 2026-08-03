@@ -38,6 +38,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // System info
   getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
   openDevTools: () => ipcRenderer.invoke('open-dev-tools'),
+  openDevInspector: () => ipcRenderer.invoke('open-dev-inspector'),
+  listUserDataKeys: () => ipcRenderer.invoke('list-user-data-keys'),
 
 // ... Twój dotychczasowy kod preload ...
 

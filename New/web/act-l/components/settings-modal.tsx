@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { X, Moon, Monitor, EyeOff, FolderPlus, Trash2, Bot, Server, Key, Shield, RefreshCw, Trash, Database, Info, AlertTriangle, ChevronDown, ChevronUp, Plus, Search, Terminal, Layers, Activity } from 'lucide-react';
+import { X, Moon, Monitor, EyeOff, FolderPlus, Trash2, Bot, Server, Key, Shield, RefreshCw, Trash, Database, Info, AlertTriangle, ChevronDown, ChevronUp, Plus, Search, Terminal, Layers, Activity, Languages } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -94,6 +94,14 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
     if (typeof window !== 'undefined' && window.electronAPI?.openDevTools) {
       await window.electronAPI.openDevTools();
     }
+  };
+
+  const openDevInspector = async () => {
+    if (typeof window !== 'undefined' && window.electronAPI?.openDevInspector) {
+      const result = await window.electronAPI.openDevInspector();
+      if (result?.success) return;
+    }
+    window.dispatchEvent(new CustomEvent('quark-open-dev-inspector'));
   };
 
   return (
@@ -719,7 +727,41 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                     <Terminal className="h-4 w-4" />
                     {ts('openDevTools')}
                   </Button>
-                  <p className="text-xs text-zinc-500">{ts('devToolsHint')}</p>
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2 rounded-xl border-orange-500/30 text-orange-200 hover:bg-orange-500/10"
+                    onClick={openDevInspector}
+                  >
+                    <Layers className="h-4 w-4" />
+                    {ts('openDevInspector')}
+                  </Button>
+                  <p className="text-xs text-zinc-500">{ts('devInspectorHint')}</p>
+                </div>
+
+                <Separator className="bg-white/5" />
+
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+                    <Languages className="h-4 w-4" />
+                    {ts('showI18nKeys')}
+                  </label>
+                  <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-zinc-800/50 border border-white/5">
+                    <div>
+                      <p className="text-sm text-white">{ts('showI18nKeys')}</p>
+                      <p className="text-xs text-zinc-500 mt-0.5">{ts('showI18nKeysDesc')}</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        'rounded-xl min-w-[4.5rem]',
+                        settings.showI18nKeys && 'bg-orange-500/20 border-orange-500 text-orange-200'
+                      )}
+                      onClick={() => updateSettings({ showI18nKeys: !settings.showI18nKeys })}
+                    >
+                      {settings.showI18nKeys ? ts('on') : ts('off')}
+                    </Button>
+                  </div>
                 </div>
 
                 <Separator className="bg-white/5" />
@@ -793,9 +835,9 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                       className="gap-2 rounded-xl border-white/10 text-zinc-400 hover:text-white hover:bg-zinc-800"
                       onClick={() => {
                         if (typeof window !== 'undefined') {
-                          const settings = localStorage.getItem('quark_settings');
+                          const settings = localStorage.getItem('quark-settings');
                           localStorage.clear();
-                          if (settings) localStorage.setItem('quark_settings', settings);
+                          if (settings) localStorage.setItem('quark-settings', settings);
                           window.location.reload();
                         }
                       }}
