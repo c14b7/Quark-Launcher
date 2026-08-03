@@ -1,8 +1,8 @@
-version: 0.0.5-beta01c
+version: 0.0.5-beta01b
 files:
-  - url: Quark-Launcher-Setup-0.0.5-beta01c.exe
-    sha512: /O7BNGyax0KB6un9klDMBGkZsXx0muP1fLBpfFANq340n/MLT82Gl4wGEHpIS4MHbSg1MsWw/MnHhSiGemb+uA==
-    size: 82724657
-path: Quark-Launcher-Setup-0.0.5-beta01c.exe
-sha512: /O7BNGyax0KB6un9klDMBGkZsXx0muP1fLBpfFANq340n/MLT82Gl4wGEHpIS4MHbSg1MsWw/MnHhSiGemb+uA==
-releaseDate: '2026-06-26T15:14:26.282Z'
+  - url: Quark-Launcher-Setup-0.0.5-beta01b.exe
+    sha512: 9/6qdwhOU37UfPGLJqafH7BuIFuFc73yxgHa1gUAXJNh4Kna8FS2f9QlFqZqjfFrYfI+EEeQ7SDKYxHrfeL4fA==
+    size: 82731742
+path: Quark-Launcher-Setup-0.0.5-beta01b.exe
+sha512: 9/6qdwhOU37UfPGLJqafH7BuIFuFc73yxgHa1gUAXJNh4Kna8FS2f9QlFqZqjfFrYfI+EEeQ7SDKYxHrfeL4fA==
+releaseDate: '2026-08-03T12:43:15.099Z'
