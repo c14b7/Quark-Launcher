@@ -16,6 +16,7 @@ import { DialogBanner } from './dialog_banner';
 import { UpBanner } from './up_banner';
 import { useTranslations } from 'next-intl';
 import { CategoryIcon } from '@/lib/category-icons';
+import { visibleHomeCategories } from '@/lib/auto-categories';
 
 interface HomeViewProps {
   onGameSelect: (game: Game) => void;
@@ -58,19 +59,21 @@ export function HomeView({ onGameSelect, onOpenSettings }: HomeViewProps) {
     [allGamesRaw, settings.libraryGameOrder]
   );
 
-  const categoriesWithGames = useMemo(
-    () =>
-      settings.customCategories
-        .map((category) => ({
-          category,
-          games: sortGamesByOrder(
-            visibleGames.filter((g) => category.gameIds.includes(g.id)),
-            category.gameIds
-          ),
-        }))
-        .filter((entry) => entry.games.length > 0),
-    [settings.customCategories, visibleGames]
-  );
+  const categoriesWithGames = useMemo(() => {
+    const cats = visibleHomeCategories(
+      settings.customCategories,
+      settings.showAutoCategories !== false
+    );
+    return cats
+      .map((category) => ({
+        category,
+        games: sortGamesByOrder(
+          visibleGames.filter((g) => category.gameIds.includes(g.id)),
+          category.gameIds
+        ),
+      }))
+      .filter((entry) => entry.games.length > 0);
+  }, [settings.customCategories, settings.showAutoCategories, visibleGames]);
 
   const handleAllGamesReorder = useCallback(
     (fromIndex: number, toIndex: number) => {
@@ -181,7 +184,7 @@ export function HomeView({ onGameSelect, onOpenSettings }: HomeViewProps) {
           </GameRow>
         )}
 
-        {!searchQuery && settings.customCategories.length === 0 && (
+        {!searchQuery && categoriesWithGames.length === 0 && (
           <section className="rounded-2xl border border-dashed border-white/10 bg-zinc-900/40 p-8 flex flex-col items-center justify-center text-center gap-3">
             <FolderPlus className="h-10 w-10 text-zinc-600" />
             <h2 className="text-lg font-semibold text-zinc-300">{t('noCategories')}</h2>

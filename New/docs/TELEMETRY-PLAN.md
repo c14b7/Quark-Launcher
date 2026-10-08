@@ -1,7 +1,7 @@
 # Quark Launcher — plan systemu telemetrii i analityki
 
 > **Status:** wdrożone (Faza 1)  
-> **Cel:** zbieranie danych od wersji następnej po `0.0.6-beta01`, przygotowanie pod panel administracyjny  
+> **Cel:** zbieranie danych od wersji następnej po `0.0.7-beta`, przygotowanie pod panel administracyjny  
 > **Data:** 2026-06-23
 
 ---
@@ -431,7 +431,7 @@ Wszystkie widoki czytają z Appwrite przez **osobną funkcję admin-api** (nie z
 {
   "installation": {
     "installationId": "a1b2c3d4-...",
-    "appVersion": "0.0.6-beta01",
+    "appVersion": "0.0.7-beta",
     "platform": "win32",
     "arch": "x64",
     "locale": "pl-PL",

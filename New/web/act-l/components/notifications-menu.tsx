@@ -1,6 +1,18 @@
 'use client';
 
-import { Bell, Check, UserPlus, UserCheck, Gamepad2, MessageSquare } from 'lucide-react';
+import {
+  Bell,
+  Check,
+  UserPlus,
+  UserCheck,
+  Gamepad2,
+  MessageSquare,
+  Megaphone,
+  AlertTriangle,
+  Gift,
+  PartyPopper,
+  ScrollText,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -13,7 +25,25 @@ import {
 import { useTranslations } from 'next-intl';
 import { useFriends } from '@/lib/friends-context';
 import { useChat } from '@/lib/chat-context';
+import { useSystemMessages } from '@/lib/system-messages-context';
+import type { SystemMessageType } from '@/lib/system-messages-service';
 import { cn } from '@/lib/utils';
+
+function SystemTypeIcon({ type }: { type: SystemMessageType }) {
+  const cls = 'h-4 w-4 shrink-0 mt-0.5';
+  switch (type) {
+    case 'alert':
+      return <AlertTriangle className={cn(cls, 'text-amber-400')} />;
+    case 'event':
+      return <PartyPopper className={cn(cls, 'text-violet-400')} />;
+    case 'changelog':
+      return <ScrollText className={cn(cls, 'text-sky-400')} />;
+    case 'promo':
+      return <Gift className={cn(cls, 'text-fuchsia-400')} />;
+    default:
+      return <Megaphone className={cn(cls, 'text-lime-400')} />;
+  }
+}
 
 export function NotificationsMenu() {
   const t = useTranslations('notifications');
@@ -30,9 +60,17 @@ export function NotificationsMenu() {
     clearChatNotifications,
     setActiveConversationId,
   } = useChat();
+  const {
+    visibleMessages,
+    unreadCount: systemUnread,
+    isRead,
+    markAllRead: markAllSystemRead,
+    openMessage,
+    getSummary,
+  } = useSystemMessages();
 
   const chatUnread = chatNotifications.filter((n) => !n.read).length;
-  const unreadCount = friendsUnread + chatUnread;
+  const unreadCount = friendsUnread + chatUnread + systemUnread;
 
   const getMessage = (type: string, name: string, gameName?: string) => {
     if (type === 'friend_request') return t('friendRequest', { name });
@@ -56,10 +94,14 @@ export function NotificationsMenu() {
   const markAllRead = () => {
     markAllNotificationsRead();
     clearChatNotifications();
+    markAllSystemRead();
   };
 
   const hasContent =
-    notifications.length > 0 || incomingRequests.length > 0 || chatNotifications.length > 0;
+    notifications.length > 0 ||
+    incomingRequests.length > 0 ||
+    chatNotifications.length > 0 ||
+    visibleMessages.length > 0;
 
   return (
     <DropdownMenu>
@@ -73,7 +115,11 @@ export function NotificationsMenu() {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" sideOffset={8} className="w-80 bg-zinc-900/95 border-white/10 rounded-xl">
+      <DropdownMenuContent
+        align="end"
+        sideOffset={8}
+        className="w-80 max-h-[min(70vh,520px)] overflow-y-auto bg-zinc-900/95 border-white/10 rounded-xl"
+      >
         <div className="flex items-center justify-between px-2 py-1.5">
           <DropdownMenuLabel className="p-0">{t('title')}</DropdownMenuLabel>
           {unreadCount > 0 && (
@@ -94,6 +140,69 @@ export function NotificationsMenu() {
           </DropdownMenuItem>
         ) : (
           <>
+            {visibleMessages.length > 0 && (
+              <>
+                <div className="flex items-center justify-between px-2 py-1">
+                  <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                    {t('systemSection')}
+                  </span>
+                  {systemUnread > 0 && (
+                    <button
+                      type="button"
+                      className="text-[10px] text-lime-400 hover:text-lime-300"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        markAllSystemRead();
+                      }}
+                    >
+                      {t('markSystemRead')}
+                    </button>
+                  )}
+                </div>
+                {visibleMessages.map((msg) => {
+                  const read = isRead(msg.$id);
+                  return (
+                    <DropdownMenuItem
+                      key={msg.$id}
+                      className={cn(
+                        'flex items-start gap-2.5 py-2.5 cursor-pointer',
+                        !read && 'bg-lime-500/5',
+                        read && 'opacity-70'
+                      )}
+                      onClick={() => openMessage(msg.$id)}
+                    >
+                      <SystemTypeIcon type={msg.type} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs text-zinc-100 font-medium truncate">{msg.title}</p>
+                          {msg.priority === 'high' && (
+                            <span className="text-[9px] uppercase tracking-wide text-orange-300 shrink-0">
+                              {t('systemPriorityHigh')}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-zinc-400 mt-0.5 line-clamp-2">
+                          {getSummary(msg)}
+                        </p>
+                        <p className="text-[10px] text-zinc-600 mt-0.5">
+                          {new Date(msg.start_date).toLocaleString()}
+                        </p>
+                      </div>
+                      {!read && (
+                        <span className="h-1.5 w-1.5 rounded-full bg-lime-400 shrink-0 mt-1.5" />
+                      )}
+                    </DropdownMenuItem>
+                  );
+                })}
+                {(incomingRequests.length > 0 ||
+                  chatNotifications.length > 0 ||
+                  notifications.length > 0) && (
+                  <DropdownMenuSeparator className="bg-white/10" />
+                )}
+              </>
+            )}
+
             {incomingRequests.length > 0 && (
               <>
                 <div className="px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
@@ -114,7 +223,9 @@ export function NotificationsMenu() {
                     </div>
                   </DropdownMenuItem>
                 ))}
-                {notifications.length > 0 && <DropdownMenuSeparator className="bg-white/10" />}
+                {(notifications.length > 0 || chatNotifications.length > 0) && (
+                  <DropdownMenuSeparator className="bg-white/10" />
+                )}
               </>
             )}
 
@@ -146,9 +257,7 @@ export function NotificationsMenu() {
                     )}
                   </DropdownMenuItem>
                 ))}
-                {(notifications.length > 0 || incomingRequests.length > 0) && (
-                  <DropdownMenuSeparator className="bg-white/10" />
-                )}
+                {notifications.length > 0 && <DropdownMenuSeparator className="bg-white/10" />}
               </>
             )}
 
@@ -182,7 +291,10 @@ export function NotificationsMenu() {
           </>
         )}
 
-        {(notifications.some((n) => n.read) || chatNotifications.some((n) => n.read)) && (
+        {(notifications.some((n) => n.read) ||
+          chatNotifications.some((n) => n.read) ||
+          systemUnread === 0) &&
+          hasContent && (
           <>
             <DropdownMenuSeparator className="bg-white/10" />
             <DropdownMenuItem

@@ -256,7 +256,7 @@ Jedna instalacja aplikacji (urządzenie), niezależna od konta. Document ID = `i
 | `installationId` | string(36) | — | UUID z klienta |
 | `firstSeenAt` | datetime | — | Pierwszy ingest |
 | `lastSeenAt` | datetime | — | Ostatni ingest |
-| `appVersion` | string(32) | — | np. `0.0.6-beta01` |
+| `appVersion` | string(32) | — | np. `0.0.7-beta` |
 | `platform` | enum | — | `win32 \| darwin \| linux \| web` |
 | `arch` | string(16) | — | np. `x64` |
 | `locale` | string(10) | — | np. `pl-PL` |
@@ -383,6 +383,18 @@ Helper: `getAvatarUrl()` w `web/act-l/lib/avatar-service.ts`
 | `/friends/*` | Social | `friends-api.ts` |
 | `/steam` | Steam proxy | `steam-api.ts` |
 | `/telemetry/*` | Telemetria | `telemetry-api.ts` |
+| `/stats/*` | Play stats (friends sync) | `stats-api.ts` |
+
+### Stats (`user_play_stats`)
+
+| Endpoint | Opis |
+|----------|------|
+| `PUT /stats/summary` | Upsert summaryJson + visibility (`friends` \| `private`) |
+| `GET /stats/me` | Własne stats |
+| `PATCH /stats/visibility` | Tylko visibility |
+| `GET /stats/:userId` | Stats znajomego (wymaga friendship + visibility≠private) |
+
+`summaryJson`: totals, topGames[5], topGenres[5], showcase slice — **bez** raw session log.
 
 ### Wspólny format odpowiedzi
 
@@ -734,7 +746,7 @@ Główny endpoint zbierania danych (batch).
 {
   "installation": {
     "installationId": "uuid",
-    "appVersion": "0.0.6-beta01",
+    "appVersion": "0.0.7-beta",
     "platform": "win32",
     "arch": "x64",
     "locale": "pl-PL",

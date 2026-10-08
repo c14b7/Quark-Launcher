@@ -21,6 +21,7 @@ export const COLLECTIONS = {
   conversationMembers: 'conversation_members',
   messages: 'messages',
   messageReactions: 'message_reactions',
+  userPlayStats: 'user_play_stats',
 } as const;
 
 export const BUCKETS = {

@@ -12,21 +12,26 @@ import {
   Check,
   Sparkles,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/lib/auth-context';
+import { useGames } from '@/lib/games-context';
 import { SteamIntegrationPanel } from '@/components/steam-integration-panel';
 import { FriendCodeDisplay } from '@/components/user/friend-code-display';
-import { getAvatarUrl } from '@/lib/avatar-service';
+import { getAvatarUrl, getBannerUrl } from '@/lib/avatar-service';
 import { getAppVersion } from '@/lib/build-env';
 import { isPremiumUser } from '@/lib/subscription';
+import { getProfileDisplayPrefs } from '@/lib/profile-preferences';
+import { getActivityState } from '@/lib/activity-presence';
+import { loadLaunchStats, getRecentlyPlayedIds, loadPlayHistory } from '@/lib/play-history';
 import { useTranslations } from 'next-intl';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
 interface AccountsViewProps {
   onOpenProfileEdit?: () => void;
+  onOpenRecap?: () => void;
 }
 
 const COMING_SOON_PLATFORMS = [
@@ -35,19 +40,53 @@ const COMING_SOON_PLATFORMS = [
   { id: 'gog', name: 'GOG Galaxy', hint: 'DRM-free' },
 ];
 
-export function AccountsView({ onOpenProfileEdit }: AccountsViewProps) {
+export function AccountsView({ onOpenProfileEdit, onOpenRecap }: AccountsViewProps) {
   const t = useTranslations('account');
   const tc = useTranslations('common');
   const { user, profile, subscription, logout, isLoading, regenerateFriendCode, steamIntegration } =
     useAuth();
+  const { games, setSelectedGame } = useGames();
   const [copiedEmail, setCopiedEmail] = useState(false);
+  const [launchCount, setLaunchCount] = useState(0);
+  const [nowPlaying, setNowPlaying] = useState<{ id?: string; name?: string } | null>(null);
+  const [lastPlayedName, setLastPlayedName] = useState<string | null>(null);
 
   const email = profile?.email || user?.email || '';
   const premium = isPremiumUser(subscription);
   const avatarUrl = getAvatarUrl(profile?.avatarFileId);
+  const bannerUrl = getBannerUrl(profile?.bannerFileId);
   const displayName = profile?.displayName || profile?.name || t('guest');
   const initials = displayName.slice(0, 2).toUpperCase();
   const steamLinked = !!(profile?.steamLinked || steamIntegration?.steamId);
+  const showcase = getProfileDisplayPrefs(profile?.preferences).showcase;
+  const steamHours = Math.round(
+    (games.reduce((s, g) => s + (g.playtime || 0), 0) / 60) * 10
+  ) / 10;
+
+  useEffect(() => {
+    void (async () => {
+      const stats = await loadLaunchStats();
+      setLaunchCount(Object.values(stats).reduce((s, g) => s + (g.launchCount || 0), 0));
+      const history = await loadPlayHistory();
+      const recentId = getRecentlyPlayedIds(history)[0];
+      const recentGame = recentId ? games.find((g) => g.id === recentId) : null;
+      setLastPlayedName(recentGame?.name || null);
+    })();
+  }, [games]);
+
+  useEffect(() => {
+    const tick = () => {
+      const a = getActivityState();
+      if (a.currentActivity === 'playing' && a.currentGameName) {
+        setNowPlaying({ id: a.currentGameId, name: a.currentGameName });
+      } else {
+        setNowPlaying(null);
+      }
+    };
+    tick();
+    const id = setInterval(tick, 2000);
+    return () => clearInterval(id);
+  }, []);
 
   const copyEmail = async () => {
     if (!email) return;
@@ -56,11 +95,39 @@ export function AccountsView({ onOpenProfileEdit }: AccountsViewProps) {
     setTimeout(() => setCopiedEmail(false), 1500);
   };
 
+  const openGameById = (id?: string) => {
+    if (!id) return;
+    const g = games.find((x) => x.id === id);
+    if (g) setSelectedGame(g);
+  };
+
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-      <div className="shrink-0 px-6 py-5 border-b border-white/10">
-        <h1 className="text-xl font-semibold tracking-tight text-white">{t('title')}</h1>
-        <p className="text-sm text-zinc-400 mt-0.5">{t('subtitle')}</p>
+      <div className="shrink-0 px-6 py-5 border-b border-white/10 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight text-white">{t('title')}</h1>
+          <p className="text-sm text-zinc-400 mt-0.5">{t('subtitle')}</p>
+        </div>
+        <div className="flex flex-wrap gap-2 shrink-0">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2 border-white/10"
+            onClick={() => window.dispatchEvent(new CustomEvent('quark-navigate', { detail: 'stats' }))}
+          >
+            {t('openStats')}
+          </Button>
+          {onOpenRecap && (
+            <Button
+              size="sm"
+              className="gap-2 bg-[#d4ff00] text-black hover:bg-[#e2ff4d]"
+              onClick={onOpenRecap}
+            >
+              <Sparkles className="h-4 w-4" />
+              {t('openRecap')}
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto">
@@ -72,17 +139,48 @@ export function AccountsView({ onOpenProfileEdit }: AccountsViewProps) {
             </div>
           )}
 
+          {(nowPlaying?.name || lastPlayedName) && (
+            <section className="rounded-2xl border border-lime-500/20 bg-lime-500/5 px-4 py-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-wider text-lime-400/80">
+                  {nowPlaying?.name ? t('nowPlaying') : t('lastPlayed')}
+                </p>
+                <p className="text-sm text-white truncate mt-0.5">
+                  {nowPlaying?.name || lastPlayedName}
+                </p>
+              </div>
+              {nowPlaying?.id && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-lime-500/30 text-lime-200 shrink-0"
+                  onClick={() => openGameById(nowPlaying.id)}
+                >
+                  {t('openGame')}
+                </Button>
+              )}
+            </section>
+          )}
+
           {/* Hero profile */}
           <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black">
             <div
-              className="absolute inset-x-0 top-0 h-24 opacity-60"
-              style={{
-                background: profile?.cardTheme
-                  ? undefined
-                  : 'linear-gradient(120deg, rgba(212,255,0,0.25), rgba(139,92,246,0.2), transparent)',
-              }}
+              className="absolute inset-x-0 top-0 h-28"
+              style={
+                bannerUrl || showcase?.favoriteGameImage
+                  ? {
+                      backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.2)), url(${bannerUrl || showcase?.favoriteGameImage})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                    }
+                  : {
+                      background:
+                        'linear-gradient(120deg, rgba(212,255,0,0.25), rgba(139,92,246,0.2), transparent)',
+                      opacity: 0.6,
+                    }
+              }
             />
-            <div className="relative p-5 sm:p-6 space-y-5">
+            <div className="relative p-5 sm:p-6 space-y-5 pt-16 sm:pt-20">
               <div className="flex flex-col sm:flex-row sm:items-end gap-4">
                 <Avatar className="h-20 w-20 border-2 border-lime-500/40 shadow-lg shadow-lime-500/10">
                   {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
@@ -103,6 +201,9 @@ export function AccountsView({ onOpenProfileEdit }: AccountsViewProps) {
                       {premium ? t('planPremium') : t('planFree')}
                     </Badge>
                   </div>
+                  {showcase?.motto && (
+                    <p className="text-sm text-zinc-300 italic truncate">„{showcase.motto}”</p>
+                  )}
                   {profile?.customStatus && (
                     <p className="text-sm text-zinc-400 truncate">{profile.customStatus}</p>
                   )}
@@ -119,6 +220,47 @@ export function AccountsView({ onOpenProfileEdit }: AccountsViewProps) {
                   {t('editProfile')}
                 </Button>
               </div>
+
+              {(showcase?.favoriteGameName || showcase?.showPlayStats !== false) && (
+                <div className="flex flex-wrap gap-3">
+                  {showcase?.favoriteGameName && (
+                    <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-3 py-2">
+                      {showcase.favoriteGameImage && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={showcase.favoriteGameImage}
+                          alt=""
+                          className="h-10 w-7 rounded object-cover"
+                        />
+                      )}
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-zinc-500">
+                          {t('favoriteGame')}
+                        </p>
+                        <p className="text-xs text-zinc-200">{showcase.favoriteGameName}</p>
+                      </div>
+                    </div>
+                  )}
+                  {showcase?.showPlayStats !== false && (
+                    <>
+                      <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
+                        <p className="text-[10px] uppercase tracking-wider text-zinc-500">
+                          {t('quarkLaunches')}
+                        </p>
+                        <p className="text-sm text-white font-medium">{launchCount}</p>
+                      </div>
+                      {steamHours > 0 && (
+                        <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
+                          <p className="text-[10px] uppercase tracking-wider text-zinc-500">
+                            {t('steamHours')}
+                          </p>
+                          <p className="text-sm text-white font-medium">~{steamHours}h</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2.5">
@@ -178,20 +320,6 @@ export function AccountsView({ onOpenProfileEdit }: AccountsViewProps) {
             </div>
           </section>
 
-          {/* Quick tips */}
- {/*          <section className="rounded-2xl border border-white/10 bg-zinc-900/40 p-4">
-            <p className="text-xs font-medium text-zinc-300 flex items-center gap-1.5 mb-2">
-              <Sparkles className="h-3.5 w-3.5 text-lime-400" />
-              {t('quickTipsTitle')}
-            </p>
-            <ul className="text-xs text-zinc-500 space-y-1.5 list-disc pl-4">
-              <li>{t('tipProfile')}</li>
-              <li>{t('tipSteam')}</li>
-              <li>{t('tipFriends')}</li>
-            </ul>
-          </section> */}
-
-          {/* Steam */}
           <section className="rounded-2xl border border-white/10 bg-zinc-900/50 overflow-hidden">
             <div className="px-4 py-3 border-b border-white/10 flex items-center gap-2">
               <Link2 className="h-4 w-4 text-zinc-400" />
@@ -202,7 +330,6 @@ export function AccountsView({ onOpenProfileEdit }: AccountsViewProps) {
             </div>
           </section>
 
-          {/* Coming soon */}
           <section className="rounded-2xl border border-white/8 bg-zinc-950/60 overflow-hidden">
             <div className="px-4 py-3 border-b border-white/8">
               <h2 className="text-sm font-medium text-zinc-400">{t('morePlatforms')}</h2>

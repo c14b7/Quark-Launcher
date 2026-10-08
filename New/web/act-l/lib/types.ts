@@ -9,6 +9,7 @@ export interface QuarkFriend {
   customStatus?: string;
   pronouns?: string;
   location?: string;
+  preferences?: string;
   cardTheme?: string;
   lastSeen?: string | null;
   createdAt?: string;

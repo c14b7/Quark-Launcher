@@ -28,5 +28,5 @@ extraResources:
       - '**/*'
 win:
   target: nsis
-  icon: assets/icon.ico
+  icon: assets/VERT_Q.ico
 electronVersion: 33.4.11

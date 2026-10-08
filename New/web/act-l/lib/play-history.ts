@@ -8,6 +8,9 @@ export interface GameLaunchStats {
   lastPlayed: string;
   firstPlayed: string;
   launchCount: number;
+  totalSessionSec?: number;
+  sessionCount?: number;
+  lastSessionSec?: number;
 }
 
 export type LaunchStatsMap = Record<string, GameLaunchStats>;
@@ -20,6 +23,9 @@ function normalizeStats(raw: unknown, gameId: string): GameLaunchStats | null {
     lastPlayed: o.lastPlayed,
     firstPlayed: o.firstPlayed || o.lastPlayed,
     launchCount: typeof o.launchCount === 'number' ? o.launchCount : 1,
+    totalSessionSec: typeof o.totalSessionSec === 'number' ? o.totalSessionSec : 0,
+    sessionCount: typeof o.sessionCount === 'number' ? o.sessionCount : 0,
+    lastSessionSec: typeof o.lastSessionSec === 'number' ? o.lastSessionSec : undefined,
   };
 }
 
@@ -103,6 +109,29 @@ export function recordLaunchStats(stats: LaunchStatsMap, gameId: string): Launch
       lastPlayed: now,
       firstPlayed: prev?.firstPlayed || now,
       launchCount: (prev?.launchCount || 0) + 1,
+      totalSessionSec: prev?.totalSessionSec || 0,
+      sessionCount: prev?.sessionCount || 0,
+      lastSessionSec: prev?.lastSessionSec,
+    },
+  };
+}
+
+export function applySessionToLaunchStats(
+  stats: LaunchStatsMap,
+  gameId: string,
+  durationSec: number
+): LaunchStatsMap {
+  const prev = stats[gameId];
+  const now = new Date().toISOString();
+  return {
+    ...stats,
+    [gameId]: {
+      lastPlayed: prev?.lastPlayed || now,
+      firstPlayed: prev?.firstPlayed || now,
+      launchCount: prev?.launchCount || 1,
+      totalSessionSec: (prev?.totalSessionSec || 0) + Math.max(0, durationSec),
+      sessionCount: (prev?.sessionCount || 0) + 1,
+      lastSessionSec: Math.max(0, durationSec),
     },
   };
 }

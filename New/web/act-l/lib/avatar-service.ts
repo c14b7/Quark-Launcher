@@ -3,11 +3,13 @@ import type { UserProfile } from './auth-service';
 
 export const USER_MEDIA_BUCKET = 'user_media';
 
-/** Bezpośredni URL do odczytu avatara z Appwrite Storage (publiczny read na pliku). */
+/** Bezpośredni URL do odczytu avatara / banneru z Appwrite Storage (publiczny read na pliku). */
 export function getAvatarUrl(fileId: string | null | undefined): string | undefined {
   if (!fileId) return undefined;
   return `${APPWRITE_CONFIG.endpoint}/storage/buckets/${USER_MEDIA_BUCKET}/files/${fileId}/view?project=${APPWRITE_CONFIG.projectId}`;
 }
+
+export const getBannerUrl = getAvatarUrl;
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -39,33 +41,41 @@ export function fileToPreviewUrl(file: File): Promise<string> {
 }
 
 export async function uploadAvatar(
-  file: File
-): Promise<{ success: boolean; fileId?: string; avatarUrl?: string; profile?: UserProfile; error?: string }> {
+  file: File,
+  kind: 'avatar' | 'banner' = 'avatar'
+): Promise<{ success: boolean; fileId?: string; avatarUrl?: string; bannerUrl?: string; profile?: UserProfile; error?: string }> {
   // Upload wyłącznie przez POST /auth/avatar — klient nie ma create na buckecie.
   try {
     const data = await fileToBase64(file);
     const result = await apiRequest<{
       fileId: string;
       avatarUrl: string;
+      bannerUrl?: string;
       profile: UserProfile;
     }>('/auth/avatar', 'POST', {
       data,
       mimeType: file.type,
+      kind,
     });
 
     if (!result.success) {
-      return { success: false, error: result.error || 'Nie udało się przesłać avatara' };
+      return { success: false, error: result.error || 'Nie udało się przesłać pliku' };
     }
 
     return {
       success: true,
       fileId: result.fileId as string,
       avatarUrl: (result.avatarUrl as string) || getAvatarUrl(result.fileId as string),
+      bannerUrl: (result.bannerUrl as string) || getAvatarUrl(result.fileId as string),
       profile: result.profile as UserProfile,
     };
   } catch (error: unknown) {
     const err = error as { message?: string };
     console.error('[Avatar] Upload failed:', err);
-    return { success: false, error: err.message || 'Nie udało się przesłać avatara' };
+    return { success: false, error: err.message || 'Nie udało się przesłać pliku' };
   }
+}
+
+export async function uploadBanner(file: File) {
+  return uploadAvatar(file, 'banner');
 }

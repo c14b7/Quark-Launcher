@@ -2,7 +2,7 @@
 
 ## Aktualizacja lipcowa
 
-Obecna wersja: **v0.0.6-beta01**
+Obecna wersja: **v0.0.7-beta**
 
 ### 🚀 Co nowego:
 - Chat ze znajomymi

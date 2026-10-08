@@ -2,7 +2,12 @@
 
 | Dokument | Opis |
 |----------|------|
-| [API-REFERENCE.md](./API-REFERENCE.md) | **Pełna referencja API, bazy danych, telemetrii i wytyczne pod panel admin** |
+| [API-REFERENCE.md](./API-REFERENCE.md) | **Pełna referencja API** (w tym `/stats/*`, `user_play_stats`, telemetria) |
+| [SYSTEM-MESSAGES.md](./SYSTEM-MESSAGES.md) | **System Messages** — kolekcja Console, dzwonek, modal MD, deep-linki |
+| [DEV-CONSOLE.md](./DEV-CONSOLE.md) | **Dev Console** — `window.quark` cheatsheet (stats, seed, banners, nav) |
+| [CHAT.md](./CHAT.md) | Czat Quark (API, kolekcje, Realtime) |
+| [STORE.md](./STORE.md) | Sklep (Steam / CheapShark / Epic) |
+| [OVERLAY.md](./OVERLAY.md) | Nakładka i powiadomienia |
 | [ZMIANY-2026-06-23.md](./ZMIANY-2026-06-23.md) | Pełna dokumentacja zmian z 23.06.2026 — API, avatary, Steam, UI, Electron |
 | [TELEMETRY-PLAN.md](./TELEMETRY-PLAN.md) | Plan systemu telemetrii, logów diagnostycznych i przygotowanie pod panel admin |
 
@@ -64,6 +69,10 @@ const { subscription } = useAuth();
 hasPremiumFeature(subscription, 'unlimitedCategories');
 ```
 
+### Quark Recap
+
+Lokalny Wrapped z `launchStats` + Steam playtime. Wejście: **Konto → Quark Recap**. Deep-link: `quark://view/recap`.
+
 ### Dev settings
 
-Widoczne tylko gdy wersja zawiera `-dev` lub `NODE_ENV=development`. DevTools: `window.electronAPI.openDevTools()`.
+Widoczne tylko gdy wersja zawiera `-dev` lub `NODE_ENV=development` (oraz po odblokowaniu sesji Dev). DevTools: `window.electronAPI.openDevTools()`. Dev Inspector: `window.electronAPI.openDevInspector()`.

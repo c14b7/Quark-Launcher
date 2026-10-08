@@ -11,11 +11,18 @@ import {
   loadLaunchStats,
   persistLaunchStats,
   recordLaunchStats,
+  applySessionToLaunchStats,
   type PlayHistory,
 } from '@/lib/play-history';
+import {
+  startPlaySession,
+  endActivePlaySession,
+} from '@/lib/play-session-tracker';
 import { setPlayingGame, clearPlayingGame, activityPayloadForPresence } from '@/lib/activity-presence';
 import { friendsService } from '@/lib/friends-service';
 import { track, logTelemetry } from '@/lib/telemetry/client';
+import { scheduleStatsSync } from '@/lib/stats-sync-service';
+import { mergeGameGenres, enrichGenresFromSteamStore } from '@/lib/auto-categories';
 
 interface GamesContextType {
   games: Game[];
@@ -43,7 +50,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [selectedGameSnapshot, setSelectedGameSnapshot] = useState<Game | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const { settings } = useSettings();
+  const { settings, rebuildAutoCategoriesFromGames } = useSettings();
 
   const setSelectedGame = useCallback((game: Game | null) => {
     setSelectedGameSnapshot(game);
@@ -56,6 +63,36 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     refreshGames();
     loadUserSettings();
+  }, []);
+
+  // End open session on quit / tab hide
+  useEffect(() => {
+    const endSession = () => {
+      void (async () => {
+        const closed = await endActivePlaySession();
+        if (closed?.durationSec) {
+          const stats = await loadLaunchStats();
+          await persistLaunchStats(
+            applySessionToLaunchStats(stats, closed.gameId, closed.durationSec)
+          );
+          clearPlayingGame();
+          friendsService
+            .updatePresence('online', undefined, {
+              currentActivity: 'none',
+              currentGameId: '',
+              currentGameName: '',
+            })
+            .catch(() => {});
+          scheduleStatsSync();
+        }
+      })();
+    };
+    window.addEventListener('pagehide', endSession);
+    window.addEventListener('beforeunload', endSession);
+    return () => {
+      window.removeEventListener('pagehide', endSession);
+      window.removeEventListener('beforeunload', endSession);
+    };
   }, []);
 
   // Refresh playtime when Steam settings change OR when games load for the first time
@@ -151,7 +188,18 @@ export function GamesProvider({ children }: { children: ReactNode }) {
             });
             
             console.log(`[GAMES] Total matches: ${matchCount} / ${steamGames.length} steam games`);
-            return updatedGames;
+            const withGenres = mergeGameGenres(updatedGames);
+            void enrichGenresFromSteamStore(withGenres, 10).then((cache) => {
+              setGames((prev) => {
+                const next = prev.map((g) =>
+                  cache[g.id]?.length ? { ...g, genres: cache[g.id] } : g
+                );
+                rebuildAutoCategoriesFromGames(next);
+                return next;
+              });
+            });
+            rebuildAutoCategoriesFromGames(withGenres);
+            return withGenres;
           });
         }
       } else {
@@ -176,9 +224,10 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         ]);
         
         // Połącz gry z różnych platform
-        const allGames = [...steamGames, ...epicGames];
+        const allGames = mergeGameGenres([...steamGames, ...epicGames]);
         console.log('[GAMES] Loaded', allGames.length, 'games (Steam:', steamGames.length, ', Epic:', epicGames.length, ')');
         setGames(allGames);
+        rebuildAutoCategoriesFromGames(allGames);
         
         // Note: enrichGamesWithSteamData will be called by the useEffect when games.length changes
       } else {
@@ -209,16 +258,25 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const launchGame = useCallback(async (game: Game) => {
-    const markLaunched = () => {
+    const markLaunched = async () => {
+      // Close previous session before starting a new one
+      const closed = await endActivePlaySession();
+      if (closed?.durationSec) {
+        const prevStats = await loadLaunchStats();
+        await persistLaunchStats(
+          applySessionToLaunchStats(prevStats, closed.gameId, closed.durationSec)
+        );
+      }
+
       setPlayHistory((prev) => {
         const next = recordGameLaunch(prev, game.id);
         void persistPlayHistory(next);
         return next;
       });
-      void loadLaunchStats().then((stats) => {
-        const next = recordLaunchStats(stats, game.id);
-        void persistLaunchStats(next);
-      });
+      const stats = await loadLaunchStats();
+      await persistLaunchStats(recordLaunchStats(stats, game.id));
+      await startPlaySession(game.id, game.name, 'launch');
+      scheduleStatsSync();
     };
 
     try {
@@ -229,7 +287,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         });
 
         if (result.success) {
-          markLaunched();
+          await markLaunched();
           setPlayingGame(game.id, game.name);
           friendsService.updatePresence('online', undefined, {
             currentGameId: game.id,
@@ -247,7 +305,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         }
       } else {
         window.open(`steam://rungameid/${game.id}`, '_blank');
-        markLaunched();
+        await markLaunched();
         setPlayingGame(game.id, game.name);
         friendsService.updatePresence('online', undefined, {
           currentGameId: game.id,

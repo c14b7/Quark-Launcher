@@ -6,10 +6,10 @@ import { parseFriendCardTheme, GRADIENT_PRESETS } from '@/lib/friends-service';
 import type { QuarkFriend } from '@/lib/types';
 import type { UserProfile } from '@/lib/auth-service';
 import { parseCardTheme } from '@/lib/auth-service';
-import { getAvatarUrl } from '@/lib/avatar-service';
+import { getAvatarUrl, getBannerUrl } from '@/lib/avatar-service';
 import { getProfileDisplayPrefs } from '@/lib/profile-preferences';
-import { MapPin } from 'lucide-react';
-import { useLocale } from 'next-intl';
+import { MapPin, Gamepad2 } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 
 type ProfileData = QuarkFriend | UserProfile | {
   displayName?: string;
@@ -23,6 +23,7 @@ type ProfileData = QuarkFriend | UserProfile | {
   cardTheme?: string;
   createdAt?: string;
   avatarFileId?: string | null;
+  bannerFileId?: string | null;
 };
 
 interface UserCardProps {
@@ -31,7 +32,10 @@ interface UserCardProps {
   compact?: boolean;
   showBio?: boolean;
   avatarUrl?: string;
+  bannerUrl?: string;
   showMemberSince?: boolean;
+  launchCount?: number;
+  steamHours?: number;
 }
 
 function getDisplayName(profile: ProfileData): string {
@@ -54,6 +58,7 @@ function resolveExtras(profile: ProfileData, showMemberSince?: boolean) {
     pronouns: fromProfile.pronouns || prefs.pronouns || '',
     location: fromProfile.location || prefs.location || '',
     showMemberSince: showMemberSince ?? prefs.showMemberSince !== false,
+    showcase: prefs.showcase,
   };
 }
 
@@ -63,9 +68,13 @@ export function UserCard({
   compact = false,
   showBio = true,
   avatarUrl,
+  bannerUrl,
   showMemberSince,
+  launchCount,
+  steamHours,
 }: UserCardProps) {
   const locale = useLocale();
+  const ta = useTranslations('account');
   const theme = profile.cardTheme
     ? parseFriendCardTheme(profile.cardTheme)
     : parseCardTheme(undefined);
@@ -75,6 +84,10 @@ export function UserCard({
   const imageSrc = avatarUrl ?? getAvatarUrl(profile.avatarFileId);
   const extras = resolveExtras(profile, showMemberSince);
   const borderStyle = theme.borderStyle || 'default';
+  const resolvedBanner =
+    bannerUrl ||
+    getBannerUrl(profile.bannerFileId) ||
+    extras.showcase?.favoriteGameImage;
 
   const borderClass =
     borderStyle === 'minimal'
@@ -82,6 +95,8 @@ export function UserCard({
       : borderStyle === 'accent'
         ? 'border-2'
         : 'border border-zinc-800/80';
+
+  const showStats = extras.showcase?.showPlayStats !== false && (launchCount != null || steamHours != null);
 
   return (
     <div
@@ -96,7 +111,18 @@ export function UserCard({
         boxShadow: theme.glowEnabled ? `0 8px 32px ${theme.accentColor}18` : undefined,
       }}
     >
-      <div className={cn('bg-gradient-to-r', gradient, compact ? 'h-14' : 'h-20')} />
+      <div
+        className={cn('relative bg-gradient-to-r', gradient, compact ? 'h-14' : 'h-20')}
+        style={
+          resolvedBanner
+            ? {
+                backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.55), transparent), url(${resolvedBanner})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }
+            : undefined
+        }
+      />
       <div className={cn('px-4', compact ? 'pb-3' : 'pb-4')}>
         <div className={cn('flex items-end gap-3', compact ? '-mt-5' : '-mt-7')}>
           <Avatar
@@ -121,11 +147,42 @@ export function UserCard({
             {extras.pronouns && (
               <p className="text-[11px] text-muted-foreground truncate mt-0.5">{extras.pronouns}</p>
             )}
+            {extras.showcase?.motto && (
+              <p className="text-xs text-foreground/80 italic truncate mt-0.5">„{extras.showcase.motto}”</p>
+            )}
             {profile.customStatus && (
               <p className="text-xs text-muted-foreground truncate mt-0.5">{profile.customStatus}</p>
             )}
           </div>
         </div>
+
+        {extras.showcase?.favoriteGameName && !compact && (
+          <div className="mt-3 flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-2.5 py-1.5">
+            {extras.showcase.favoriteGameImage && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={extras.showcase.favoriteGameImage}
+                alt=""
+                className="h-8 w-6 rounded object-cover"
+              />
+            )}
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+                <Gamepad2 className="h-3 w-3" /> {ta('favoriteGame')}
+              </p>
+              <p className="text-xs text-foreground truncate">{extras.showcase.favoriteGameName}</p>
+            </div>
+          </div>
+        )}
+
+        {showStats && !compact && (
+          <div className="mt-2 flex gap-3 text-[11px] text-muted-foreground">
+            {launchCount != null && <span>{ta('launchesCount', { count: launchCount })}</span>}
+            {steamHours != null && steamHours > 0 && (
+              <span>{ta('steamHoursShort', { hours: steamHours })}</span>
+            )}
+          </div>
+        )}
 
         {extras.location && (
           <p className="flex items-center gap-1 text-xs text-muted-foreground mt-2.5 truncate">

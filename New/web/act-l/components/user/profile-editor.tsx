@@ -11,13 +11,15 @@ import { UserCard3D } from './user-card-3d';
 import { GRADIENT_PRESETS } from '@/lib/friends-service';
 import type { CardTheme } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Camera, Loader2, MapPin, AtSign } from 'lucide-react';
-import { uploadAvatar, getAvatarUrl, fileToPreviewUrl } from '@/lib/avatar-service';
+import { Camera, Loader2, MapPin, AtSign, Search, ImageIcon } from 'lucide-react';
+import { uploadAvatar, uploadBanner, getAvatarUrl, getBannerUrl, fileToPreviewUrl } from '@/lib/avatar-service';
 import {
   getProfileDisplayPrefs,
   mergeProfilePreferences,
 } from '@/lib/profile-preferences';
 import { useTranslations } from 'next-intl';
+import { useGames } from '@/lib/games-context';
+import { loadLaunchStats } from '@/lib/play-history';
 
 const GRADIENT_OPTIONS = Object.keys(GRADIENT_PRESETS);
 const PRESENCE_OPTIONS = ['online', 'idle', 'dnd', 'offline'] as const;
@@ -44,20 +46,33 @@ function Field({
 export function ProfileEditor() {
   const t = useTranslations('profile');
   const { profile, updateProfile, cardTheme, applyProfile } = useAuth();
+  const { games } = useGames();
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [customStatus, setCustomStatus] = useState('');
   const [pronouns, setPronouns] = useState('');
   const [location, setLocation] = useState('');
+  const [motto, setMotto] = useState('');
+  const [favoriteGameId, setFavoriteGameId] = useState('');
+  const [favoriteGameName, setFavoriteGameName] = useState('');
+  const [favoriteGameImage, setFavoriteGameImage] = useState('');
+  const [showPlayStats, setShowPlayStats] = useState(true);
+  const [gameSearch, setGameSearch] = useState('');
   const [showMemberSince, setShowMemberSince] = useState(true);
   const [presence, setPresence] = useState<string>('online');
   const [theme, setTheme] = useState<CardTheme>(cardTheme);
   const [avatarFileId, setAvatarFileId] = useState<string | null>(null);
+  const [bannerFileId, setBannerFileId] = useState<string | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | undefined>();
+  const [bannerPreview, setBannerPreview] = useState<string | undefined>();
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [launchCount, setLaunchCount] = useState(0);
+  const [steamHours, setSteamHours] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (profile) {
@@ -67,13 +82,43 @@ export function ProfileEditor() {
       setCustomStatus(profile.customStatus || '');
       setPronouns(prefs.pronouns || '');
       setLocation(prefs.location || '');
+      setMotto(prefs.showcase?.motto || '');
+      setFavoriteGameId(prefs.showcase?.favoriteGameId || '');
+      setFavoriteGameName(prefs.showcase?.favoriteGameName || '');
+      setFavoriteGameImage(prefs.showcase?.favoriteGameImage || '');
+      setShowPlayStats(prefs.showcase?.showPlayStats !== false);
       setShowMemberSince(prefs.showMemberSince !== false);
       setPresence(profile.presence || 'online');
       setTheme(cardTheme);
       setAvatarFileId(profile.avatarFileId ?? null);
+      setBannerFileId(profile.bannerFileId ?? null);
       setAvatarPreview(getAvatarUrl(profile.avatarFileId));
+      setBannerPreview(getBannerUrl(profile.bannerFileId));
     }
   }, [profile, cardTheme]);
+
+  useEffect(() => {
+    void (async () => {
+      const stats = await loadLaunchStats();
+      const total = Object.values(stats).reduce((s, g) => s + (g.launchCount || 0), 0);
+      setLaunchCount(total);
+      const mins = games.reduce((s, g) => s + (g.playtime || 0), 0);
+      setSteamHours(Math.round((mins / 60) * 10) / 10);
+    })();
+  }, [games]);
+
+  const filteredGames = games
+    .filter((g) => !gameSearch || g.name.toLowerCase().includes(gameSearch.toLowerCase()))
+    .slice(0, 12);
+
+  const pickFavorite = (id: string) => {
+    const g = games.find((x) => x.id === id);
+    if (!g) return;
+    setFavoriteGameId(g.id);
+    setFavoriteGameName(g.name);
+    setFavoriteGameImage(g.capsule || g.image || '');
+    setGameSearch('');
+  };
 
   const handleAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -111,6 +156,40 @@ export function ProfileEditor() {
     }
   };
 
+  const handleBannerPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !profile) return;
+    if (!file.type.startsWith('image/')) {
+      setMessage(t('avatarInvalid'));
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage(t('avatarTooLarge'));
+      return;
+    }
+    setUploadingBanner(true);
+    setMessage(null);
+    try {
+      setBannerPreview(await fileToPreviewUrl(file));
+      const upload = await uploadBanner(file);
+      if (!upload.success || !upload.fileId) {
+        setBannerPreview(getBannerUrl(profile.bannerFileId));
+        setMessage(upload.error || t('bannerUploadError'));
+        return;
+      }
+      if (upload.profile) applyProfile(upload.profile);
+      setBannerFileId(upload.fileId);
+      setBannerPreview(upload.bannerUrl || getBannerUrl(upload.fileId));
+      setMessage(t('bannerSaved'));
+    } catch {
+      setBannerPreview(getBannerUrl(profile.bannerFileId));
+      setMessage(t('bannerUploadError'));
+    } finally {
+      setUploadingBanner(false);
+      if (bannerInputRef.current) bannerInputRef.current.value = '';
+    }
+  };
+
   const handleSave = async () => {
     if (!profile) return;
     setSaving(true);
@@ -126,6 +205,13 @@ export function ProfileEditor() {
         pronouns: pronouns.trim().slice(0, 24),
         location: location.trim().slice(0, 48),
         showMemberSince,
+        showcase: {
+          motto: motto.trim().slice(0, 80),
+          favoriteGameId: favoriteGameId || undefined,
+          favoriteGameName: favoriteGameName || undefined,
+          favoriteGameImage: favoriteGameImage || undefined,
+          showPlayStats,
+        },
       }),
     });
 
@@ -139,6 +225,13 @@ export function ProfileEditor() {
     pronouns: pronouns.trim(),
     location: location.trim(),
     showMemberSince,
+    showcase: {
+      motto: motto.trim(),
+      favoriteGameId: favoriteGameId || undefined,
+      favoriteGameName: favoriteGameName || undefined,
+      favoriteGameImage: favoriteGameImage || undefined,
+      showPlayStats,
+    },
   });
 
   const previewProfile = {
@@ -152,10 +245,12 @@ export function ProfileEditor() {
     preferences: previewPreferences,
     cardTheme: JSON.stringify(theme),
     avatarFileId,
+    bannerFileId,
   };
 
   const initials = (displayName || profile.name).slice(0, 2).toUpperCase();
-  const isSuccess = message === t('saved') || message === t('avatarSaved');
+  const isSuccess =
+    message === t('saved') || message === t('avatarSaved') || message === t('bannerSaved');
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_260px]">
@@ -163,7 +258,14 @@ export function ProfileEditor() {
       <div className="lg:hidden space-y-2">
         <p className="text-xs font-medium text-muted-foreground">{t('preview')}</p>
         <UserCard3D className="mx-auto max-w-[260px]">
-          <UserCard profile={previewProfile} avatarUrl={avatarPreview} showMemberSince={showMemberSince} />
+          <UserCard
+            profile={previewProfile}
+            avatarUrl={avatarPreview}
+            bannerUrl={bannerPreview}
+            showMemberSince={showMemberSince}
+            launchCount={showPlayStats ? launchCount : undefined}
+            steamHours={showPlayStats ? steamHours : undefined}
+          />
         </UserCard3D>
       </div>
 
@@ -210,6 +312,38 @@ export function ProfileEditor() {
           />
         </div>
 
+        {/* Banner upload */}
+        <Field label={t('profileBanner')} hint={t('profileBannerHint')}>
+          <div className="flex items-center gap-3">
+            <div
+              className="h-14 flex-1 rounded-lg border border-border bg-muted/40 overflow-hidden bg-cover bg-center"
+              style={bannerPreview ? { backgroundImage: `url(${bannerPreview})` } : undefined}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5 shrink-0"
+              disabled={uploadingBanner}
+              onClick={() => bannerInputRef.current?.click()}
+            >
+              {uploadingBanner ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <ImageIcon className="h-3.5 w-3.5" />
+              )}
+              {t('changeBanner')}
+            </Button>
+            <input
+              ref={bannerInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="hidden"
+              onChange={handleBannerPick}
+            />
+          </div>
+        </Field>
+
         <Separator />
 
         {/* Identity */}
@@ -242,6 +376,15 @@ export function ProfileEditor() {
             />
             <p className="text-[11px] text-muted-foreground text-right">{bio.length}/190</p>
           </Field>
+          <Field label={t('motto')} hint={t('mottoHint')}>
+            <Input
+              value={motto}
+              onChange={(e) => setMotto(e.target.value)}
+              maxLength={80}
+              placeholder={t('mottoPlaceholder')}
+            />
+            <p className="text-[11px] text-muted-foreground text-right">{motto.length}/80</p>
+          </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={t('status')}>
               <Input
@@ -264,6 +407,74 @@ export function ProfileEditor() {
               </div>
             </Field>
           </div>
+        </div>
+
+        <Separator />
+
+        {/* Showcase */}
+        <div className="space-y-3">
+          <p className="text-sm font-medium text-foreground">{t('showcaseSection')}</p>
+          <Field label={t('favoriteGame')} hint={t('favoriteGameHint')}>
+            {favoriteGameName && (
+              <div className="flex items-center gap-2 mb-2 rounded-md border border-border px-2 py-1.5">
+                {favoriteGameImage && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={favoriteGameImage} alt="" className="h-8 w-6 rounded object-cover" />
+                )}
+                <span className="text-sm flex-1 truncate">{favoriteGameName}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    setFavoriteGameId('');
+                    setFavoriteGameName('');
+                    setFavoriteGameImage('');
+                  }}
+                >
+                  {t('clearFavorite')}
+                </Button>
+              </div>
+            )}
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                value={gameSearch}
+                onChange={(e) => setGameSearch(e.target.value)}
+                placeholder={t('searchGames')}
+                className="pl-8"
+              />
+            </div>
+            {gameSearch && (
+              <div className="mt-2 max-h-40 overflow-y-auto rounded-md border border-border divide-y divide-border">
+                {filteredGames.map((g) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    className="flex w-full items-center gap-2 px-2 py-1.5 text-left text-xs hover:bg-muted/50"
+                    onClick={() => pickFavorite(g.id)}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={g.capsule || g.image} alt="" className="h-7 w-5 rounded object-cover" />
+                    <span className="truncate">{g.name}</span>
+                  </button>
+                ))}
+                {filteredGames.length === 0 && (
+                  <p className="px-2 py-2 text-xs text-muted-foreground">{t('noGamesFound')}</p>
+                )}
+              </div>
+            )}
+          </Field>
+          <label className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2.5 cursor-pointer hover:bg-muted/30 transition-colors">
+            <span className="text-sm text-foreground">{t('showPlayStats')}</span>
+            <input
+              type="checkbox"
+              checked={showPlayStats}
+              onChange={(e) => setShowPlayStats(e.target.checked)}
+              className="h-4 w-4 rounded border-input accent-foreground"
+            />
+          </label>
         </div>
 
         <Separator />
@@ -374,7 +585,7 @@ export function ProfileEditor() {
         </div>
 
         <div className="flex flex-col gap-2 pt-2">
-          <Button onClick={handleSave} disabled={saving || uploading} className="w-full sm:w-auto">
+          <Button onClick={handleSave} disabled={saving || uploading || uploadingBanner} className="w-full sm:w-auto">
             {saving ? t('saving') : t('saveProfile')}
           </Button>
           {message && (
@@ -390,7 +601,14 @@ export function ProfileEditor() {
         <div className="sticky top-0 space-y-3">
           <p className="text-xs font-medium text-muted-foreground">{t('preview')}</p>
           <UserCard3D>
-            <UserCard profile={previewProfile} avatarUrl={avatarPreview} showMemberSince={showMemberSince} />
+            <UserCard
+              profile={previewProfile}
+              avatarUrl={avatarPreview}
+              bannerUrl={bannerPreview}
+              showMemberSince={showMemberSince}
+              launchCount={showPlayStats ? launchCount : undefined}
+              steamHours={showPlayStats ? steamHours : undefined}
+            />
           </UserCard3D>
           <p className="text-[11px] text-muted-foreground text-center">{t('previewHint')}</p>
         </div>

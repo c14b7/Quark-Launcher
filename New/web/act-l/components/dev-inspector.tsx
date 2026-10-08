@@ -36,6 +36,8 @@ import {
   type DevLogEntry,
   type DevLogSource,
 } from '@/lib/dev-debug-bus';
+import { loadPlaySessions, getActiveSession, type PlaySession } from '@/lib/play-session-tracker';
+import { getLastStatsSyncPayload } from '@/lib/stats-sync-service';
 
 type InspectorTab =
   | 'env'
@@ -44,6 +46,8 @@ type InspectorTab =
   | 'registers'
   | 'events'
   | 'banners'
+  | 'sessions'
+  | 'categories'
   | 'system'
   | 'actions';
 
@@ -53,6 +57,8 @@ const TABS: { id: InspectorTab; label: string; icon: typeof Activity }[] = [
   { id: 'storage', label: 'Storage', icon: Database },
   { id: 'registers', label: 'Rejestry', icon: HardDrive },
   { id: 'events', label: 'Zdarzenia', icon: Activity },
+  { id: 'sessions', label: 'Sesje', icon: Activity },
+  { id: 'categories', label: 'Kategorie', icon: Boxes },
   { id: 'banners', label: 'Banery', icon: Megaphone },
   { id: 'system', label: 'System', icon: Terminal },
   { id: 'actions', label: 'Akcje', icon: Zap },
@@ -123,6 +129,7 @@ export function DevInspector({ mode = 'window', onClose }: DevInspectorProps) {
   const [userDataPreview, setUserDataPreview] = useState<Record<string, unknown>>({});
   const [systemInfo, setSystemInfo] = useState<Record<string, unknown> | null>(null);
   const [gameSession, setGameSession] = useState<Record<string, unknown> | null>(null);
+  const [playSessions, setPlaySessions] = useState<PlaySession[]>([]);
   const [tick, setTick] = useState(0);
 
   const { settings } = useSettings();
@@ -195,6 +202,9 @@ export function DevInspector({ mode = 'window', onClose }: DevInspectorProps) {
     if (tab === 'storage' || tab === 'registers') void refreshRegisters();
     if (tab === 'system') void refreshSystem();
     if (tab === 'settings') refreshStorage();
+    if (tab === 'sessions') {
+      void loadPlaySessions().then(setPlaySessions);
+    }
   }, [tab, refreshRegisters, refreshSystem, refreshStorage]);
 
   const envVars = useMemo(
@@ -399,6 +409,26 @@ export function DevInspector({ mode = 'window', onClose }: DevInspectorProps) {
                     </div>
                   ))}
                 </div>
+              </section>
+            )}
+
+            {tab === 'sessions' && (
+              <section className="space-y-3">
+                <h2 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
+                  Active: {JSON.stringify(getActiveSession())}
+                </h2>
+                <JsonBlock value={getLastStatsSyncPayload()} />
+                <JsonBlock value={playSessions.slice(0, 40)} />
+              </section>
+            )}
+
+            {tab === 'categories' && (
+              <section className="space-y-3">
+                <h2 className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
+                  customCategories ({settings.customCategories.length}) · auto=
+                  {String(settings.showAutoCategories !== false)}
+                </h2>
+                <JsonBlock value={settings.customCategories} />
               </section>
             )}
 

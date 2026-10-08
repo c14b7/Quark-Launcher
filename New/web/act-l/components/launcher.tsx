@@ -44,6 +44,12 @@ import { StatsView } from '@/components/stats/main';
 import { DevTestBannerHost } from '@/components/dev-test-banner-host';
 import { DevInspector } from '@/components/dev-inspector';
 import { startDevEventCapture } from '@/lib/dev-debug-bus';
+import { SystemMessagesProvider } from '@/lib/system-messages-context';
+import { SystemMessageModal } from '@/components/system-message-modal';
+import { RecapView } from '@/components/recap/recap-view';
+import { mountQuarkConsole, runSeedSessions } from '@/lib/quark-console';
+import { setStatsSyncContext, scheduleStatsSync } from '@/lib/stats-sync-service';
+import { useSystemMessages } from '@/lib/system-messages-context';
 
 const STEAM_PROMPT_DISMISSED_KEY = 'quark_steam_prompt_dismissed';
 
@@ -59,6 +65,7 @@ function LauncherContent() {
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
   const [tourActive, setTourActive] = useState(false);
   const [devInspectorOpen, setDevInspectorOpen] = useState(false);
+  const [recapOpen, setRecapOpen] = useState(false);
 
   const [isFriendsOpen, setIsFriendsOpen] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -68,9 +75,10 @@ function LauncherContent() {
     return true;
   });
 
-  const { selectedGame, setSelectedGame } = useGames();
-  const { settings } = useSettings();
+  const { selectedGame, setSelectedGame, games } = useGames();
+  const { settings, updateSettings, rebuildAutoCategoriesFromGames } = useSettings();
   const { isAuthenticated, profile, steamIntegration, isLoading, meLoaded, apiUnavailable, updateProfile, user } = useAuth();
+  const { refresh: refreshSysMsg, openMessage } = useSystemMessages();
 
   useTrackView(isAuthenticated ? currentView : 'onboarding');
 
@@ -83,7 +91,48 @@ function LauncherContent() {
 
   useEffect(() => {
     startDevEventCapture();
+    mountQuarkConsole();
   }, []);
+
+  useEffect(() => {
+    setStatsSyncContext({
+      games,
+      settings,
+      preferences: profile?.preferences,
+    });
+    if (isAuthenticated) scheduleStatsSync(8000);
+  }, [games, settings, profile?.preferences, isAuthenticated]);
+
+  useEffect(() => {
+    const onSeed = (e: Event) => {
+      const n = Number((e as CustomEvent).detail) || 20;
+      void runSeedSessions(
+        games.map((g) => ({ id: g.id, name: g.name })),
+        n
+      ).then(() => scheduleStatsSync(500));
+    };
+    const onRebuild = () => rebuildAutoCategoriesFromGames(games);
+    const onI18n = (e: Event) => {
+      updateSettings({ showI18nKeys: Boolean((e as CustomEvent).detail) });
+    };
+    const onSysRefresh = () => void refreshSysMsg();
+    const onSysOpen = (e: Event) => {
+      const id = String((e as CustomEvent).detail || '');
+      if (id) openMessage(id);
+    };
+    window.addEventListener('quark-dev-seed-sessions', onSeed);
+    window.addEventListener('quark-dev-rebuild-auto-categories', onRebuild);
+    window.addEventListener('quark-dev-i18n-keys', onI18n);
+    window.addEventListener('quark-dev-sysmsg-refresh', onSysRefresh);
+    window.addEventListener('quark-dev-sysmsg-open', onSysOpen);
+    return () => {
+      window.removeEventListener('quark-dev-seed-sessions', onSeed);
+      window.removeEventListener('quark-dev-rebuild-auto-categories', onRebuild);
+      window.removeEventListener('quark-dev-i18n-keys', onI18n);
+      window.removeEventListener('quark-dev-sysmsg-refresh', onSysRefresh);
+      window.removeEventListener('quark-dev-sysmsg-open', onSysOpen);
+    };
+  }, [games, rebuildAutoCategoriesFromGames, updateSettings, refreshSysMsg, openMessage]);
 
   useEffect(() => {
     const onDevUnlocked = () => {
@@ -98,6 +147,12 @@ function LauncherContent() {
     const onOpenInspector = () => setDevInspectorOpen(true);
     window.addEventListener('quark-open-dev-inspector', onOpenInspector);
     return () => window.removeEventListener('quark-open-dev-inspector', onOpenInspector);
+  }, []);
+
+  useEffect(() => {
+    const onOpenRecap = () => setRecapOpen(true);
+    window.addEventListener('quark-open-recap', onOpenRecap);
+    return () => window.removeEventListener('quark-open-recap', onOpenRecap);
   }, []);
 
   useEffect(() => {
@@ -209,7 +264,10 @@ function LauncherContent() {
           {currentView === 'downloads' && <DownloadsView />}
           {currentView === 'news' && <NewsView />}
           {currentView === 'accounts' && (
-            <AccountsView onOpenProfileEdit={() => setIsProfileEditOpen(true)} />
+            <AccountsView
+              onOpenProfileEdit={() => setIsProfileEditOpen(true)}
+              onOpenRecap={() => setRecapOpen(true)}
+            />
           )}
           {currentView === 'store' && <StoreView onGameSelect={handleGameSelect} />}
           {currentView === 'chat' && <ChatView />}
@@ -235,6 +293,8 @@ function LauncherContent() {
       />
       <ProfileQuickSheet open={isProfileEditOpen} onOpenChange={setIsProfileEditOpen} />
       <DevTestBannerHost />
+      <SystemMessageModal />
+      <RecapView open={recapOpen} onClose={() => setRecapOpen(false)} />
       {devInspectorOpen && (
         <DevInspector mode="panel" onClose={() => setDevInspectorOpen(false)} />
       )}
@@ -258,18 +318,20 @@ export function Launcher() {
       <AuthProvider>
         <TelemetryWrapper>
           <SettingsProvider>
-            <FriendsProvider>
-              <ChatProvider>
-                <StoreProvider>
-                  <IntlProvider>
-                    <GamesProvider>
-                      <SteamSync />
-                      <LauncherContent />
-                    </GamesProvider>
-                  </IntlProvider>
-                </StoreProvider>
-              </ChatProvider>
-            </FriendsProvider>
+            <SystemMessagesProvider>
+              <FriendsProvider>
+                <ChatProvider>
+                  <StoreProvider>
+                    <IntlProvider>
+                      <GamesProvider>
+                        <SteamSync />
+                        <LauncherContent />
+                      </GamesProvider>
+                    </IntlProvider>
+                  </StoreProvider>
+                </ChatProvider>
+              </FriendsProvider>
+            </SystemMessagesProvider>
           </SettingsProvider>
         </TelemetryWrapper>
       </AuthProvider>

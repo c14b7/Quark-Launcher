@@ -18,6 +18,10 @@ import { isDevUnlockedSession, subscribeDevUnlock } from '@/lib/dev-unlock';
 import { getTelemetryConsent, updateTelemetryConsent } from '@/lib/telemetry';
 import { resetAppTour } from '@/components/onboarding/app-tour';
 import { DEFAULT_OVERLAY_SETTINGS, type OverlaySettings } from '@/lib/overlay-settings';
+import {
+  isMockFriendStatsEnabled,
+  setMockFriendStatsEnabled,
+} from '@/lib/stats-sync-service';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -37,9 +41,11 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [categoryGameSearch, setCategoryGameSearch] = useState('');
   const [devUnlocked, setDevUnlocked] = useState(false);
+  const [mockFriendStats, setMockFriendStats] = useState(false);
 
   useEffect(() => {
     setDevUnlocked(isDevUnlockedSession());
+    setMockFriendStats(isMockFriendStatsEnabled());
     return subscribeDevUnlock(() => setDevUnlocked(true));
   }, []);
 
@@ -393,6 +399,26 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                   Twórz kategorie i przypisuj gry. Możesz też użyć PPM na kafelku gry → Kategoria.
                 </p>
 
+                <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-zinc-800/50 border border-white/5">
+                  <div>
+                    <p className="text-sm text-white">{ts('showAutoCategories')}</p>
+                    <p className="text-xs text-zinc-500 mt-0.5">{ts('showAutoCategoriesDesc')}</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      'rounded-xl min-w-[4.5rem]',
+                      settings.showAutoCategories !== false && 'bg-violet-500/20 border-violet-500 text-violet-200'
+                    )}
+                    onClick={() =>
+                      updateSettings({ showAutoCategories: settings.showAutoCategories === false })
+                    }
+                  >
+                    {settings.showAutoCategories !== false ? ts('on') : ts('off')}
+                  </Button>
+                </div>
+
                 <div className="flex gap-2">
                   <Input
                     placeholder="Nazwa nowej kategorii..."
@@ -445,7 +471,38 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                             />
                             <Badge variant="secondary" className="text-xs shrink-0">
                               {category.gameIds.length}
+                              {category.source === 'auto' ? ' · auto' : ''}
                             </Badge>
+                            {category.source === 'auto' && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className={cn(
+                                    'h-8 px-2 text-[10px] shrink-0',
+                                    category.pinned && 'text-lime-300'
+                                  )}
+                                  onClick={() =>
+                                    updateCategory(category.id, { pinned: !category.pinned })
+                                  }
+                                >
+                                  {category.pinned ? ts('unpinCategory') : ts('pinCategory')}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className={cn(
+                                    'h-8 px-2 text-[10px] shrink-0',
+                                    category.hidden && 'text-zinc-500'
+                                  )}
+                                  onClick={() =>
+                                    updateCategory(category.id, { hidden: !category.hidden })
+                                  }
+                                >
+                                  {category.hidden ? ts('showCategory') : ts('hideCategory')}
+                                </Button>
+                              </>
+                            )}
                             <Button
                               variant="ghost"
                               size="icon"
@@ -457,14 +514,16 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                             >
                               {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-zinc-500 hover:text-red-500 shrink-0"
-                              onClick={() => removeCategory(category.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {category.source !== 'auto' && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-zinc-500 hover:text-red-500 shrink-0"
+                                onClick={() => removeCategory(category.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
 
                           {isExpanded && (
@@ -736,6 +795,100 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                     {ts('openDevInspector')}
                   </Button>
                   <p className="text-xs text-zinc-500">{ts('devInspectorHint')}</p>
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2 rounded-xl border-white/10"
+                    onClick={() => {
+                      const help = window.quark?.help() || 'quark.help()';
+                      void navigator.clipboard?.writeText(help);
+                    }}
+                  >
+                    {ts('copyConsoleCheatsheet')}
+                  </Button>
+                  <p className="text-xs text-zinc-500 font-mono">window.quark.help()</p>
+                </div>
+
+                <Separator className="bg-white/5" />
+
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+                    <Activity className="h-4 w-4" />
+                    {ts('devQuickActions')}
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl border-white/10"
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('quark-navigate', { detail: 'stats' }));
+                        onClose();
+                      }}
+                    >
+                      Stats
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl border-white/10"
+                      onClick={() => window.dispatchEvent(new CustomEvent('quark-open-recap'))}
+                    >
+                      Recap
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl border-white/10"
+                      onClick={() => window.dispatchEvent(new CustomEvent('quark-dev-seed-sessions', { detail: 20 }))}
+                    >
+                      {ts('seedSessions')}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl border-white/10"
+                      onClick={() => window.dispatchEvent(new CustomEvent('quark-dev-rebuild-auto-categories'))}
+                    >
+                      {ts('rebuildAutoCats')}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl border-white/10"
+                      onClick={() => void window.quark?.stats.sync()}
+                    >
+                      {ts('forceStatsSync')}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl border-white/10"
+                      onClick={() => void window.quark?.stats.clearSessions()}
+                    >
+                      {ts('clearSessions')}
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-zinc-800/50 border border-white/5">
+                    <div>
+                      <p className="text-sm text-white">{ts('mockFriendStats')}</p>
+                      <p className="text-xs text-zinc-500 mt-0.5">{ts('mockFriendStatsDesc')}</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        'rounded-xl min-w-[4.5rem]',
+                        mockFriendStats && 'bg-orange-500/20 border-orange-500 text-orange-200'
+                      )}
+                      onClick={() => {
+                        const next = !mockFriendStats;
+                        setMockFriendStats(next);
+                        setMockFriendStatsEnabled(next);
+                      }}
+                    >
+                      {mockFriendStats ? ts('on') : ts('off')}
+                    </Button>
+                  </div>
                 </div>
 
                 <Separator className="bg-white/5" />

@@ -159,6 +159,16 @@ const COLLECTIONS: CollectionConfig[] = [
     ],
   },
   {
+    id: 'user_play_stats',
+    name: 'User Play Stats',
+    attributes: [
+      { key: 'userId', type: 'string', size: 36, required: true },
+      { key: 'visibility', type: 'enum', elements: ['friends', 'private'], required: false, default: 'friends' },
+      { key: 'summaryJson', type: 'string', size: 8000, required: false },
+      { key: 'updatedAt', type: 'datetime', required: true },
+    ],
+  },
+  {
     id: 'rate_limits',
     name: 'Rate Limits',
     attributes: [

@@ -9,6 +9,9 @@ export interface QuarkFriend {
   bannerFileId?: string | null;
   presence: 'online' | 'idle' | 'dnd' | 'offline';
   customStatus?: string;
+  pronouns?: string;
+  location?: string;
+  preferences?: string;
   cardTheme?: string;
   lastSeen?: string | null;
   createdAt?: string;

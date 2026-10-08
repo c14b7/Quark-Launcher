@@ -7,6 +7,7 @@ import { handleAuthApiRequest } from './auth-api';
 import { handleFriendsApiRequest } from './friends-api';
 import { handleTelemetryApiRequest } from './telemetry-api';
 import { handleChatApiRequest } from './chat-api';
+import { handleStatsApiRequest } from './stats-api';
 import { parseBody, resolveRoutePathFromRequest } from './lib/middleware';
 import { APPWRITE_API_KEY } from './lib/config';
 import { getTelemetrySchemaStatus } from './lib/telemetry-schema';
@@ -60,13 +61,17 @@ export default async function ({ req, res, log, error }: FunctionContext) {
       return handleTelemetryApiRequest(req, res, logger);
     }
 
+    if (path.startsWith('/stats')) {
+      return handleStatsApiRequest(req, res, logger);
+    }
+
     logger.log(`Unknown route: ${path}`);
     return res.json({
       success: false,
       code: 'NOT_FOUND',
       error: `Unknown route: ${path || '/'}`,
       version: '2.0.1',
-      endpoints: ['/auth', '/friends', '/chat', '/steam', '/telemetry', '/health'],
+      endpoints: ['/auth', '/friends', '/chat', '/steam', '/telemetry', '/stats', '/health'],
     }, 404);
   } catch (err) {
     logger.error(`Fatal router error: ${formatError(err)}`);

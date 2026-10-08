@@ -9,6 +9,8 @@ import {
   type OverlaySettings,
 } from '@/lib/overlay-settings';
 import { reorderIds } from '@/lib/game-order';
+import { rebuildAutoCategories } from '@/lib/auto-categories';
+import type { Game } from '@/lib/types';
 
 export type { OverlaySettings };
 
@@ -22,6 +24,8 @@ export interface AppSettings {
   librarySortBy?: 'name' | 'lastPlayed' | 'playtime' | 'recent' | 'custom';
   overlay?: OverlaySettings;
   notifyFriendPlaying?: boolean;
+  /** Show Steam-genre auto categories on Home */
+  showAutoCategories?: boolean;
   /** Dev: show i18n message keys (e.g. nav.chat) instead of translated labels */
   showI18nKeys?: boolean;
   steamApiKey?: string;
@@ -38,6 +42,11 @@ export interface Category {
   gameIds: string[];
   color: string;
   icon?: string;
+  source?: 'manual' | 'auto';
+  autoKey?: string;
+  hidden?: boolean;
+  pinned?: boolean;
+  userTouched?: boolean;
 }
 
 interface SettingsContextType {
@@ -55,6 +64,7 @@ interface SettingsContextType {
   reorderLibraryGames: (fromIndex: number, toIndex: number) => void;
   setLibraryGameOrder: (ids: string[]) => void;
   updateOverlaySettings: (updates: Partial<OverlaySettings>) => void;
+  rebuildAutoCategoriesFromGames: (games: Game[]) => void;
   isSettingsOpen: boolean;
   openSettings: () => void;
   closeSettings: () => void;
@@ -77,6 +87,7 @@ const defaultSettings: AppSettings = {
   librarySortBy: 'name',
   overlay: DEFAULT_OVERLAY_SETTINGS,
   notifyFriendPlaying: true,
+  showAutoCategories: true,
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -268,9 +279,20 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const updateCategory = useCallback((categoryId: string, updates: Partial<Omit<Category, 'id'>>) => {
     setSettings(prev => ({
       ...prev,
-      customCategories: prev.customCategories.map(c =>
-        c.id === categoryId ? { ...c, ...updates } : c
-      ),
+      customCategories: prev.customCategories.map((c) => {
+        if (c.id !== categoryId) return c;
+        const next = { ...c, ...updates };
+        if (
+          c.source === 'auto' &&
+          (updates.pinned !== undefined ||
+            updates.hidden !== undefined ||
+            updates.name !== undefined ||
+            updates.gameIds !== undefined)
+        ) {
+          next.userTouched = true;
+        }
+        return next;
+      }),
     }));
   }, []);
 
@@ -279,7 +301,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       ...prev,
       customCategories: prev.customCategories.map(c =>
         c.id === categoryId && !c.gameIds.includes(gameId)
-          ? { ...c, gameIds: [...c.gameIds, gameId] }
+          ? {
+              ...c,
+              gameIds: [...c.gameIds, gameId],
+              ...(c.source === 'auto' ? { userTouched: true } : {}),
+            }
           : c
       )
     }));
@@ -290,9 +316,20 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       ...prev,
       customCategories: prev.customCategories.map(c =>
         c.id === categoryId
-          ? { ...c, gameIds: c.gameIds.filter(id => id !== gameId) }
+          ? {
+              ...c,
+              gameIds: c.gameIds.filter(id => id !== gameId),
+              ...(c.source === 'auto' ? { userTouched: true } : {}),
+            }
           : c
       )
+    }));
+  }, []);
+
+  const rebuildAutoCategoriesFromGames = useCallback((gamesList: Game[]) => {
+    setSettings((prev) => ({
+      ...prev,
+      customCategories: rebuildAutoCategories(gamesList, prev.customCategories),
     }));
   }, []);
 
@@ -366,6 +403,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         reorderLibraryGames,
         setLibraryGameOrder,
         updateOverlaySettings,
+        rebuildAutoCategoriesFromGames,
         isSettingsOpen,
         openSettings,
         closeSettings,
