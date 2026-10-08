@@ -55,13 +55,12 @@ export async function handleStatsApiRequest(
 ) {
   const databases = getDatabases();
   const method = (req.method || 'GET').toUpperCase();
-  const path = resolveRoutePath(req);
-  const body = parseBody(req);
-  stripRouteMeta(body);
+  const rawBody = parseBody(req);
+  const path = resolveRoutePath(req, rawBody);
+  const body = stripRouteMeta(rawBody);
 
   try {
-    const auth = await verifyAuth(req);
-    const userId = auth.userId;
+    const userId = await verifyAuth(req);
 
     // PUT /stats/summary
     if (path === '/stats/summary' && method === 'PUT') {
