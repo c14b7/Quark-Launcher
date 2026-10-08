@@ -16,8 +16,8 @@
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^8.2.2",
-    "electron": "^39.8.5",
-    "electron-builder": "^25.0.0",
+    "electron": "^39.8.10",
+    "electron-builder": "^26.15.3",
     "electron-packager": "^17.1.2",
     "wait-on": "^7.2.0"
   },
