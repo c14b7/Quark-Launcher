@@ -35,13 +35,16 @@ export interface PublicStatsSummary {
 let syncTimer: ReturnType<typeof setTimeout> | null = null;
 let lastPayload: PublicStatsSummary | null = null;
 let cachedGames: Game[] = [];
-let cachedSettings: Pick<AppSettings, 'customCategories'> = { customCategories: [] };
+let cachedSettings: Pick<AppSettings, 'customCategories' | 'hiddenGames'> = {
+  customCategories: [],
+  hiddenGames: [],
+};
 let cachedPreferences: string | null = null;
 let visibility: StatsVisibility = 'friends';
 
 export function setStatsSyncContext(opts: {
   games?: Game[];
-  settings?: Pick<AppSettings, 'customCategories'>;
+  settings?: Pick<AppSettings, 'customCategories' | 'hiddenGames'>;
   preferences?: string | null;
   visibility?: StatsVisibility;
 }) {
@@ -90,7 +93,12 @@ export async function syncStatsNow(
       summary,
     });
     if (!result.success) {
-      pushDevLog('ipc', 'stats.sync_failed', { error: result.error });
+      pushDevLog('ipc', 'stats.sync_failed', { error: result.error, code: result.code });
+      if (result.code === 'COLLECTION_MISSING') {
+        console.warn(
+          '[stats] user_play_stats missing — run: cd functions && npx ts-node setup-database.ts'
+        );
+      }
       return { success: false, error: result.error || 'Sync failed', summary };
     }
     pushDevLog('ipc', 'stats.sync_ok', { visibility: vis });

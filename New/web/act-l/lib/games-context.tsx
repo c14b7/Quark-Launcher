@@ -23,6 +23,15 @@ import { friendsService } from '@/lib/friends-service';
 import { track, logTelemetry } from '@/lib/telemetry/client';
 import { scheduleStatsSync } from '@/lib/stats-sync-service';
 import { mergeGameGenres, enrichGenresFromSteamStore } from '@/lib/auto-categories';
+import {
+  customRecordToGame,
+  loadCustomGames,
+  newCustomGameId,
+  placeholderArt,
+  saveCustomGames,
+  type CustomGameRecord,
+} from '@/lib/custom-games';
+import type { GameKind } from '@/lib/types';
 
 interface GamesContextType {
   games: Game[];
@@ -31,9 +40,20 @@ interface GamesContextType {
   error: string | null;
   selectedGame: Game | null;
   setSelectedGame: (game: Game | null) => void;
-  refreshGames: () => Promise<void>;
+  refreshGames: (opts?: { restoreDetected?: boolean }) => Promise<void>;
   toggleFavorite: (gameId: string) => void;
   launchGame: (game: Game) => Promise<void>;
+  addCustomGame: (input: {
+    name: string;
+    gamePath?: string;
+    launchArgs?: string[];
+    launchProtocol?: string;
+    kind?: GameKind;
+    coverPath?: string;
+    installDir?: string;
+  }) => Promise<Game | null>;
+  removeCustomGame: (gameId: string) => Promise<void>;
+  updateCustomGame: (gameId: string, updates: Partial<CustomGameRecord>) => Promise<void>;
   recentlyPlayedGames: Game[];
   searchQuery: string;
   setSearchQuery: (query: string) => void;
@@ -50,7 +70,14 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [selectedGameSnapshot, setSelectedGameSnapshot] = useState<Game | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const { settings, rebuildAutoCategoriesFromGames } = useSettings();
+  const {
+    settings,
+    rebuildAutoCategoriesFromGames,
+    dismissDetectedGame,
+    restoreDismissedDetectedGames,
+  } = useSettings();
+  const locale = settings.locale || 'pl';
+  const msg = (en: string, pl: string) => (locale === 'en' ? en : pl);
 
   const setSelectedGame = useCallback((game: Game | null) => {
     setSelectedGameSnapshot(game);
@@ -63,7 +90,20 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     refreshGames();
     loadUserSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount only
   }, []);
+
+  // Drop dismissed detected installs if settings load after first refresh
+  useEffect(() => {
+    const dismissed = new Set(settings.dismissedDetectedGameIds || []);
+    if (dismissed.size === 0) return;
+    setGames((prev) => {
+      const next = prev.filter((g) => !dismissed.has(g.id));
+      if (next.length === prev.length) return prev;
+      rebuildAutoCategoriesFromGames(next);
+      return next;
+    });
+  }, [settings.dismissedDetectedGameIds, rebuildAutoCategoriesFromGames]);
 
   // End open session on quit / tab hide
   useEffect(() => {
@@ -210,37 +250,98 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const refreshGames = useCallback(async () => {
+  const refreshGames = useCallback(async (opts?: { restoreDetected?: boolean }) => {
     setIsLoading(true);
     setError(null);
-    setHasEnrichedGames(false); // Reset enrichment flag
+    setHasEnrichedGames(false);
+
+    if (opts?.restoreDetected) {
+      restoreDismissedDetectedGames();
+    }
+
+    const dismissed = new Set(
+      opts?.restoreDetected ? [] : settings.dismissedDetectedGameIds || []
+    );
 
     try {
       if (typeof window !== 'undefined' && window.electronAPI) {
-        // Pobierz gry ze wszystkich platform
-        const [steamGames, epicGames] = await Promise.all([
+        const [steamGames, epicGames, customRecords, detectedMc] = await Promise.all([
           window.electronAPI.steamGetInstalledGames(),
-          window.electronAPI.epicGetInstalledGames()
+          window.electronAPI.epicGetInstalledGames(),
+          loadCustomGames(),
+          window.electronAPI.minecraftDetectInstallations?.().catch(() => [] as Game[]) ??
+            Promise.resolve([] as Game[]),
         ]);
-        
-        // Połącz gry z różnych platform
-        const allGames = mergeGameGenres([...steamGames, ...epicGames]);
-        console.log('[GAMES] Loaded', allGames.length, 'games (Steam:', steamGames.length, ', Epic:', epicGames.length, ')');
+
+        // Tag Steam/Epic Minecraft Dungeons / Legends
+        const taggedStore = [...steamGames, ...epicGames].map((g) => {
+          const n = g.name.toLowerCase();
+          if (n.includes('minecraft dungeons')) {
+            return { ...g, kind: 'minecraft-dungeons' as const, genres: mergeGenre(g.genres, 'Minecraft') };
+          }
+          if (n.includes('minecraft legends')) {
+            return { ...g, kind: 'minecraft-legends' as const, genres: mergeGenre(g.genres, 'Minecraft') };
+          }
+          return g;
+        });
+
+        const storeIds = new Set(taggedStore.map((g) => g.id));
+        const manuals = customRecords.filter((r) => !r.detected);
+        const detectedRecords: CustomGameRecord[] = (detectedMc || [])
+          .filter((g) => !dismissed.has(g.id))
+          .map((g) => ({
+            id: g.id,
+            name: g.name,
+            platform: 'custom' as const,
+            gamePath: g.gamePath,
+            launchArgs: g.launchArgs,
+            launchProtocol: g.launchProtocol,
+            kind: g.kind || 'minecraft-java',
+            coverPath: g.coverPath,
+            installDir: g.installDir,
+            image: g.image,
+            hero: g.hero,
+            logo: g.logo,
+            capsule: g.capsule,
+            background: g.background,
+            detected: true,
+            genres: g.genres,
+            developers: g.developers,
+          }));
+
+        // Drop previously saved detected entries that were dismissed
+        const manualsClean = manuals.filter((r) => !dismissed.has(r.id));
+        const mergedCustom = [
+          ...manualsClean,
+          ...detectedRecords.filter((r) => !storeIds.has(r.id)),
+        ];
+        await saveCustomGames(mergedCustom);
+
+        const customGames = await Promise.all(mergedCustom.map((r) => customRecordToGame(r)));
+
+        const allGames = mergeGameGenres([...taggedStore, ...customGames]);
         setGames(allGames);
         rebuildAutoCategoriesFromGames(allGames);
-        
-        // Note: enrichGamesWithSteamData will be called by the useEffect when games.length changes
       } else {
-        // Mock data for development without Electron
         setGames(getMockGames());
       }
     } catch (err) {
-      setError('Nie udało się załadować gier');
+      setError(msg('Failed to load games', 'Nie udało się załadować gier'));
       console.error('Failed to load games:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [settings.steamApiKey, settings.steamUserId]);
+  }, [
+    rebuildAutoCategoriesFromGames,
+    restoreDismissedDetectedGames,
+    settings.dismissedDetectedGameIds,
+    locale,
+  ]);
+
+  function mergeGenre(genres: string[] | undefined, g: string) {
+    const set = new Set([...(genres || []), g]);
+    return Array.from(set);
+  }
 
   const toggleFavorite = useCallback(async (gameId: string) => {
     setFavoriteIds(prev => {
@@ -258,6 +359,17 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const launchGame = useCallback(async (game: Game) => {
+    const hasLaunchTarget =
+      Boolean(game.gamePath) ||
+      Boolean(game.launchProtocol) ||
+      game.platform === 'steam' ||
+      game.platform === 'epic' ||
+      game.platform === 'xbox';
+    if (!hasLaunchTarget) {
+      setError(msg('No launch path — set an .exe or use Add game', 'Brak ścieżki uruchomienia — wskaż .exe lub Dodaj grę'));
+      return;
+    }
+
     const markLaunched = async () => {
       // Close previous session before starting a new one
       const closed = await endActivePlaySession();
@@ -283,7 +395,10 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       if (typeof window !== 'undefined' && window.electronAPI) {
         const result = await window.electronAPI.launchGame({
           platform: game.platform,
-          gameId: game.id
+          gameId: game.id,
+          gamePath: game.gamePath,
+          launchArgs: game.launchArgs,
+          launchProtocol: game.launchProtocol,
         });
 
         if (result.success) {
@@ -296,7 +411,9 @@ export function GamesProvider({ children }: { children: ReactNode }) {
           }).catch(() => {});
           track('game.launch', { gameId: game.id, platform: game.platform, success: true }, 'game');
         } else {
-          setError(result.error || 'Nie udało się uruchomić gry');
+          setError(
+            result.error || msg('Failed to launch game', 'Nie udało się uruchomić gry')
+          );
           track(
             'game.launch_failed',
             { gameId: game.id, platform: game.platform, errorCode: result.error || 'unknown' },
@@ -315,18 +432,100 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         track('game.launch', { gameId: game.id, platform: game.platform, success: true }, 'game');
       }
     } catch (err) {
-      setError('Nie udało się uruchomić gry');
+      setError(msg('Failed to launch game', 'Nie udało się uruchomić gry'));
       console.error('Failed to launch game:', err);
       track('game.launch_failed', { gameId: game.id, platform: game.platform, errorCode: 'exception' }, 'game');
       logTelemetry('error', 'Game launch failed', { gameId: game.id }, err instanceof Error ? err.stack : undefined);
     }
-  }, []);
+  }, [locale]);
 
-  // Compute derived state - add isFavorite to all games
-  const gamesWithFavorites = games.map(game => ({
+  const addCustomGame = useCallback(
+    async (input: {
+      name: string;
+      gamePath?: string;
+      launchArgs?: string[];
+      launchProtocol?: string;
+      kind?: GameKind;
+      coverPath?: string;
+      installDir?: string;
+    }) => {
+      const kind = input.kind || 'manual';
+      const art = input.coverPath
+        ? {
+            image: input.coverPath,
+            hero: input.coverPath,
+            logo: input.coverPath,
+            capsule: input.coverPath,
+            background: input.coverPath,
+          }
+        : placeholderArt(input.name);
+      const record: CustomGameRecord = {
+        id: newCustomGameId(kind),
+        name: input.name.trim() || 'Custom game',
+        platform: 'custom',
+        gamePath: input.gamePath,
+        launchArgs: input.launchArgs,
+        launchProtocol: input.launchProtocol,
+        kind,
+        coverPath: input.coverPath,
+        installDir: input.installDir,
+        detected: false,
+        ...art,
+      };
+      const existing = await loadCustomGames();
+      await saveCustomGames([...existing.filter((g) => g.id !== record.id), record]);
+      const game = await customRecordToGame(record);
+      setGames((prev) => {
+        const next = mergeGameGenres([...prev.filter((g) => g.id !== game.id), game]);
+        rebuildAutoCategoriesFromGames(next);
+        return next;
+      });
+      return game;
+    },
+    [rebuildAutoCategoriesFromGames]
+  );
+
+  const removeCustomGame = useCallback(
+    async (gameId: string) => {
+      const existing = await loadCustomGames();
+      const removed = existing.find((g) => g.id === gameId);
+      await saveCustomGames(existing.filter((g) => g.id !== gameId));
+      if (removed?.detected) {
+        dismissDetectedGame(gameId);
+      }
+      setGames((prev) => {
+        const next = prev.filter((g) => g.id !== gameId);
+        rebuildAutoCategoriesFromGames(next);
+        return next;
+      });
+      if (selectedGameSnapshot?.id === gameId) setSelectedGameSnapshot(null);
+    },
+    [rebuildAutoCategoriesFromGames, selectedGameSnapshot?.id, dismissDetectedGame]
+  );
+
+  const updateCustomGame = useCallback(
+    async (gameId: string, updates: Partial<CustomGameRecord>) => {
+      const existing = await loadCustomGames();
+      const next = existing.map((g) => (g.id === gameId ? { ...g, ...updates } : g));
+      await saveCustomGames(next);
+      const rec = next.find((g) => g.id === gameId);
+      if (!rec) return;
+      const game = await customRecordToGame(rec);
+      setGames((prev) => prev.map((g) => (g.id === gameId ? { ...g, ...game } : g)));
+    },
+    []
+  );
+
+  // Compute derived state - favorites, play history, hidden from settings
+  const hiddenSet = useMemo(
+    () => new Set(settings.hiddenGames || []),
+    [settings.hiddenGames]
+  );
+  const gamesWithFavorites = games.map((game) => ({
     ...game,
     isFavorite: favoriteIds.includes(game.id),
     lastPlayed: playHistory[game.id],
+    isHidden: hiddenSet.has(game.id) || Boolean(game.isHidden),
   }));
 
   // Get selected game from current games list WITH favorites (so it always has updated data)
@@ -361,6 +560,9 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         refreshGames,
         toggleFavorite,
         launchGame,
+        addCustomGame,
+        removeCustomGame,
+        updateCustomGame,
         recentlyPlayedGames,
         searchQuery,
         setSearchQuery,

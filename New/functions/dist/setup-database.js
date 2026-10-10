@@ -48,6 +48,23 @@ const COLLECTIONS = [
             { key: 'currentGameName', type: 'string', size: 128, required: false },
             { key: 'currentActivity', type: 'enum', elements: ['playing', 'menu', 'idle', 'none'], required: false, default: 'none' },
             { key: 'activityUpdatedAt', type: 'datetime', required: false },
+            { key: 'listeningTitle', type: 'string', size: 200, required: false },
+            { key: 'listeningArtist', type: 'string', size: 200, required: false },
+            { key: 'listeningArtUrl', type: 'string', size: 500, required: false },
+            { key: 'listeningSource', type: 'string', size: 16, required: false },
+        ],
+    },
+    {
+        id: 'spotify_integrations',
+        name: 'Spotify Integrations',
+        attributes: [
+            { key: 'userId', type: 'string', size: 36, required: true },
+            { key: 'accessToken', type: 'string', size: 500, required: true },
+            { key: 'refreshToken', type: 'string', size: 500, required: true },
+            { key: 'expiresAt', type: 'datetime', required: true },
+            { key: 'spotifyUserId', type: 'string', size: 64, required: false },
+            { key: 'displayName', type: 'string', size: 128, required: false },
+            { key: 'linkedAt', type: 'datetime', required: true },
         ],
     },
     {
@@ -136,6 +153,17 @@ const COLLECTIONS = [
             { key: 'userId', type: 'string', size: 36, required: true },
             { key: 'emoji', type: 'string', size: 16, required: true },
             { key: 'createdAt', type: 'datetime', required: true },
+        ],
+    },
+    {
+        id: 'user_play_stats',
+        name: 'User Play Stats',
+        attributes: [
+            { key: 'userId', type: 'string', size: 36, required: true },
+            // string (not enum) — simpler to migrate; API still only writes friends|private
+            { key: 'visibility', type: 'string', size: 16, required: false, default: 'friends' },
+            { key: 'summaryJson', type: 'string', size: 8000, required: false },
+            { key: 'updatedAt', type: 'datetime', required: true },
         ],
     },
     {

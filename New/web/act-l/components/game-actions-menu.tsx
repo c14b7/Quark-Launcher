@@ -15,6 +15,7 @@ import { useSettings } from '@/lib/settings-context';
 import { CategoryIcon } from '@/lib/category-icons';
 import type { Game } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 interface GameActionsMenuProps {
   game: Game;
@@ -22,6 +23,7 @@ interface GameActionsMenuProps {
 }
 
 export function GameActionsMenu({ game, onHidden }: GameActionsMenuProps) {
+  const t = useTranslations('library');
   const { settings, hideGame, addGameToCategory, removeGameFromCategory } = useSettings();
   const categories = settings.customCategories;
 
@@ -97,13 +99,13 @@ export function GameActionsMenu({ game, onHidden }: GameActionsMenuProps) {
         {game.installDir && (
           <DropdownMenuItem onClick={handleOpenFolder} className="rounded-lg gap-2.5 py-2.5 cursor-pointer">
             <FolderOpen className="h-4 w-4 text-zinc-400" />
-            Otwórz folder instalacji
+            {t('openInstallFolderShort')}
           </DropdownMenuItem>
         )}
 
         <DropdownMenuItem onClick={handleHide} className="rounded-lg gap-2.5 py-2.5 cursor-pointer text-zinc-300">
           <EyeOff className="h-4 w-4 text-zinc-400" />
-          Ukryj grę
+          {t('hideGame')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

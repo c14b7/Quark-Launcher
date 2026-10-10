@@ -1,0 +1,52 @@
+{
+  "version": 2,
+  "showLogo": true,
+  "showCpu": true,
+  "showGpu": true,
+  "showFps": true,
+  "showCpuChart": true,
+  "showRam": true,
+  "showSessionTimer": true,
+  "showDateTime": false,
+  "showPing": false,
+  "showChatNotifications": true,
+  "chatNotificationsWhenHidden": true,
+  "showNowPlaying": true,
+  "scale": 1,
+  "themeId": "lime",
+  "presetId": "classic",
+  "editorAspect": "16:9",
+  "editMode": false,
+  "layout": {
+    "logo": { "x": 1.2, "y": 1.5, "anchor": "top-left" },
+    "media": { "x": 50, "y": 1.5, "anchor": "top-left" },
+    "perf": { "x": 1.2, "y": 1.5, "anchor": "top-right" },
+    "toasts": { "x": 50, "y": 12, "anchor": "top-left" }
+  },
+  "themes": {
+    "lime": {
+      "accent": "#d4ff00",
+      "panelBg": "rgba(8, 8, 12, 0.55)",
+      "textPrimary": "#ffffff",
+      "textMuted": "rgba(255,255,255,0.55)",
+      "blurPx": 8,
+      "radiusPx": 10
+    },
+    "ghost": {
+      "accent": "#f4f4f5",
+      "panelBg": "rgba(255, 255, 255, 0.08)",
+      "textPrimary": "#fafafa",
+      "textMuted": "rgba(255,255,255,0.5)",
+      "blurPx": 12,
+      "radiusPx": 14
+    },
+    "contrast": {
+      "accent": "#ffffff",
+      "panelBg": "rgba(0, 0, 0, 0.85)",
+      "textPrimary": "#ffffff",
+      "textMuted": "rgba(255,255,255,0.7)",
+      "blurPx": 0,
+      "radiusPx": 4
+    }
+  }
+}

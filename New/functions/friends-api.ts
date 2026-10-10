@@ -292,14 +292,17 @@ export async function handleFriendsApiRequest(
 
     // POST /friends/presence
     if (path === '/friends/presence' && method === 'POST') {
-      const presence = String(body.presence || 'online');
-      const err = validatePresence(presence);
-      if (err) return errorResponse(res, err, 'Invalid presence');
-
       const updates: Record<string, unknown> = {
-        presence,
         lastSeen: new Date().toISOString(),
       };
+
+      // Presence optional — listening-only sync must not clobber DND/idle/offline.
+      if (body.presence !== undefined && body.presence !== null && body.presence !== '') {
+        const presence = String(body.presence);
+        const err = validatePresence(presence);
+        if (err) return errorResponse(res, err, 'Invalid presence');
+        updates.presence = presence;
+      }
 
       if (body.customStatus !== undefined) {
         const statusErr = validateCustomStatus(String(body.customStatus));
@@ -325,6 +328,26 @@ export async function handleFriendsApiRequest(
       }
       if (body.currentGameName !== undefined) {
         updates.currentGameName = String(body.currentGameName).slice(0, 128);
+      }
+
+      if (body.listeningTitle !== undefined) {
+        updates.listeningTitle = String(body.listeningTitle || '').slice(0, 200);
+      }
+      if (body.listeningArtist !== undefined) {
+        updates.listeningArtist = String(body.listeningArtist || '').slice(0, 200);
+      }
+      if (body.listeningArtUrl !== undefined) {
+        updates.listeningArtUrl = String(body.listeningArtUrl || '').slice(0, 500);
+      }
+      if (body.listeningSource !== undefined) {
+        const src = String(body.listeningSource || '');
+        updates.listeningSource = ['spotify', 'smtc', ''].includes(src) ? src : '';
+      }
+      if (body.clearListening === true) {
+        updates.listeningTitle = '';
+        updates.listeningArtist = '';
+        updates.listeningArtUrl = '';
+        updates.listeningSource = '';
       }
 
       await databases.updateDocument(DATABASE_ID, COLLECTIONS.userProfiles, userId, updates);

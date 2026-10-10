@@ -103,17 +103,39 @@ function getPublicDisplayFields(preferences) {
     try {
         const raw = typeof preferences === 'string' ? preferences : '';
         const p = raw ? JSON.parse(raw) : {};
+        const showcaseRaw = p.showcase && typeof p.showcase === 'object' ? p.showcase : {};
         return {
             pronouns: typeof p.pronouns === 'string' ? p.pronouns.slice(0, 24) : '',
             location: typeof p.location === 'string' ? p.location.slice(0, 48) : '',
+            showcase: {
+                motto: typeof showcaseRaw.motto === 'string' ? showcaseRaw.motto.slice(0, 80) : undefined,
+                favoriteGameName: typeof showcaseRaw.favoriteGameName === 'string'
+                    ? showcaseRaw.favoriteGameName.slice(0, 128)
+                    : undefined,
+                favoriteGameImage: typeof showcaseRaw.favoriteGameImage === 'string'
+                    ? showcaseRaw.favoriteGameImage.slice(0, 500)
+                    : undefined,
+                showPlayStats: showcaseRaw.showPlayStats !== false,
+            },
         };
     }
     catch {
-        return { pronouns: '', location: '' };
+        return { pronouns: '', location: '', showcase: { showPlayStats: true } };
+    }
+}
+function shareListeningAllowed(preferences) {
+    try {
+        const raw = typeof preferences === 'string' ? preferences : '';
+        const p = raw ? JSON.parse(raw) : {};
+        return p.shareListening !== 'private';
+    }
+    catch {
+        return true;
     }
 }
 function toPublicProfile(doc) {
     const display = getPublicDisplayFields(doc.preferences);
+    const allowListening = shareListeningAllowed(doc.preferences);
     return {
         userId: doc.userId,
         displayName: doc.displayName || doc.name,
@@ -125,11 +147,20 @@ function toPublicProfile(doc) {
         customStatus: doc.customStatus ?? '',
         pronouns: display.pronouns || undefined,
         location: display.location || undefined,
+        preferences: JSON.stringify({ showcase: display.showcase }),
         lastSeen: doc.lastSeen ?? null,
         createdAt: doc.createdAt,
         currentGameId: doc.currentGameId ?? undefined,
         currentGameName: doc.currentGameName ?? undefined,
         currentActivity: doc.currentActivity ?? undefined,
+        ...(allowListening && doc.listeningTitle
+            ? {
+                listeningTitle: doc.listeningTitle,
+                listeningArtist: doc.listeningArtist || undefined,
+                listeningArtUrl: doc.listeningArtUrl || undefined,
+                listeningSource: doc.listeningSource || undefined,
+            }
+            : {}),
     };
 }
 async function createEmailSession(email, password) {
@@ -330,7 +361,7 @@ async function handleAuthApiRequest(req, res, logger = noopLogger) {
                 steamIntegration: steam || null,
             });
         }
-        // POST /auth/avatar
+        // POST /auth/avatar  (kind: avatar | banner)
         if (path === '/auth/avatar' && method === 'POST') {
             if (!(0, middleware_1.requireAuth)(res, userId))
                 return;
@@ -339,6 +370,7 @@ async function handleAuthApiRequest(req, res, logger = noopLogger) {
                 return (0, middleware_1.errorResponse)(res, rate.code || 'RATE_LIMITED', 'Too many avatar uploads', 429);
             const mimeType = String(body.mimeType || '').toLowerCase();
             const data = String(body.data || '');
+            const kind = String(body.kind || 'avatar').toLowerCase() === 'banner' ? 'banner' : 'avatar';
             if (!ALLOWED_AVATAR_TYPES.has(mimeType)) {
                 return (0, middleware_1.errorResponse)(res, 'INVALID_AVATAR', 'Unsupported image type');
             }
@@ -367,26 +399,31 @@ async function handleAuthApiRequest(req, res, logger = noopLogger) {
                 : mimeType === 'image/webp' ? 'webp'
                     : mimeType === 'image/gif' ? 'gif'
                         : 'jpg';
-            if (profileDoc.avatarFileId) {
+            const previousId = kind === 'banner' ? profileDoc.bannerFileId : profileDoc.avatarFileId;
+            if (previousId) {
                 try {
-                    await storage.deleteFile(config_1.BUCKETS.userMedia, String(profileDoc.avatarFileId));
+                    await storage.deleteFile(config_1.BUCKETS.userMedia, String(previousId));
                 }
                 catch {
                     // previous file may already be gone
                 }
             }
-            await storage.createFile(config_1.BUCKETS.userMedia, fileId, input_file_1.InputFile.fromBuffer(buffer, `avatar.${ext}`), [
+            await storage.createFile(config_1.BUCKETS.userMedia, fileId, input_file_1.InputFile.fromBuffer(buffer, `${kind}.${ext}`), [
                 node_appwrite_1.Permission.read(node_appwrite_1.Role.any()),
                 node_appwrite_1.Permission.update(node_appwrite_1.Role.user(userId)),
                 node_appwrite_1.Permission.delete(node_appwrite_1.Role.user(userId)),
             ]);
             const updated = await databases.updateDocument(config_1.DATABASE_ID, config_1.COLLECTIONS.userProfiles, userId, {
-                avatarFileId: fileId,
+                [kind === 'banner' ? 'bannerFileId' : 'avatarFileId']: fileId,
             });
+            const viewUrl = buildAvatarViewUrl(fileId);
+            const avatarFileId = updated.avatarFileId ? String(updated.avatarFileId) : null;
+            const bannerFileId = updated.bannerFileId ? String(updated.bannerFileId) : null;
             return (0, middleware_1.jsonResponse)(res, {
                 success: true,
                 fileId,
-                avatarUrl: buildAvatarViewUrl(fileId),
+                avatarUrl: kind === 'avatar' ? viewUrl : (avatarFileId ? buildAvatarViewUrl(avatarFileId) : null),
+                bannerUrl: kind === 'banner' ? viewUrl : (bannerFileId ? buildAvatarViewUrl(bannerFileId) : null),
                 profile: toPrivateProfile(updated),
             });
         }

@@ -4,6 +4,19 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electronAPI', {
   // Steam API Proxy (fix CORS)
   steamApiFetch: (endpoint, params) => ipcRenderer.invoke('steam-api-fetch', { endpoint, params }),
+  steamStoreFetch: (path, params) => ipcRenderer.invoke('steam-store-fetch', { path, params }),
+
+  mediaGetSession: () => ipcRenderer.invoke('media-get-session'),
+  mediaPlayPause: () => ipcRenderer.invoke('media-play-pause'),
+  mediaNext: () => ipcRenderer.invoke('media-next'),
+  mediaPrevious: () => ipcRenderer.invoke('media-previous'),
+  onMediaSessionUpdate: (callback) => {
+    const subscription = (_event, data) => callback(data);
+    ipcRenderer.on('media-session-update', subscription);
+    return () => ipcRenderer.removeListener('media-session-update', subscription);
+  },
+  spotifyStartOAuth: (url, verifier) =>
+    ipcRenderer.invoke('spotify-start-oauth', { url, verifier }),
 
   // Window controls
   windowMinimize: () => ipcRenderer.invoke('window-minimize'),
@@ -25,6 +38,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Game launching
   launchGame: (gameData) => ipcRenderer.invoke('launch-game', gameData),
+  minecraftDetectInstallations: () => ipcRenderer.invoke('minecraft-detect-installations'),
+  minecraftJavaAdvancements: () => ipcRenderer.invoke('minecraft-java-advancements'),
 
   // User data
   saveUserData: (key, data) => ipcRenderer.invoke('save-user-data', { key, data }),
@@ -84,6 +99,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   overlayUpdateConfig: (config) => ipcRenderer.invoke('overlay-update-config', config),
+  overlayEnterEditMode: () => ipcRenderer.invoke('overlay-enter-edit-mode'),
+  overlayExitEditMode: () => ipcRenderer.invoke('overlay-exit-edit-mode'),
+  overlayPreviewShow: () => ipcRenderer.invoke('overlay-preview-show'),
+  overlayPreviewHide: () => ipcRenderer.invoke('overlay-preview-hide'),
+  overlayLayoutPatch: (patch) => ipcRenderer.invoke('overlay-layout-patch', patch),
+  onOverlayLayoutChanged: (callback) => {
+    const subscription = (_event, data) => callback(data);
+    ipcRenderer.on('overlay-layout-changed', subscription);
+    return () => ipcRenderer.removeListener('overlay-layout-changed', subscription);
+  },
+  onOverlayEditExited: (callback) => {
+    const subscription = (_event, data) => callback(data);
+    ipcRenderer.on('overlay-edit-exited', subscription);
+    return () => ipcRenderer.removeListener('overlay-edit-exited', subscription);
+  },
 
   showOverlayNotification: (payload) => ipcRenderer.invoke('show-overlay-notification', payload),
 

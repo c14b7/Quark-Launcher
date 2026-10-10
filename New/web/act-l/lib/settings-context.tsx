@@ -19,6 +19,8 @@ export interface AppSettings {
   uiScale: number;
   locale: 'pl' | 'en';
   hiddenGames: string[];
+  /** Detected Minecraft (etc.) IDs removed from library — skip on refresh until restored */
+  dismissedDetectedGameIds?: string[];
   customCategories: Category[];
   libraryGameOrder?: string[];
   librarySortBy?: 'name' | 'lastPlayed' | 'playtime' | 'recent' | 'custom';
@@ -26,6 +28,14 @@ export interface AppSettings {
   notifyFriendPlaying?: boolean;
   /** Show Steam-genre auto categories on Home */
   showAutoCategories?: boolean;
+  /** Compact Now Playing card above friends list (also gated by earlyAccess.friendsMedia) */
+  showFriendsMediaCard?: boolean;
+  /** Dev early-access feature gates — UI hidden until enabled in Dev settings */
+  earlyAccess?: {
+    spotify?: boolean;
+    friendsMedia?: boolean;
+    recap?: boolean;
+  };
   /** Dev: show i18n message keys (e.g. nav.chat) instead of translated labels */
   showI18nKeys?: boolean;
   steamApiKey?: string;
@@ -34,6 +44,22 @@ export interface AppSettings {
   aiServerUrl?: string;
   aiApiToken?: string;
   aiModel?: string;
+}
+
+export const DEFAULT_EARLY_ACCESS = {
+  spotify: false,
+  friendsMedia: false,
+  recap: false,
+} as const;
+
+export function mergeEarlyAccess(
+  raw?: AppSettings['earlyAccess']
+): Required<NonNullable<AppSettings['earlyAccess']>> {
+  return {
+    spotify: Boolean(raw?.spotify),
+    friendsMedia: Boolean(raw?.friendsMedia),
+    recap: Boolean(raw?.recap),
+  };
 }
 
 export interface Category {
@@ -54,6 +80,8 @@ interface SettingsContextType {
   updateSettings: (updates: Partial<AppSettings>) => void;
   hideGame: (gameId: string) => void;
   unhideGame: (gameId: string) => void;
+  dismissDetectedGame: (gameId: string) => void;
+  restoreDismissedDetectedGames: () => void;
   addCategory: (category: Omit<Category, 'id'>) => void;
   updateCategory: (categoryId: string, updates: Partial<Omit<Category, 'id'>>) => void;
   removeCategory: (categoryId: string) => void;
@@ -82,12 +110,15 @@ const defaultSettings: AppSettings = {
   uiScale: 1,
   locale: 'pl',
   hiddenGames: [],
+  dismissedDetectedGameIds: [],
   customCategories: [],
   libraryGameOrder: [],
   librarySortBy: 'name',
   overlay: DEFAULT_OVERLAY_SETTINGS,
   notifyFriendPlaying: true,
   showAutoCategories: true,
+  showFriendsMediaCard: true,
+  earlyAccess: { ...DEFAULT_EARLY_ACCESS },
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -165,7 +196,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           setSettings({
             ...defaultSettings,
             ...loaded,
+            hiddenGames: loaded.hiddenGames || [],
+            dismissedDetectedGameIds: loaded.dismissedDetectedGameIds || [],
             overlay: mergeOverlaySettings(loaded.overlay),
+            earlyAccess: mergeEarlyAccess(loaded.earlyAccess),
           });
         }
       } else {
@@ -175,7 +209,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           setSettings({
             ...defaultSettings,
             ...loaded,
+            hiddenGames: loaded.hiddenGames || [],
+            dismissedDetectedGameIds: loaded.dismissedDetectedGameIds || [],
             overlay: mergeOverlaySettings(loaded.overlay),
+            earlyAccess: mergeEarlyAccess(loaded.earlyAccess),
           });
         }
       }
@@ -247,14 +284,39 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const hideGame = useCallback((gameId: string) => {
     setSettings(prev => ({
       ...prev,
-      hiddenGames: [...prev.hiddenGames, gameId]
+      hiddenGames: prev.hiddenGames.includes(gameId)
+        ? prev.hiddenGames
+        : [...prev.hiddenGames, gameId],
     }));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('quark-stats-resync'));
+    }
   }, []);
 
   const unhideGame = useCallback((gameId: string) => {
     setSettings(prev => ({
       ...prev,
-      hiddenGames: prev.hiddenGames.filter(id => id !== gameId)
+      hiddenGames: prev.hiddenGames.filter(id => id !== gameId),
+    }));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('quark-stats-resync'));
+    }
+  }, []);
+
+  const dismissDetectedGame = useCallback((gameId: string) => {
+    setSettings((prev) => {
+      const list = prev.dismissedDetectedGameIds || [];
+      return {
+        ...prev,
+        dismissedDetectedGameIds: list.includes(gameId) ? list : [...list, gameId],
+      };
+    });
+  }, []);
+
+  const restoreDismissedDetectedGames = useCallback(() => {
+    setSettings((prev) => ({
+      ...prev,
+      dismissedDetectedGameIds: [],
     }));
   }, []);
 
@@ -393,6 +455,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         updateSettings,
         hideGame,
         unhideGame,
+        dismissDetectedGame,
+        restoreDismissedDetectedGames,
         addCategory,
         updateCategory,
         removeCategory,

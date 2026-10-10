@@ -247,14 +247,17 @@ async function handleFriendsApiRequest(req, res, logger = noopLogger) {
         }
         // POST /friends/presence
         if (path === '/friends/presence' && method === 'POST') {
-            const presence = String(body.presence || 'online');
-            const err = (0, validators_1.validatePresence)(presence);
-            if (err)
-                return (0, middleware_1.errorResponse)(res, err, 'Invalid presence');
             const updates = {
-                presence,
                 lastSeen: new Date().toISOString(),
             };
+            // Presence optional — listening-only sync must not clobber DND/idle/offline.
+            if (body.presence !== undefined && body.presence !== null && body.presence !== '') {
+                const presence = String(body.presence);
+                const err = (0, validators_1.validatePresence)(presence);
+                if (err)
+                    return (0, middleware_1.errorResponse)(res, err, 'Invalid presence');
+                updates.presence = presence;
+            }
             if (body.customStatus !== undefined) {
                 const statusErr = (0, validators_1.validateCustomStatus)(String(body.customStatus));
                 if (statusErr)
@@ -278,6 +281,25 @@ async function handleFriendsApiRequest(req, res, logger = noopLogger) {
             }
             if (body.currentGameName !== undefined) {
                 updates.currentGameName = String(body.currentGameName).slice(0, 128);
+            }
+            if (body.listeningTitle !== undefined) {
+                updates.listeningTitle = String(body.listeningTitle || '').slice(0, 200);
+            }
+            if (body.listeningArtist !== undefined) {
+                updates.listeningArtist = String(body.listeningArtist || '').slice(0, 200);
+            }
+            if (body.listeningArtUrl !== undefined) {
+                updates.listeningArtUrl = String(body.listeningArtUrl || '').slice(0, 500);
+            }
+            if (body.listeningSource !== undefined) {
+                const src = String(body.listeningSource || '');
+                updates.listeningSource = ['spotify', 'smtc', ''].includes(src) ? src : '';
+            }
+            if (body.clearListening === true) {
+                updates.listeningTitle = '';
+                updates.listeningArtist = '';
+                updates.listeningArtUrl = '';
+                updates.listeningSource = '';
             }
             await databases.updateDocument(config_1.DATABASE_ID, config_1.COLLECTIONS.userProfiles, userId, updates);
             return (0, middleware_1.jsonResponse)(res, { success: true });

@@ -20,6 +20,7 @@ import {
   getLastStatsSyncPayload,
   getStatsVisibility,
 } from '@/lib/stats-sync-service';
+import { getMediaSession } from '@/lib/media-session';
 
 export interface QuarkConsoleAPI {
   help: () => string;
@@ -50,6 +51,16 @@ export interface QuarkConsoleAPI {
   };
   friends: {
     presence: (activity: string, game?: { gameId?: string; name?: string }) => void;
+    peek: (userId: string) => void;
+    dock: (userId: string) => void;
+  };
+  media: {
+    session: () => unknown;
+  };
+  overlay: {
+    preview: () => void;
+    edit: () => void;
+    reset: () => void;
   };
   storage: {
     get: (key: string) => Promise<unknown>;
@@ -87,6 +98,9 @@ quark.categories.rebuildAuto() | .list()
 quark.sysmsg.refresh() | .open(id)
 quark.banners.test('update'|'dialog'|'side'|'overlay-toast'|'os-notification')
 quark.friends.presence('playing', { gameId, name })
+quark.friends.peek(userId) | .dock(userId)
+quark.media.session()
+quark.overlay.preview() | .edit() | .reset()
 quark.storage.get(key) | .keys()
 quark.i18n.showKeys(true|false)
 quark.recap.open()
@@ -166,6 +180,26 @@ export function mountQuarkConsole(): QuarkConsoleAPI {
     friends: {
       presence: (activity, game) =>
         emit('quark-dev-presence', { activity, gameId: game?.gameId, name: game?.name }),
+      peek: (userId) => emit('quark-friends-peek', userId),
+      dock: (userId) => emit('quark-friends-dock', userId),
+    },
+    media: {
+      session: () => {
+        const live = getMediaSession();
+        console.log(live);
+        return live;
+      },
+    },
+    overlay: {
+      preview: () => {
+        void window.electronAPI?.overlayPreviewShow?.();
+        pushDevLog('test', 'overlay.preview');
+      },
+      edit: () => {
+        void window.electronAPI?.overlayEnterEditMode?.();
+        pushDevLog('test', 'overlay.edit');
+      },
+      reset: () => emit('quark-overlay-reset'),
     },
     storage: {
       get: async (key: string) => {

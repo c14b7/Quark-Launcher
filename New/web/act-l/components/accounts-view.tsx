@@ -17,7 +17,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/lib/auth-context';
 import { useGames } from '@/lib/games-context';
+import { mergeEarlyAccess, useSettings } from '@/lib/settings-context';
 import { SteamIntegrationPanel } from '@/components/steam-integration-panel';
+import { SpotifyConnectPanel } from '@/components/spotify-connect-panel';
 import { FriendCodeDisplay } from '@/components/user/friend-code-display';
 import { getAvatarUrl, getBannerUrl } from '@/lib/avatar-service';
 import { getAppVersion } from '@/lib/build-env';
@@ -46,6 +48,8 @@ export function AccountsView({ onOpenProfileEdit, onOpenRecap }: AccountsViewPro
   const { user, profile, subscription, logout, isLoading, regenerateFriendCode, steamIntegration } =
     useAuth();
   const { games, setSelectedGame } = useGames();
+  const { settings } = useSettings();
+  const earlyAccess = mergeEarlyAccess(settings.earlyAccess);
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [launchCount, setLaunchCount] = useState(0);
   const [nowPlaying, setNowPlaying] = useState<{ id?: string; name?: string } | null>(null);
@@ -120,8 +124,18 @@ export function AccountsView({ onOpenProfileEdit, onOpenRecap }: AccountsViewPro
           {onOpenRecap && (
             <Button
               size="sm"
-              className="gap-2 bg-[#d4ff00] text-black hover:bg-[#e2ff4d]"
-              onClick={onOpenRecap}
+              className={cn(
+                'gap-2',
+                earlyAccess.recap
+                  ? 'bg-[#d4ff00] text-black hover:bg-[#e2ff4d]'
+                  : 'bg-zinc-800/80 text-zinc-500 cursor-not-allowed opacity-60'
+              )}
+              onClick={() => {
+                if (!earlyAccess.recap) return;
+                onOpenRecap();
+              }}
+              disabled={!earlyAccess.recap}
+              title={earlyAccess.recap ? undefined : t('recapComingSoon')}
             >
               <Sparkles className="h-4 w-4" />
               {t('openRecap')}
@@ -329,6 +343,8 @@ export function AccountsView({ onOpenProfileEdit, onOpenRecap }: AccountsViewPro
               <SteamIntegrationPanel compact />
             </div>
           </section>
+
+          {earlyAccess.spotify && <SpotifyConnectPanel />}
 
           <section className="rounded-2xl border border-white/8 bg-zinc-950/60 overflow-hidden">
             <div className="px-4 py-3 border-b border-white/8">

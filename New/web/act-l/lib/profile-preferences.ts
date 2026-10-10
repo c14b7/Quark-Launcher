@@ -13,6 +13,8 @@ export interface ProfileDisplayPrefs {
   steamPromptSkipped?: boolean;
   /** friends | private — synced via /stats */
   statsVisibility?: 'friends' | 'private';
+  /** friends | private — share listening presence */
+  shareListening?: 'friends' | 'private';
   showcase?: ProfileShowcasePrefs;
 }
 
@@ -46,6 +48,7 @@ export function getProfileDisplayPrefs(raw?: string | null): ProfileDisplayPrefs
     showMemberSince: p.showMemberSince !== false,
     steamPromptSkipped: p.steamPromptSkipped === true,
     statsVisibility: p.statsVisibility === 'private' ? 'private' : 'friends',
+    shareListening: p.shareListening === 'private' ? 'private' : 'friends',
     showcase: parseShowcase(p.showcase),
   };
 }

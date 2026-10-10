@@ -1,0 +1,42 @@
+{
+  "entries": [
+    {
+      "version": "0.0.8-beta0101",
+      "title": "Minecraft, overlay & early access",
+      "titlePl": "Minecraft, overlay i early access",
+      "bullets": [
+        "Add any PC game manually from an .exe — launch from Quark",
+        "Auto-detect Minecraft Java and Bedrock; Dungeons/Legends tagged on Steam/Epic",
+        "Overlay mega editor (16:9 / 21:9), themes, and live preview",
+        "Early access gates for Spotify, friends media, and Recap (off by default)",
+        "FREE / PRO subscription badge; friends peek & profile dock"
+      ],
+      "bulletsPl": [
+        "Dodawaj gry ręcznie z .exe i uruchamiaj z Quark",
+        "Auto-detekcja Minecraft Java i Bedrock; Dungeons/Legends oznaczone w Steam/Epic",
+        "Edytor overlay (16:9 / 21:9), motywy i podgląd na żywo",
+        "Early access: Spotify, media znajomych i Recap (domyślnie wyłączone)",
+        "Badge FREE / PRO; podgląd znajomych i dock profilu"
+      ]
+    },
+    {
+      "version": "0.0.7-beta01",
+      "title": "Minecraft & custom games",
+      "titlePl": "Minecraft i własne gry",
+      "bullets": [
+        "Add any PC game manually from an .exe — launch from Quark",
+        "Auto-detect Minecraft Java and Bedrock; Dungeons/Legends tagged on Steam/Epic",
+        "Java advancements from local saves; Bedrock Xbox achievements later",
+        "Library filters for Custom and Minecraft; open .minecraft / mods folders",
+        "Overlay editor and FREE/PRO subscription badge from prior release work"
+      ],
+      "bulletsPl": [
+        "Dodawaj gry ręcznie z .exe i uruchamiaj z Quark",
+        "Auto-detekcja Minecraft Java i Bedrock; Dungeons/Legends oznaczone w Steam/Epic",
+        "Advancements Java z lokalnych save'ów; Bedrock Xbox — później",
+        "Filtry Własne / Minecraft; otwieranie .minecraft i mods",
+        "Edytor overlay i badge FREE/PRO z poprzednich prac"
+      ]
+    }
+  ]
+}

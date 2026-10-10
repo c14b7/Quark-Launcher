@@ -63,6 +63,25 @@ export function mergeGameGenres(games: Game[]): Game[] {
   });
 }
 
+async function fetchSteamAppDetails(appId: string): Promise<unknown | null> {
+  // Electron main-process proxy (no CORS)
+  const api = typeof window !== 'undefined' ? window.electronAPI : undefined;
+  if (api && typeof (api as { steamStoreFetch?: unknown }).steamStoreFetch === 'function') {
+    const result = await (
+      api as {
+        steamStoreFetch: (
+          path: string,
+          params: Record<string, string>
+        ) => Promise<{ success: boolean; data?: unknown; error?: string }>;
+      }
+    ).steamStoreFetch('/api/appdetails', { appids: appId, l: 'english' });
+    if (result.success) return result.data ?? null;
+    return null;
+  }
+  // Browser: Steam Store blocks CORS — skip (no noisy failed fetches)
+  return null;
+}
+
 /** Fetch Steam store genres for games missing them (rate-limited, best-effort). */
 export async function enrichGenresFromSteamStore(
   games: Game[],
@@ -76,24 +95,22 @@ export async function enrichGenresFromSteamStore(
   for (const g of need) {
     if (fetched >= limit) break;
     try {
-      const res = await fetch(
-        `https://store.steampowered.com/api/appdetails?appids=${encodeURIComponent(g.id)}&l=english`,
-        { mode: 'cors' }
-      );
-      if (!res.ok) continue;
-      const json = await res.json();
-      const entry = json?.[g.id];
+      const json = (await fetchSteamAppDetails(g.id)) as
+        | Record<string, { success?: boolean; data?: { genres?: Array<{ description?: string }> } }>
+        | null;
+      if (!json) continue;
+      const entry = json[g.id];
       if (!entry?.success || !entry.data) continue;
       const genres: string[] = (entry.data.genres || [])
-        .map((x: { description?: string }) => x.description)
-        .filter(Boolean);
+        .map((x) => x.description)
+        .filter((x): x is string => Boolean(x));
       if (genres.length) {
         cache[g.id] = genres;
         fetched += 1;
       }
       await new Promise((r) => setTimeout(r, 250));
     } catch {
-      /* CORS may block in browser; Electron often allows */
+      /* ignore per-game failures */
     }
   }
   saveGenresCache(cache);

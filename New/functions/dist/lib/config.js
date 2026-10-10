@@ -23,6 +23,8 @@ exports.COLLECTIONS = {
     conversationMembers: 'conversation_members',
     messages: 'messages',
     messageReactions: 'message_reactions',
+    userPlayStats: 'user_play_stats',
+    spotifyIntegrations: 'spotify_integrations',
 };
 exports.BUCKETS = {
     userMedia: 'user_media',

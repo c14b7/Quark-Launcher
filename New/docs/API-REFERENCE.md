@@ -40,7 +40,7 @@
                                 │ HTTPS (sesja Appwrite JWT w nagłówkach)
 ┌───────────────────────────────▼─────────────────────────────────────────┐
 │  Jedna Appwrite Function (functions/index.ts)                            │
-│  Router: /health | /auth | /friends | /chat | /steam | /telemetry        │
+│  Router: /health | /auth | /friends | /chat | /steam | /telemetry | /stats | /spotify │
 └───────────────────────────────┬─────────────────────────────────────────┘
                                 │ API Key (server-side)
 ┌───────────────────────────────▼─────────────────────────────────────────┐
@@ -128,6 +128,10 @@ Profil Quark powiązany 1:1 z kontem Appwrite (`userId` = document ID).
 | `currentGameName` | string(128) | nie | — | Nazwa gry (rich presence) |
 | `currentActivity` | enum | nie | `none` | `playing \| menu \| idle \| none` |
 | `activityUpdatedAt` | datetime | nie | — | Ostatnia aktualizacja aktywności |
+| `listeningTitle` | string(200) | nie | — | Tytuł utworu (share listening) |
+| `listeningArtist` | string(200) | nie | — | Artysta |
+| `listeningArtUrl` | string(500) | nie | — | Okładka |
+| `listeningSource` | string(16) | nie | — | `spotify` \| `smtc` |
 
 **Indeksy:** `userId_idx`, `friendCode_unique` (unique)
 
@@ -140,6 +144,8 @@ Profil Quark powiązany 1:1 z kontem Appwrite (`userId` = document ID).
   "notifications": true,
   "pronouns": "on/jego",
   "location": "Warszawa",
+  "shareListening": "friends",
+  "statsVisibility": "friends",
   "telemetry": {
     "analyticsEnabled": true,
     "diagnosticsEnabled": true,
@@ -148,6 +154,20 @@ Profil Quark powiązany 1:1 z kontem Appwrite (`userId` = document ID).
   }
 }
 ```
+
+---
+
+### 3.1b `spotify_integrations` (SERVER_ONLY)
+
+| Pole | Typ | Opis |
+|------|-----|------|
+| `userId` | string(36) | Właściciel |
+| `accessToken` | string(500) | Access token Spotify |
+| `refreshToken` | string(500) | Refresh token |
+| `expiresAt` | datetime | Wygaśnięcie access tokena |
+| `spotifyUserId` | string(64) | ID konta Spotify |
+| `displayName` | string(128) | Nazwa Spotify |
+| `linkedAt` | datetime | Data połączenia |
 
 ---
 
@@ -256,7 +276,7 @@ Jedna instalacja aplikacji (urządzenie), niezależna od konta. Document ID = `i
 | `installationId` | string(36) | — | UUID z klienta |
 | `firstSeenAt` | datetime | — | Pierwszy ingest |
 | `lastSeenAt` | datetime | — | Ostatni ingest |
-| `appVersion` | string(32) | — | np. `0.0.7-beta` |
+| `appVersion` | string(32) | — | np. `0.0.8-beta01` |
 | `platform` | enum | — | `win32 \| darwin \| linux \| web` |
 | `arch` | string(16) | — | np. `x64` |
 | `locale` | string(10) | — | np. `pl-PL` |
@@ -384,6 +404,7 @@ Helper: `getAvatarUrl()` w `web/act-l/lib/avatar-service.ts`
 | `/steam` | Steam proxy | `steam-api.ts` |
 | `/telemetry/*` | Telemetria | `telemetry-api.ts` |
 | `/stats/*` | Play stats (friends sync) | `stats-api.ts` |
+| `/spotify/*` | Spotify OAuth + currently playing | `spotify-api.ts` |
 
 ### Stats (`user_play_stats`)
 
@@ -395,6 +416,20 @@ Helper: `getAvatarUrl()` w `web/act-l/lib/avatar-service.ts`
 | `GET /stats/:userId` | Stats znajomego (wymaga friendship + visibility≠private) |
 
 `summaryJson`: totals, topGames[5], topGenres[5], showcase slice — **bez** raw session log.
+
+### Spotify (`spotify_integrations`, SERVER_ONLY)
+
+Env Function: `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, opcjonalnie `SPOTIFY_REDIRECT_URI` (domyślnie `http://127.0.0.1:39211/spotify/callback`).
+
+| Endpoint | Opis |
+|----------|------|
+| `GET /spotify/auth-url` | PKCE challenge + URL autoryzacji |
+| `POST /spotify/callback` | Exchange `code` + `verifier` → tokeny |
+| `DELETE /spotify/unlink` | Usuń integrację |
+| `GET /spotify/me` | Status powiązania (`configured`, `linked`, `displayName`) |
+| `GET /spotify/currently-playing` | Server-side currently playing (z refresh tokena) |
+
+Listening w presence: `POST /friends/presence` przyjmuje opcjonalnie `listeningTitle`, `listeningArtist`, `listeningArtUrl`, `listeningSource` (`spotify`\|`smtc`), lub `clearListening: true`. Publiczny profil respektuje `preferences.shareListening` (`friends`\|`private`, default `friends`).
 
 ### Wspólny format odpowiedzi
 
@@ -631,14 +666,16 @@ Usunięcie znajomości (dokument z `friendships`).
 
 ### `POST /friends/presence`
 
-| Body | `{ presence, customStatus?, currentGameId?, currentGameName?, currentActivity? }` |
-| Działanie | Aktualizuje `user_profiles.presence`, `lastSeen` oraz opcjonalnie rich presence (gra) |
+| Body | `{ presence?, customStatus?, currentGameId?, currentGameName?, currentActivity?, listeningTitle?, listeningArtist?, listeningArtUrl?, listeningSource?, clearListening? }` |
+| Działanie | Aktualizuje `lastSeen` oraz podane pola; `presence` jest opcjonalne (listening sync nie nadpisuje DND/idle) |
 
 `currentActivity`: `playing | menu | idle | none`. Przy `none`/`idle` serwer czyści `currentGameId` i `currentGameName`.
 
-Używane przez `friends-context.tsx` (heartbeat co 30s, raport gry z `launchGame`, respektuje ręczny DND/offline).
+`listeningSource`: `spotify` \| `smtc` \| `''`. `clearListening: true` czyści wszystkie pola listening.
 
-Publiczny profil znajomego (`toPublicProfile`) zwraca pola `currentGameId`, `currentGameName`, `currentActivity`.
+Używane przez `friends-context.tsx` (heartbeat co 30s, raport gry z `launchGame`, respektuje ręczny DND/offline) oraz `spotify-service.ts` (sync listening co ~25s).
+
+Publiczny profil znajomego (`toPublicProfile`) zwraca `currentGameId`, `currentGameName`, `currentActivity` oraz listening **tylko** gdy `shareListening !== 'private'`.
 
 ---
 
@@ -746,7 +783,7 @@ Główny endpoint zbierania danych (batch).
 {
   "installation": {
     "installationId": "uuid",
-    "appVersion": "0.0.7-beta",
+    "appVersion": "0.0.8-beta01",
     "platform": "win32",
     "arch": "x64",
     "locale": "pl-PL",
@@ -1004,6 +1041,18 @@ apiRequest<T>(path, method, body?, requireAuth = true): Promise<ApiResponse<T>>
 |-------|------|
 | `epic-get-installed-games` | Skan manifestów Epic |
 
+### Media (Windows SMTC)
+
+| Kanał / Event | Kierunek | Opis |
+|---------------|----------|------|
+| `media-get-session` | invoke | Snapshot Now Playing |
+| `media-play-pause` / `media-next` / `media-previous` | invoke | Sterowanie SMTC |
+| `media-session-update` | main→renderer | Poll ~1s |
+| `overlay-media` | main→overlay | Widget Now Playing (display; klików brak — media keys) |
+| `spotify-start-oauth` | invoke | Loopback OAuth `:39211` |
+
+Bridge: `Windows app/media-smtc.js` (WinRT GlobalSystemMediaTransportControls). Hotkeys: `MediaPlayPause` / `MediaNextTrack` / `MediaPreviousTrack`.
+
 ### Gry
 
 | Kanał | Opis |
@@ -1201,8 +1250,11 @@ npm run migrate-presence    # rich presence na user_profiles
 ```bash
 cd functions
 npm run build:compile
-# deploy przez Appwrite CLI lub konsolę
+# deploy całego functions/dist/ przez Appwrite CLI lub konsolę
+# Po dodaniu /spotify lub /stats: bez redeploy → „Unknown route: /spotify/…”
 ```
+
+See also: [RELEASE-0.0.7.md](RELEASE-0.0.7.md).
 
 ### Build launchera
 

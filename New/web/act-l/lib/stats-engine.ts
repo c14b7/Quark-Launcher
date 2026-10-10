@@ -168,14 +168,19 @@ export function buildQuarkStats(
   games: Game[],
   launchStats: LaunchStatsMap,
   sessions: PlaySession[],
-  settings: Pick<AppSettings, 'customCategories'>,
+  settings: Pick<AppSettings, 'customCategories' | 'hiddenGames'>,
   period: StatsPeriod = 'allTime',
   now = new Date()
 ): QuarkStatsSnapshot {
   const year = now.getFullYear();
-  const gameMap = new Map(games.map((g) => [g.id, g]));
+  const hidden = new Set(settings.hiddenGames || []);
+  const visibleGames = games.filter((g) => !g.isHidden && !hidden.has(g.id));
+  const gameMap = new Map(visibleGames.map((g) => [g.id, g]));
+  const isVisibleId = (id: string) => gameMap.has(id);
 
-  const periodSessions = sessions.filter((s) => inPeriod(s.startedAt, period, year, now));
+  const periodSessions = sessions.filter(
+    (s) => isVisibleId(s.gameId) && inPeriod(s.startedAt, period, year, now)
+  );
   const sessionSecByGame = new Map<string, number>();
   const launchesByGame = new Map<string, number>();
 
@@ -186,6 +191,7 @@ export function buildQuarkStats(
 
   let totalLaunches = 0;
   for (const [gameId, st] of Object.entries(launchStats)) {
+    if (!isVisibleId(gameId)) continue;
     if (
       period === 'allTime' ||
       inPeriod(st.lastPlayed, period, year, now) ||
@@ -251,7 +257,7 @@ export function buildQuarkStats(
     .slice(0, 8);
 
   const genreCounts = new Map<string, number>();
-  for (const game of games) {
+  for (const game of visibleGames) {
     for (const g of game.genres || []) {
       const name = g.trim();
       if (!name) continue;
@@ -265,7 +271,7 @@ export function buildQuarkStats(
     .slice(0, 8);
 
   const platformCounts = new Map<string, number>();
-  for (const game of games) {
+  for (const game of visibleGames) {
     platformCounts.set(game.platform || 'custom', (platformCounts.get(game.platform || 'custom') || 0) + 1);
   }
   const platformTotal = Array.from(platformCounts.values()).reduce((a, b) => a + b, 0) || 1;
@@ -290,7 +296,7 @@ export function buildQuarkStats(
   }
 
   const totalSessionSec = periodSessions.reduce((a, s) => a + (s.durationSec || 0), 0);
-  const totalSteamMinutes = games.reduce((sum, g) => sum + (g.playtime || 0), 0);
+  const totalSteamMinutes = visibleGames.reduce((sum, g) => sum + (g.playtime || 0), 0);
   const streakDays = computeStreakFromSessions(periodSessions, period, year, now);
   const mostDedicated = topGamesBySession[0] || topGamesByLaunches[0] || null;
 

@@ -6,12 +6,21 @@
   <link rel="stylesheet" href="overlay.css">
 </head>
 <body>
-  <div class="overlay-root">
-    <div id="logo-block" class="logo-block">
+  <div id="overlay-root" class="overlay-root">
+    <div id="logo-block" class="logo-block widget" data-widget="logo">
       <span class="quark-title">Quark</span>
     </div>
 
-    <div id="perf-block" class="perf-block">
+    <div id="media-block" class="media-block widget" data-widget="media" data-overlay="showNowPlaying">
+      <img id="media-art" class="media-art" alt="" />
+      <div class="media-meta">
+        <div id="media-title" class="media-title">—</div>
+        <div id="media-artist" class="media-artist">—</div>
+        <div class="media-bar"><div id="media-progress" class="media-progress"></div></div>
+      </div>
+    </div>
+
+    <div id="perf-block" class="perf-block widget" data-widget="perf">
       <canvas id="cpu-chart" class="cpu-chart" width="120" height="36" data-overlay="showCpuChart"></canvas>
       <div class="perf-stats">
         <div class="stat" data-overlay="showCpu"><span class="label">CPU</span><span id="cpu-val" class="val">0%</span></div>
@@ -23,8 +32,9 @@
         <div class="stat" data-overlay="showPing"><span class="label">PING</span><span id="ping-val" class="val">—</span></div>
       </div>
     </div>
+
+    <div id="toast-stack" class="toast-stack widget" data-widget="toasts"></div>
   </div>
-  <div id="toast-stack" class="toast-stack"></div>
   <script src="overlay-renderer.js"></script>
 </body>
 </html>

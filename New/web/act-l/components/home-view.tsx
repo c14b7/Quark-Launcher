@@ -128,7 +128,7 @@ export function HomeView({ onGameSelect, onOpenSettings }: HomeViewProps) {
         <p className="text-lg">{t('noGames')}</p>
         <p className="text-sm text-zinc-600">{t('steamHint')}</p>
         <Button
-          onClick={refreshGames}
+          onClick={() => void refreshGames()}
           variant="outline"
           className="gap-2 mt-4 border-zinc-700 hover:bg-zinc-800 rounded-xl"
         >

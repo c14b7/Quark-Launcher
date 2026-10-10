@@ -18,7 +18,26 @@ import { useGames } from '@/lib/games-context';
 import { useSettings } from '@/lib/settings-context';
 import { CategoryIcon } from '@/lib/category-icons';
 import { PlaytimeBadge } from '@/components/steam-profile';
+import { isMinecraftKind } from '@/lib/custom-games';
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
+
+function kindLabel(kind: string | undefined, t: (k: string) => string) {
+  switch (kind) {
+    case 'minecraft-java':
+      return t('kindJava');
+    case 'minecraft-bedrock':
+      return t('kindBedrock');
+    case 'minecraft-dungeons':
+      return t('kindDungeons');
+    case 'minecraft-legends':
+      return t('kindLegends');
+    case 'manual':
+      return t('kindManual');
+    default:
+      return null;
+  }
+}
 
 interface GameCardProps {
   game: Game;
@@ -28,10 +47,12 @@ interface GameCardProps {
 }
 
 export function GameCard({ game, variant = 'medium', onClick, className }: GameCardProps) {
+  const t = useTranslations('library');
   const { toggleFavorite, launchGame } = useGames();
   const { hideGame, settings, addGameToCategory, removeGameFromCategory } = useSettings();
   const [imageError, setImageError] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const badge = kindLabel(game.kind, t);
 
   const handlePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -129,29 +150,20 @@ export function GameCard({ game, variant = 'medium', onClick, className }: GameC
             )}
           </div>
 
-          {/* Playtime Badge + Platform Badge */}
           <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 flex-wrap max-w-[80%]">
             <PlaytimeBadge playtime={game.playtime} />
-            
-            {/* Platform Badge */}
-{/*             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 shadow-sm">
-              {game.platform === 'steam' && (
-                <svg className="h-3 w-3 text-zinc-300" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
-                </svg>
-              )}
-              {game.platform === 'epic' && (
-                <svg className="h-3 w-3 text-zinc-300" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18L19.82 8 12 11.82 4.18 8 12 4.18zM4 9.48l7 3.5v6.84l-7-3.5V9.48zm16 0v6.84l-7 3.5v-6.84l7-3.5z"/>
-                </svg>
-              )}
-              {game.platform === 'xbox' && (
-                <svg className="h-3 w-3 text-zinc-300" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M4.102 21.033A11.947 11.947 0 0 0 12 24a11.96 11.96 0 0 0 7.902-2.967c1.877-1.912-4.316-8.709-7.902-11.417-3.582 2.708-9.779 9.505-7.898 11.417z"/>
-                </svg>
-              )}
-              <span className="text-[9px] text-zinc-300 font-bold tracking-wider">{game.platform}</span> wyłączone tymczasowo/na stałe
-            </div> */}
+            {badge && (
+              <span
+                className={cn(
+                  'px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider border backdrop-blur-md',
+                  isMinecraftKind(game.kind)
+                    ? 'bg-emerald-950/80 text-[#d4ff00] border-emerald-500/30'
+                    : 'bg-black/60 text-zinc-200 border-white/10'
+                )}
+              >
+                {badge}
+              </span>
+            )}
           </div>
 
           {/* Content */}
@@ -251,7 +263,7 @@ export function GameCard({ game, variant = 'medium', onClick, className }: GameC
         ) : (
           <ContextMenuItem disabled className="gap-2 text-sm text-zinc-500 rounded-lg">
             <FolderPlus className="h-4 w-4" />
-            Brak kategorii (Ustawienia)
+            {t('noCategories')}
           </ContextMenuItem>
         )}
         <ContextMenuSeparator className="bg-white/10" />
@@ -260,7 +272,7 @@ export function GameCard({ game, variant = 'medium', onClick, className }: GameC
           onClick={handleHide}
         >
           <EyeOff className="h-4 w-4" />
-          Ukryj grę
+          {t('hideGame')}
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

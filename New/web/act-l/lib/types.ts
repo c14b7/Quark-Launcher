@@ -16,6 +16,10 @@ export interface QuarkFriend {
   currentGameId?: string;
   currentGameName?: string;
   currentActivity?: 'playing' | 'menu' | 'idle' | 'none';
+  listeningTitle?: string;
+  listeningArtist?: string;
+  listeningArtUrl?: string;
+  listeningSource?: 'spotify' | 'smtc';
 }
 
 export interface CardTheme {
@@ -26,6 +30,13 @@ export interface CardTheme {
 }
 
 // Types for the Quark Launcher
+
+export type GameKind =
+  | 'manual'
+  | 'minecraft-java'
+  | 'minecraft-bedrock'
+  | 'minecraft-dungeons'
+  | 'minecraft-legends';
 
 export interface Game {
   id: string;
@@ -38,7 +49,17 @@ export interface Game {
   lastPlayed?: string;
   playtime?: number; // in minutes
   playtime2weeks?: number; // in minutes
-  
+
+  /** Custom / Minecraft launcher executable */
+  gamePath?: string;
+  launchArgs?: string[];
+  /** Protocol / AppX URI when no exe (e.g. Bedrock) */
+  launchProtocol?: string;
+  kind?: GameKind;
+  coverPath?: string;
+  /** Detected by Quark (vs user-added) */
+  detected?: boolean;
+
   // Images
   image: string;        // Header (460x215)
   hero: string;         // Hero background (1920x620)
@@ -206,12 +227,35 @@ export interface IElectronAPI {
     error?: string;
   }>;
   steamOpenIdLogin: () => Promise<{ success: boolean; steamId?: string; error?: string }>;
-  
+  steamApiFetch?: (
+    endpoint: string,
+    params: Record<string, string>
+  ) => Promise<{ success: boolean; data?: unknown; error?: string }>;
+  steamStoreFetch?: (
+    path: string,
+    params: Record<string, string>
+  ) => Promise<{ success: boolean; data?: unknown; error?: string }>;
+  mediaGetSession?: () => Promise<{ success: boolean; data?: unknown }>;
+  mediaPlayPause?: () => Promise<{ success: boolean }>;
+  mediaNext?: () => Promise<{ success: boolean }>;
+  mediaPrevious?: () => Promise<{ success: boolean }>;
+  onMediaSessionUpdate?: (callback: (session: unknown) => void) => () => void;
+  spotifyStartOAuth?: (
+    url: string,
+    verifier: string
+  ) => Promise<{ success: boolean; code?: string; error?: string }>;
+
   // Epic Games
   epicGetInstalledGames: () => Promise<Game[]>;
   
   // Game launching
-  launchGame: (gameData: { platform: string; gameId: string; gamePath?: string }) => Promise<LaunchResult>;
+  launchGame: (gameData: {
+    platform: string;
+    gameId: string;
+    gamePath?: string;
+    launchArgs?: string[];
+    launchProtocol?: string;
+  }) => Promise<LaunchResult>;
   
   // User data
   saveUserData: (key: string, data: unknown) => Promise<{ success: boolean; error?: string }>;
@@ -221,6 +265,15 @@ export interface IElectronAPI {
   selectGameExecutable: () => Promise<string | null>;
   checkFileExists: (filePath: string) => Promise<boolean>;
   openFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
+
+  minecraftDetectInstallations?: () => Promise<Game[]>;
+  minecraftJavaAdvancements?: () => Promise<{
+    success: boolean;
+    unlocked?: number;
+    total?: number;
+    items?: Array<{ id: string; name: string; achieved: boolean }>;
+    error?: string;
+  }>;
   
   // System info
   getSystemInfo: () => Promise<{
@@ -239,19 +292,14 @@ export interface IElectronAPI {
   onUpdateError: (callback: (info: UpdateErrorInfo) => void) => () => void;
   onTelemetryMainEvent: (callback: (data: { name: string; properties?: Record<string, unknown>; category?: string }) => void) => () => void;
   onOverlayToggled: (callback: (data: { visible: boolean }) => void) => () => void;
-  overlayUpdateConfig: (config: {
-    showLogo?: boolean;
-    showCpu?: boolean;
-    showGpu?: boolean;
-    showFps?: boolean;
-    showCpuChart?: boolean;
-    showRam?: boolean;
-    showSessionTimer?: boolean;
-    showDateTime?: boolean;
-    showPing?: boolean;
-    showChatNotifications?: boolean;
-    chatNotificationsWhenHidden?: boolean;
-  }) => Promise<{ success: boolean }>;
+  overlayUpdateConfig: (config: object) => Promise<{ success: boolean }>;
+  overlayEnterEditMode?: () => Promise<{ success: boolean }>;
+  overlayExitEditMode?: () => Promise<{ success: boolean }>;
+  overlayPreviewShow?: () => Promise<{ success: boolean }>;
+  overlayPreviewHide?: () => Promise<{ success: boolean }>;
+  overlayLayoutPatch?: (patch: Record<string, unknown>) => Promise<{ success: boolean; layout?: unknown }>;
+  onOverlayLayoutChanged?: (callback: (data: { layout?: unknown }) => void) => () => void;
+  onOverlayEditExited?: (callback: (data: { layout?: unknown; config?: unknown }) => void) => () => void;
   showOverlayNotification: (payload: {
     title?: string;
     body?: string;

@@ -12,8 +12,11 @@ files:
       - main.js
       - preload.js
       - store-api.js
+      - media-smtc.js
+      - minecraft-detect.js
       - overlay-manager.js
       - overlay-performance.js
+      - overlay-defaults.json
       - overlay.html
       - overlay.css
       - overlay-renderer.js
@@ -28,5 +31,5 @@ extraResources:
       - '**/*'
 win:
   target: nsis
-  icon: assets/VERT_Q.ico
-electronVersion: 33.4.11
+  icon: assets/VERT_Q-256.png
+electronVersion: 39.8.5

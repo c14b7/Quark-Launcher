@@ -21,4 +21,11 @@ contextBridge.exposeInMainWorld('overlayAPI', {
     ipcRenderer.on('overlay-notification', fn);
     return () => ipcRenderer.removeListener('overlay-notification', fn);
   },
+  onMedia: (callback) => {
+    const fn = (_e, data) => callback(data);
+    ipcRenderer.on('overlay-media', fn);
+    return () => ipcRenderer.removeListener('overlay-media', fn);
+  },
+  sendLayoutPatch: (patch) => ipcRenderer.send('overlay-layout-patch', patch),
+  exitEditMode: () => ipcRenderer.send('overlay-exit-edit-mode'),
 });

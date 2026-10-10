@@ -1,4 +1,4 @@
-import { Client, Databases, Query, ID, Permission, Role } from 'node-appwrite';
+import { Client, Databases, Query } from 'node-appwrite';
 import { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, APPWRITE_API_KEY, DATABASE_ID, COLLECTIONS } from './lib/config';
 import {
   parseBody,
@@ -23,6 +23,74 @@ function getDatabases(): Databases {
     .setProject(APPWRITE_PROJECT_ID)
     .setKey(APPWRITE_API_KEY);
   return new Databases(client);
+}
+
+function errMeta(err: unknown): { code?: number; type?: string; message: string } {
+  const e = err as { code?: number; type?: string; message?: string };
+  return {
+    code: e?.code,
+    type: e?.type,
+    message: e?.message || formatError(err),
+  };
+}
+
+function isNotFound(err: unknown): boolean {
+  const m = errMeta(err);
+  return (
+    m.code === 404 ||
+    m.type === 'document_not_found' ||
+    m.type === 'collection_not_found' ||
+    /not found/i.test(m.message)
+  );
+}
+
+function isConflict(err: unknown): boolean {
+  const m = errMeta(err);
+  return m.code === 409 || m.type === 'document_already_exists' || /already exists/i.test(m.message);
+}
+
+function isCollectionMissing(err: unknown): boolean {
+  const m = errMeta(err);
+  return m.type === 'collection_not_found' || /collection.*(not found|missing)/i.test(m.message);
+}
+
+async function upsertPlayStats(
+  databases: Databases,
+  userId: string,
+  data: {
+    userId: string;
+    visibility: string;
+    summaryJson: string;
+    updatedAt: string;
+  }
+) {
+  try {
+    await databases.getDocument(DATABASE_ID, COLLECTIONS.userPlayStats, userId);
+    await databases.updateDocument(DATABASE_ID, COLLECTIONS.userPlayStats, userId, data);
+    return;
+  } catch (getErr) {
+    if (isCollectionMissing(getErr)) throw getErr;
+    if (!isNotFound(getErr)) {
+      // Document may exist but get failed oddly — try update, then create
+      try {
+        await databases.updateDocument(DATABASE_ID, COLLECTIONS.userPlayStats, userId, data);
+        return;
+      } catch {
+        /* fall through to create */
+      }
+    }
+  }
+
+  try {
+    // SERVER_ONLY collection — no document ACL (API key writes)
+    await databases.createDocument(DATABASE_ID, COLLECTIONS.userPlayStats, userId, data);
+  } catch (createErr) {
+    if (isConflict(createErr)) {
+      await databases.updateDocument(DATABASE_ID, COLLECTIONS.userPlayStats, userId, data);
+      return;
+    }
+    throw createErr;
+  }
 }
 
 async function areFriends(databases: Databases, userId: string, otherId: string): Promise<boolean> {
@@ -79,30 +147,24 @@ export async function handleStatsApiRequest(
 
       const now = new Date().toISOString();
       try {
-        await databases.getDocument(DATABASE_ID, COLLECTIONS.userPlayStats, userId!);
-        await databases.updateDocument(DATABASE_ID, COLLECTIONS.userPlayStats, userId!, {
-          userId,
+        await upsertPlayStats(databases, userId!, {
+          userId: userId!,
           visibility,
           summaryJson,
           updatedAt: now,
         });
-      } catch {
-        await databases.createDocument(
-          DATABASE_ID,
-          COLLECTIONS.userPlayStats,
-          userId!,
-          {
-            userId,
-            visibility,
-            summaryJson,
-            updatedAt: now,
-          },
-          [
-            Permission.read(Role.users()),
-            Permission.update(Role.user(userId!)),
-            Permission.delete(Role.user(userId!)),
-          ]
-        );
+      } catch (upsertErr) {
+        const meta = errMeta(upsertErr);
+        log.error(`stats upsert failed: ${meta.message} type=${meta.type || ''} code=${meta.code || ''}`);
+        if (isCollectionMissing(upsertErr)) {
+          return errorResponse(
+            res,
+            'COLLECTION_MISSING',
+            'Collection user_play_stats missing — run functions/setup-database.ts',
+            503
+          );
+        }
+        return errorResponse(res, 'UPSERT_FAILED', meta.message, 500);
       }
 
       return jsonResponse(res, { success: true, visibility, updatedAt: now });
@@ -140,23 +202,35 @@ export async function handleStatsApiRequest(
           visibility,
           updatedAt: now,
         });
-      } catch {
-        await databases.createDocument(
-          DATABASE_ID,
-          COLLECTIONS.userPlayStats,
-          userId!,
-          {
-            userId,
+      } catch (updateErr) {
+        if (isCollectionMissing(updateErr)) {
+          return errorResponse(
+            res,
+            'COLLECTION_MISSING',
+            'Collection user_play_stats missing — run functions/setup-database.ts',
+            503
+          );
+        }
+        if (!isNotFound(updateErr)) {
+          return errorResponse(res, 'UPSERT_FAILED', errMeta(updateErr).message, 500);
+        }
+        try {
+          await databases.createDocument(DATABASE_ID, COLLECTIONS.userPlayStats, userId!, {
+            userId: userId!,
             visibility,
             summaryJson: '{}',
             updatedAt: now,
-          },
-          [
-            Permission.read(Role.users()),
-            Permission.update(Role.user(userId!)),
-            Permission.delete(Role.user(userId!)),
-          ]
-        );
+          });
+        } catch (createErr) {
+          if (isConflict(createErr)) {
+            await databases.updateDocument(DATABASE_ID, COLLECTIONS.userPlayStats, userId!, {
+              visibility,
+              updatedAt: now,
+            });
+          } else {
+            return errorResponse(res, 'UPSERT_FAILED', errMeta(createErr).message, 500);
+          }
+        }
       }
       return jsonResponse(res, { success: true, visibility });
     }
@@ -202,7 +276,16 @@ export async function handleStatsApiRequest(
 
     return errorResponse(res, 'NOT_FOUND', `Unknown stats route: ${path}`, 404);
   } catch (err) {
-    log.error(`stats-api error: ${formatError(err)}`);
-    return errorResponse(res, 'INTERNAL_ERROR', 'Stats API failed', 500);
+    const meta = errMeta(err);
+    log.error(`stats-api error: ${meta.message} type=${meta.type || ''} code=${meta.code || ''}`);
+    if (isCollectionMissing(err)) {
+      return errorResponse(
+        res,
+        'COLLECTION_MISSING',
+        'Collection user_play_stats missing — run functions/setup-database.ts',
+        503
+      );
+    }
+    return errorResponse(res, 'INTERNAL_ERROR', meta.message || 'Stats API failed', 500);
   }
 }

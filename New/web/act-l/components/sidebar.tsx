@@ -28,8 +28,14 @@ import { Game } from '@/lib/types';
 import { CardPost } from '@/components/side_banner';
 import { useFriends } from '@/lib/friends-context';
 import { useChat } from '@/lib/chat-context';
+import { useAuth } from '@/lib/auth-context';
 import { useTranslations } from 'next-intl';
 import { isDevUnlockSearch, unlockDevSession } from '@/lib/dev-unlock';
+import {
+  isSubscriptionActive,
+  parseSubscription,
+  type SubscriptionTier,
+} from '@/lib/subscription';
 
 interface SidebarProps {
   currentView: string;
@@ -53,7 +59,16 @@ export function Sidebar({
   const { games, searchQuery, setSearchQuery, filteredGames } = useGames();
   const { friends } = useFriends();
   const { unreadTotal } = useChat();
+  const { profile } = useAuth();
   const onlineCount = friends.filter((f) => f.presence === 'online').length;
+  const subscription = parseSubscription(profile);
+  const tierForBadge: SubscriptionTier =
+    isSubscriptionActive(subscription) && subscription.tier !== 'free'
+      ? subscription.tier
+      : 'free';
+  const tierLabel =
+    tierForBadge === 'premium_plus' ? 'PRO+' : tierForBadge === 'premium' ? 'PRO' : 'FREE';
+  const tierTitle = `${subscription.tier} · ${subscription.status}`;
   const [isGamesExpanded, setIsGamesExpanded] = useState(true);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -63,7 +78,7 @@ export function Sidebar({
     { id: 'chat', label: t('chat'), icon: MessageSquare, badge: unreadTotal },
     { id: 'news', label: t('news'), icon: Bell },
     { id: 'store', label: t('store'), icon: Gamepad2 },
-  /*   { id: 'accounts', label: t('account'), icon: User }, */
+    { id: 'accounts', label: t('account'), icon: User },
     { id: 'stats', label: t('stats_m'), icon: ChartNoAxesCombined },
   ];
 
@@ -211,9 +226,17 @@ export function Sidebar({
         <div className="flex items-center justify-between pt-1">
           <Badge
             variant="secondary"
-            className="bg-violet-500/10 text-violet-400/80 border border-violet-500/20 text-[10px] font-medium"
+            title={tierTitle}
+            className={cn(
+              'text-[10px] font-medium border',
+              tierForBadge === 'free'
+                ? 'bg-zinc-800/80 text-zinc-500 border-white/10'
+                : tierForBadge === 'premium_plus'
+                  ? 'bg-[#d4ff00]/15 text-[#d4ff00] border-[#d4ff00]/35'
+                  : 'bg-[#d4ff00]/10 text-[#d4ff00]/90 border-[#d4ff00]/25'
+            )}
           >
-            PRO
+            {tierLabel}
           </Badge>
           <Button
             variant="ghost"

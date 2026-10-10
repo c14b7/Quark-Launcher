@@ -3,7 +3,12 @@ const path = require('path');
 const fs = require('fs').promises;
 const { spawn, exec } = require('child_process');
 const { OverlayManager } = require('./overlay-manager');
+const { MediaSmtcBridge } = require('./media-smtc');
 const storeApi = require('./store-api');
+const {
+  detectMinecraftInstallations,
+  readJavaAdvancements,
+} = require('./minecraft-detect');
 
 
 
@@ -28,6 +33,7 @@ class QuarkLauncher {
     this.userDataPath = app.getPath('userData');
     this._updaterListenersAttached = false;
     this.overlayManager = null;
+    this.mediaBridge = null;
     this.initializeApp();
   }
 
@@ -39,6 +45,7 @@ class QuarkLauncher {
       await this.ensureUserDataDir();
       this.createMainWindow();
       this.setupIpcHandlers();
+      this.setupMediaBridge();
       this.setupAutoUpdater();
       this.registerProtocols();
       
@@ -59,10 +66,27 @@ class QuarkLauncher {
 
     app.on('will-quit', () => {
       if (this.overlayManager) this.overlayManager.dispose();
+      if (this.mediaBridge) this.mediaBridge.stop();
       if (globalShortcut.isRegistered('Control+Alt+F10')) {
         globalShortcut.unregister('Control+Alt+F10');
       }
     });
+  }
+
+  setupMediaBridge() {
+    this.mediaBridge = new MediaSmtcBridge({
+      onUpdate: (session) => {
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+          this.mainWindow.webContents.send('media-session-update', session);
+        }
+      },
+      onBroadcastOverlay: (session) => {
+        if (this.overlayManager?.window && !this.overlayManager.window.isDestroyed()) {
+          this.overlayManager.window.webContents.send('overlay-media', session);
+        }
+      },
+    });
+    this.mediaBridge.start(1500);
   }
 
   async ensureUserDataDir() {
@@ -354,6 +378,46 @@ class QuarkLauncher {
       }
     });
 
+    ipcMain.handle('media-get-session', async () => ({
+      success: true,
+      data: this.mediaBridge?.getSession() || null,
+    }));
+    ipcMain.handle('media-play-pause', async () => this.mediaBridge?.playPause() || { success: false });
+    ipcMain.handle('media-next', async () => this.mediaBridge?.next() || { success: false });
+    ipcMain.handle('media-previous', async () => this.mediaBridge?.previous() || { success: false });
+
+    // Steam Store proxy (appdetails / genres — avoid renderer CORS)
+    ipcMain.handle('steam-store-fetch', async (event, { path, params }) => {
+      try {
+        const https = require('https');
+        const safePath = String(path || '').startsWith('/') ? String(path) : `/${path || ''}`;
+        const url = new URL(`https://store.steampowered.com${safePath}`);
+        if (params && typeof params === 'object') {
+          Object.keys(params).forEach((key) => {
+            if (params[key] != null) url.searchParams.append(key, String(params[key]));
+          });
+        }
+        return await new Promise((resolve) => {
+          https
+            .get(url.toString(), { headers: { 'Accept-Language': 'en' } }, (res) => {
+              let data = '';
+              res.on('data', (chunk) => (data += chunk));
+              res.on('end', () => {
+                try {
+                  resolve({ success: true, data: JSON.parse(data) });
+                } catch {
+                  resolve({ success: false, error: 'Failed to parse JSON' });
+                }
+              });
+            })
+            .on('error', (err) => resolve({ success: false, error: err.message }));
+        });
+      } catch (error) {
+        console.error('Steam Store proxy error:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
     // ===== WINDOW CONTROLS =====
     ipcMain.handle('window-minimize', () => this.mainWindow.minimize());
     
@@ -446,6 +510,63 @@ class QuarkLauncher {
 
         server.listen(port, '127.0.0.1', () => {
           shell.openExternal(buildSteamOpenIdUrl());
+        });
+      });
+    });
+
+    // ===== SPOTIFY OAUTH (loopback PKCE) =====
+    ipcMain.handle('spotify-start-oauth', async (_e, { url }) => {
+      const http = require('http');
+      const TIMEOUT_MS = 5 * 60 * 1000;
+      const port = 39211;
+
+      return new Promise((resolve) => {
+        let settled = false;
+        const finish = (result) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeout);
+          try {
+            server.close();
+          } catch {
+            /* ignore */
+          }
+          resolve(result);
+        };
+
+        const server = http.createServer((req, res) => {
+          if (!req.url || !req.url.startsWith('/spotify/callback')) {
+            res.writeHead(404);
+            res.end();
+            return;
+          }
+          const callbackUrl = new URL(req.url, `http://127.0.0.1:${port}`);
+          const code = callbackUrl.searchParams.get('code');
+          const err = callbackUrl.searchParams.get('error');
+          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+          res.end(
+            '<html><body style="font-family:sans-serif;background:#0a0a0a;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">' +
+              '<div style="text-align:center"><h1 style="color:#d4ff00">Spotify</h1><p>Możesz zamknąć to okno i wrócić do Quark.</p></div>' +
+              '<script>setTimeout(() => window.close(), 1200)</script></body></html>'
+          );
+          if (err) {
+            finish({ success: false, error: err });
+            return;
+          }
+          if (code) {
+            finish({ success: true, code });
+            return;
+          }
+          finish({ success: false, error: 'Brak kodu Spotify' });
+        });
+
+        const timeout = setTimeout(() => {
+          finish({ success: false, error: 'Przekroczono czas logowania Spotify' });
+        }, TIMEOUT_MS);
+
+        server.on('error', (err) => finish({ success: false, error: err.message }));
+        server.listen(port, '127.0.0.1', () => {
+          shell.openExternal(url);
         });
       });
     });
@@ -847,7 +968,7 @@ class QuarkLauncher {
     });
 
     // ===== GAME LAUNCHING =====
-    ipcMain.handle('launch-game', async (event, { platform, gameId, gamePath }) => {
+    ipcMain.handle('launch-game', async (event, { platform, gameId, gamePath, launchArgs, launchProtocol }) => {
       try {
         console.log(`Launching game: ${gameId} on ${platform}`);
 
@@ -904,10 +1025,21 @@ class QuarkLauncher {
             }
             break;
           case 'custom':
-            if (gamePath && await this.fileExists(gamePath)) {
-              const proc = spawn(gamePath, [], { detached: true });
+            if (launchProtocol) {
+              // Bedrock / AppX: shell:AppsFolder\Family!App
+              if (String(launchProtocol).startsWith('shell:')) {
+                spawn('explorer.exe', [launchProtocol], { detached: true, stdio: 'ignore' }).unref();
+              } else {
+                await shell.openExternal(launchProtocol);
+              }
+            } else if (gamePath && (await this.fileExists(gamePath))) {
+              const args = Array.isArray(launchArgs) ? launchArgs : [];
+              const proc = spawn(gamePath, args, { detached: true, stdio: 'ignore' });
+              proc.unref();
               this.runningProcesses.set(gameId, proc);
               proc.on('close', () => this.runningProcesses.delete(gameId));
+            } else {
+              throw new Error('Custom game path missing or not found');
             }
             break;
           default:
@@ -1022,6 +1154,23 @@ class QuarkLauncher {
         return { success: false, error: 'Folder not found' };
       } catch (error) {
         return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('minecraft-detect-installations', async () => {
+      try {
+        return await detectMinecraftInstallations();
+      } catch (error) {
+        console.error('[minecraft-detect]', error);
+        return [];
+      }
+    });
+
+    ipcMain.handle('minecraft-java-advancements', async () => {
+      try {
+        return await readJavaAdvancements();
+      } catch (error) {
+        return { success: false, error: error.message, unlocked: 0, total: 0, items: [] };
       }
     });
 

@@ -58,10 +58,16 @@ quark.banners.test('overlay-toast')
 quark.banners.test('os-notification')
 ```
 
-## Friends / storage / i18n
+## Friends / media / storage / i18n
 
 ```js
 quark.friends.presence('playing', { gameId: '570', name: 'Dota 2' })
+quark.friends.peek(userId)
+quark.friends.dock(userId)
+quark.media.session()
+quark.overlay.preview()
+quark.overlay.edit()
+quark.overlay.reset()
 
 await quark.storage.get('launchStats')
 quark.storage.keys()

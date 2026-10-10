@@ -9,7 +9,8 @@ import {
   Filter,
   Search,
   Star,
-  Clock
+  Clock,
+  Plus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,29 +25,44 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { GameCard } from '@/components/game-card';
+import { AddGameDialog } from '@/components/add-game-dialog';
 import { useGames } from '@/lib/games-context';
 import { useSettings } from '@/lib/settings-context';
 import { CategoryIcon } from '@/lib/category-icons';
 import { Game } from '@/lib/types';
+import { isMinecraftKind } from '@/lib/custom-games';
 import { SortableGameItem } from '@/components/sortable-game-item';
 import { sortGamesByOrder, buildOrderFromGames, reorderIds } from '@/lib/game-order';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 type SortOption = 'name' | 'lastPlayed' | 'playtime' | 'recent' | 'custom';
-type FilterOption = 'all' | 'favorites' | 'installed' | 'steam' | 'xbox' | 'epic' | string;
+type FilterOption =
+  | 'all'
+  | 'favorites'
+  | 'installed'
+  | 'steam'
+  | 'xbox'
+  | 'epic'
+  | 'custom'
+  | 'minecraft'
+  | string;
 
 interface LibraryViewProps {
   onGameSelect: (game: Game) => void;
 }
 
 export function LibraryView({ onGameSelect }: LibraryViewProps) {
-  const { games } = useGames();
+  const t = useTranslations('library');
+  const { games, refreshGames } = useGames();
   const { settings, setLibraryGameOrder } = useSettings();
+  const hasDismissedDetected = (settings.dismissedDetectedGameIds || []).length > 0;
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<SortOption>(settings.librarySortBy || 'name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [filter, setFilter] = useState<FilterOption>('all');
   const [localSearch, setLocalSearch] = useState('');
+  const [addOpen, setAddOpen] = useState(false);
 
   const categoryFilters = settings.customCategories.filter((c) => c.gameIds.length > 0);
 
@@ -72,6 +88,12 @@ export function LibraryView({ onGameSelect }: LibraryViewProps) {
           break;
         case 'epic':
           result = result.filter((g) => g.platform === 'epic');
+          break;
+        case 'custom':
+          result = result.filter((g) => g.platform === 'custom');
+          break;
+        case 'minecraft':
+          result = result.filter((g) => isMinecraftKind(g.kind));
           break;
       }
     }
@@ -149,18 +171,27 @@ export function LibraryView({ onGameSelect }: LibraryViewProps) {
       {/* Header */}
       <div className="p-4 border-b border-white/5 flex items-center justify-between gap-4 flex-shrink-0">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold text-white">Biblioteka</h1>
+          <h1 className="text-xl font-bold text-white">{t('title')}</h1>
           <Badge variant="secondary" className="bg-white/10 text-zinc-300 rounded-lg">
-            {filteredAndSortedGames.length} gier
+            {t('gamesCount', { count: filteredAndSortedGames.length })}
           </Badge>
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            className="gap-1.5 rounded-xl bg-[#d4ff00] text-black hover:bg-[#e2ff4d]"
+            onClick={() => setAddOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            {t('addGame')}
+          </Button>
+
           {/* Search */}
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
             <Input
-              placeholder="Szukaj w bibliotece..."
+              placeholder={t('searchPlaceholder')}
               className="pl-9 h-9 bg-zinc-900/50 border-white/5 rounded-xl"
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
@@ -172,21 +203,21 @@ export function LibraryView({ onGameSelect }: LibraryViewProps) {
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2 border-white/10 rounded-xl">
                 <Filter className="h-4 w-4" />
-                Filtr
+                {t('filter')}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="bg-zinc-900 border-white/10 rounded-xl">
-              <DropdownMenuLabel>Filtruj według</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('filter')}</DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-white/10" />
               <DropdownMenuItem onClick={() => setFilter('all')}>
-                Wszystkie gry
+                {t('filterAll')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setFilter('favorites')}>
                 <Star className="h-4 w-4 mr-2" />
-                Ulubione
+                {t('filterFavorites')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setFilter('installed')}>
-                Zainstalowane
+                {t('filterInstalled')}
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-white/10" />
               <DropdownMenuItem onClick={() => setFilter('steam')}>
@@ -197,6 +228,12 @@ export function LibraryView({ onGameSelect }: LibraryViewProps) {
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setFilter('epic')}>
                 Epic Games
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilter('custom')}>
+                {t('filterCustom')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilter('minecraft')}>
+                {t('filterMinecraft')}
               </DropdownMenuItem>
               {categoryFilters.length > 0 && (
                 <>
@@ -309,6 +346,19 @@ export function LibraryView({ onGameSelect }: LibraryViewProps) {
       {/* Content */}
       <ScrollArea className="flex-1 h-full">
         <div className="p-4 pb-20">
+          {filter === 'minecraft' && hasDismissedDetected && (
+            <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-zinc-900/50 px-3 py-2">
+              <p className="text-xs text-zinc-400">{t('restoreDetectedHint')}</p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0 border-white/10 rounded-xl text-xs"
+                onClick={() => void refreshGames({ restoreDetected: true })}
+              >
+                {t('restoreDetected')}
+              </Button>
+            </div>
+          )}
           {viewMode === 'grid' ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
               {filteredAndSortedGames.map((game, index) => (
@@ -347,6 +397,8 @@ export function LibraryView({ onGameSelect }: LibraryViewProps) {
           )}
         </div>
       </ScrollArea>
+
+      <AddGameDialog open={addOpen} onOpenChange={setAddOpen} />
     </div>
   );
 }

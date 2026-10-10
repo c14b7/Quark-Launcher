@@ -17,7 +17,13 @@ import { getAppVersion } from '@/lib/build-env';
 import { isDevUnlockedSession, subscribeDevUnlock } from '@/lib/dev-unlock';
 import { getTelemetryConsent, updateTelemetryConsent } from '@/lib/telemetry';
 import { resetAppTour } from '@/components/onboarding/app-tour';
-import { DEFAULT_OVERLAY_SETTINGS, type OverlaySettings } from '@/lib/overlay-settings';
+import {
+  DEFAULT_OVERLAY_SETTINGS,
+  OVERLAY_VISIBILITY_TOGGLE_KEYS,
+  mergeOverlaySettings,
+  type OverlaySettings,
+} from '@/lib/overlay-settings';
+import { OverlayEditor } from '@/components/overlay/overlay-editor';
 import {
   isMockFriendStatsEnabled,
   setMockFriendStatsEnabled,
@@ -647,7 +653,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
 
             {activeTab === 'overlay' && (
               <div className="space-y-5">
-                <div className="rounded-2xl border border-lime-500/20 bg-lime-500/5 p-5 space-y-3">
+                <div className="rounded-2xl border-lime-500/20 border bg-lime-500/5 p-5 space-y-3">
                   <div className="flex items-center gap-3">
                     <Layers className="h-5 w-5 text-lime-400" />
                     <div>
@@ -660,25 +666,65 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                   </p>
                 </div>
 
+                <div className="rounded-2xl border border-white/8 bg-zinc-900/50 p-5">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">
+                    {ts('overlayEditorTitle')}
+                  </h4>
+                  <OverlayEditor
+                    value={mergeOverlaySettings(settings.overlay)}
+                    onChange={(next) => updateOverlaySettings(next)}
+                  />
+                </div>
+
                 <div className="rounded-2xl border border-white/8 bg-zinc-900/50 p-5 space-y-1">
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3 flex items-center gap-2">
                     <Activity className="h-3.5 w-3.5" />
                     {ts('overlayElements')}
                   </h4>
-                  {(Object.keys(DEFAULT_OVERLAY_SETTINGS) as (keyof OverlaySettings)[]).map((key) => (
+                  {OVERLAY_VISIBILITY_TOGGLE_KEYS.map((key) => (
                     <OverlayToggleRow
                       key={key}
                       label={ts(`overlay.${key}`)}
                       description={ts(`overlay.${key}Desc`)}
-                      enabled={(settings.overlay ?? DEFAULT_OVERLAY_SETTINGS)[key]}
-                      onToggle={() =>
+                      enabled={Boolean(
+                        (mergeOverlaySettings(settings.overlay) as OverlaySettings)[key]
+                      )}
+                      onToggle={() => {
+                        const cur = mergeOverlaySettings(settings.overlay);
                         updateOverlaySettings({
-                          [key]: !(settings.overlay ?? DEFAULT_OVERLAY_SETTINGS)[key],
-                        })
-                      }
+                          [key]: !cur[key],
+                        });
+                      }}
                     />
                   ))}
                 </div>
+
+                {Boolean(settings.earlyAccess?.friendsMedia) && (
+                  <div className="rounded-2xl border border-white/8 bg-zinc-900/50 p-5">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm text-white">{ts('showFriendsMediaCard')}</p>
+                        <p className="text-xs text-zinc-500 mt-0.5">{ts('showFriendsMediaCardDesc')}</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          'rounded-xl min-w-[4.5rem]',
+                          settings.showFriendsMediaCard !== false &&
+                            'bg-[#d4ff00]/15 border-[#d4ff00]/40 text-[#d4ff00]'
+                        )}
+                        onClick={() =>
+                          updateSettings({
+                            showFriendsMediaCard: settings.showFriendsMediaCard === false,
+                          })
+                        }
+                      >
+                        {settings.showFriendsMediaCard !== false ? ts('on') : ts('off')}
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="rounded-2xl border border-white/8 bg-zinc-900/30 p-4 text-xs text-zinc-500 leading-relaxed">
                   {ts('overlayFpsNote')}
@@ -811,6 +857,51 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                 <Separator className="bg-white/5" />
 
                 <div className="space-y-3">
+                  <label className="text-sm font-medium text-zinc-400">{ts('earlyAccessTitle')}</label>
+                  <p className="text-xs text-zinc-500">{ts('earlyAccessDesc')}</p>
+                  {(
+                    [
+                      ['spotify', 'earlyAccessSpotify'],
+                      ['friendsMedia', 'earlyAccessFriendsMedia'],
+                      ['recap', 'earlyAccessRecap'],
+                    ] as const
+                  ).map(([key, labelKey]) => {
+                    const ea = {
+                      spotify: false,
+                      friendsMedia: false,
+                      recap: false,
+                      ...settings.earlyAccess,
+                    };
+                    const on = Boolean(ea[key]);
+                    return (
+                      <div
+                        key={key}
+                        className="flex items-center justify-between gap-4 p-3 rounded-xl bg-zinc-800/50 border border-white/5"
+                      >
+                        <p className="text-sm text-white">{ts(labelKey)}</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className={cn(
+                            'rounded-xl min-w-[4.5rem]',
+                            on && 'bg-[#d4ff00]/15 border-[#d4ff00]/40 text-[#d4ff00]'
+                          )}
+                          onClick={() =>
+                            updateSettings({
+                              earlyAccess: { ...ea, [key]: !on },
+                            })
+                          }
+                        >
+                          {on ? ts('on') : ts('off')}
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <Separator className="bg-white/5" />
+
+                <div className="space-y-3">
                   <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
                     <Activity className="h-4 w-4" />
                     {ts('devQuickActions')}
@@ -830,7 +921,14 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                     <Button
                       variant="outline"
                       size="sm"
-                      className="rounded-xl border-white/10"
+                      className={cn(
+                        'rounded-xl border-white/10',
+                        !settings.earlyAccess?.recap && 'opacity-50 cursor-not-allowed'
+                      )}
+                      disabled={!settings.earlyAccess?.recap}
+                      title={
+                        settings.earlyAccess?.recap ? undefined : ts('earlyAccessRecapLocked')
+                      }
                       onClick={() => window.dispatchEvent(new CustomEvent('quark-open-recap'))}
                     >
                       Recap

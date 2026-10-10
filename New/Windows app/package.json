@@ -1,6 +1,6 @@
 {
   "name": "quark",
-  "version": "0.0.7-beta01",
+  "version": "0.0.8-beta0101",
   "description": "game launcher for Windows",
   "main": "main.js",              
   "scripts": {
@@ -38,8 +38,11 @@
       "main.js",
       "preload.js",
       "store-api.js",
+      "media-smtc.js",
+      "minecraft-detect.js",
       "overlay-manager.js",
       "overlay-performance.js",
+      "overlay-defaults.json",
       "overlay.html",
       "overlay.css",
       "overlay-renderer.js",
@@ -59,7 +62,7 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "assets/VERT_Q.ico"
+      "icon": "assets/VERT_Q-256.png"
     }
   },
   "dependencies": {

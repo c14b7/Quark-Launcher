@@ -34,6 +34,19 @@ import type { QuarkFriend } from '@/lib/types';
 import { steamIntegration, SteamAchievement, SteamFriend } from '@/lib/steam-integration';
 import { PlaytimeBadge } from '@/components/steam-profile';
 import { GameActionsMenu } from '@/components/game-actions-menu';
+import { isMinecraftKind } from '@/lib/custom-games';
+import { useTranslations } from 'next-intl';
+import { FolderOpen, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface GameDetailsProps {
   game: Game;
@@ -48,7 +61,8 @@ interface FriendPlaying {
 }
 
 export function GameDetails({ game, onClose }: GameDetailsProps) {
-  const { launchGame, toggleFavorite } = useGames();
+  const t = useTranslations('library');
+  const { launchGame, toggleFavorite, removeCustomGame } = useGames();
   const { isLoggedIn, settings, steamFriends } = useSettings();
   const { profile } = useAuth();
   const { friends: quarkFriends } = useFriends();
@@ -59,6 +73,13 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
   const [gameNote, setGameNote] = useState('');
   const [newsItems, setNewsItems] = useState<Array<{ title: string; url: string; date: number }>>([]);
   const [quarkFriendsOnGame, setQuarkFriendsOnGame] = useState<QuarkFriend[]>([]);
+  const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
+  const canLaunch =
+    Boolean(game.gamePath) ||
+    Boolean(game.launchProtocol) ||
+    game.platform === 'steam' ||
+    game.platform === 'epic' ||
+    game.platform === 'xbox';
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -111,13 +132,6 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
   // Fetch achievements immediately when game details open (for Steam games)
   useEffect(() => {
     async function fetchAchievements() {
-      console.log('[ACHIEVEMENTS] Checking conditions:');
-      console.log('  - game.platform:', game.platform);
-      console.log('  - steamApiKey:', settings.steamApiKey ? 'present' : 'missing');
-      console.log('  - steamUserId:', settings.steamUserId || 'missing');
-      console.log('  - game.id:', game.id);
-      
-      // Fetch achievements for Steam games immediately, not just when tab is active
       if (
         game.platform === 'steam' &&
         settings.steamApiKey &&
@@ -125,31 +139,26 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
       ) {
         setIsLoadingAchievements(true);
         try {
-          // Preferuj Electron API jeśli dostępne
           if (typeof window !== 'undefined' && window.electronAPI.steamGetAchievements) {
-            console.log('[ACHIEVEMENTS] Using Electron API...');
             const result = await window.electronAPI.steamGetAchievements(
               settings.steamApiKey,
               settings.steamUserId,
               game.id
             );
-            console.log('[ACHIEVEMENTS] Result:', result.success ? 'success' : 'failed', result.data?.length || 0, 'achievements');
-            
             if (result.success && result.data) {
-              // Dane z Electron API już mają poprawny format
-              setAchievements(result.data.map((a: any) => ({
-                apiname: a.apiname || '',
-                name: a.name || a.apiname || '',
-                description: a.description || '',
-                achieved: a.achieved,
-                unlocktime: a.unlocktime || 0,
-                icon: a.icon || '',
-                iconGray: a.iconGray || ''
-              })));
+              setAchievements(
+                result.data.map((a) => ({
+                  apiname: a.apiname || a.id || '',
+                  name: a.name || a.apiname || a.id || '',
+                  description: a.description || '',
+                  achieved: a.achieved,
+                  unlocktime: a.unlocktime || a.unlockTime || 0,
+                  icon: a.icon || a.iconUrl || '',
+                  iconGray: a.iconGray || a.iconGrayUrl || '',
+                }))
+              );
             }
           } else if (profile?.steamId) {
-            console.log('[ACHIEVEMENTS] Fallback to steam-integration...');
-            // Fallback do steam-integration
             const appId = parseInt(game.id, 10);
             if (!isNaN(appId)) {
               const result = await steamIntegration.getPlayerAchievements(
@@ -159,18 +168,46 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
               );
               setAchievements(result);
             }
-          } else {
-            console.log('[ACHIEVEMENTS] No Electron API or profile steamId available');
           }
         } catch (error) {
           console.error('[ACHIEVEMENTS] Error fetching achievements:', error);
         } finally {
           setIsLoadingAchievements(false);
         }
+        return;
+      }
+
+      // Minecraft Java — local advancements
+      if (game.kind === 'minecraft-java' && window.electronAPI?.minecraftJavaAdvancements) {
+        setIsLoadingAchievements(true);
+        try {
+          const result = await window.electronAPI.minecraftJavaAdvancements();
+          if (result.success && result.items) {
+            setAchievements(
+              result.items.map((a) => ({
+                apiname: a.id,
+                name: a.name,
+                description: '',
+                achieved: a.achieved,
+                unlocktime: 0,
+                icon: '',
+                iconGray: '',
+              }))
+            );
+          } else {
+            setAchievements([]);
+          }
+        } catch {
+          setAchievements([]);
+        } finally {
+          setIsLoadingAchievements(false);
+        }
+      } else if (game.kind === 'minecraft-bedrock') {
+        setAchievements([]);
       }
     }
-    fetchAchievements();
-  }, [game.id, game.platform, settings.steamApiKey, settings.steamUserId, profile?.steamId]);
+    void fetchAchievements();
+  }, [game.id, game.platform, game.kind, settings.steamApiKey, settings.steamUserId, profile?.steamId]);
   
   // Fetch friends who are playing this game (Steam + always load Quark for tab)
   useEffect(() => {
@@ -410,11 +447,23 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
                         'text-xs font-semibold',
                         game.platform === 'steam' && 'bg-blue-500/20 text-blue-400',
                         game.platform === 'xbox' && 'bg-green-500/20 text-green-400',
-                        game.platform === 'epic' && 'bg-zinc-500/20 text-zinc-400'
+                        game.platform === 'epic' && 'bg-zinc-500/20 text-zinc-400',
+                        game.platform === 'custom' && 'bg-[#d4ff00]/15 text-[#d4ff00]'
                       )}
                     >
-                      {game.platform.toUpperCase()}
+                      {game.platform === 'custom' ? t('kindManual') : game.platform.toUpperCase()}
                     </Badge>
+                    {isMinecraftKind(game.kind) && (
+                      <Badge className="text-xs bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                        {game.kind === 'minecraft-java'
+                          ? t('kindJava')
+                          : game.kind === 'minecraft-bedrock'
+                            ? t('kindBedrock')
+                            : game.kind === 'minecraft-dungeons'
+                              ? t('kindDungeons')
+                              : t('kindLegends')}
+                      </Badge>
+                    )}
                     {game.genres?.map((genre) => (
                       <Badge key={genre} variant="outline" className="text-xs text-zinc-400 border-zinc-700">
                         {genre}
@@ -424,20 +473,75 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
                 </div>
 
                 {/* Play Button */}
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-4 flex-wrap">
                   <Button
                     size="lg"
-                    className="bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white font-bold px-8 gap-2 shadow-lg shadow-violet-500/25"
+                    className="bg-gradient-to-r from-[#d4ff00] to-[#a3e635] hover:from-[#e2ff4d] hover:to-[#bef264] text-black font-bold px-8 gap-2 shadow-lg shadow-[#d4ff00]/20"
                     onClick={handlePlay}
+                    disabled={!canLaunch}
                   >
                     <Play className="h-5 w-5 fill-current" />
                     Uruchom grę
                   </Button>
 
-                  <Button variant="outline" className="gap-2 border-white/10 hover:bg-white/5" onClick={handleShowInStore}>
-                    <ExternalLink className="h-4 w-4" />
-                    Strona w sklepie
-                  </Button>
+                  {game.platform !== 'custom' && (
+                    <Button variant="outline" className="gap-2 border-white/10 hover:bg-white/5" onClick={handleShowInStore}>
+                      <ExternalLink className="h-4 w-4" />
+                      {t('storePage')}
+                    </Button>
+                  )}
+
+                  {(game.installDir || game.gamePath) && (
+                    <Button
+                      variant="outline"
+                      className="gap-2 border-white/10"
+                      onClick={() => {
+                        const folder =
+                          game.installDir ||
+                          (game.gamePath
+                            ? game.gamePath.replace(/[/\\][^/\\]+$/, '')
+                            : '');
+                        if (folder) void window.electronAPI?.openFolder?.(folder);
+                      }}
+                    >
+                      <FolderOpen className="h-4 w-4" />
+                      {game.kind === 'minecraft-java'
+                        ? t('openMinecraftFolder')
+                        : t('openInstallFolder')}
+                    </Button>
+                  )}
+
+                  {game.kind === 'minecraft-java' && game.installDir && (
+                    <Button
+                      variant="outline"
+                      className="gap-2 border-white/10"
+                      onClick={() => {
+                        const dir = game.installDir;
+                        if (!dir) return;
+                        const mods = `${dir}${dir.includes('\\') ? '\\' : '/'}mods`;
+                        void window.electronAPI?.openFolder?.(mods);
+                      }}
+                    >
+                      <FolderOpen className="h-4 w-4" />
+                      {t('openModsFolder')}
+                    </Button>
+                  )}
+
+                  {game.platform === 'custom' && (
+                    <Button
+                      variant="outline"
+                      className="gap-2 border-red-500/30 text-red-300 hover:bg-red-500/10"
+                      onClick={() => setRemoveConfirmOpen(true)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      {t('removeFromLibrary')}
+                    </Button>
+                  )}
+                </div>
+                {!canLaunch && (
+                  <p className="text-xs text-amber-400/90">{t('launchNoPath')}</p>
+                )}
                 </div>
 
                 {/* Stats */}
@@ -466,14 +570,25 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
 
             <Separator className="bg-white/5" />
 
-            {/* Tabs for Overview / Achievements / Friends - pokazuj dla Steam jeśli mamy API key */}
-            {game.platform === 'steam' && settings.steamApiKey && (
+            {/* Tabs: Steam (+ API) or Minecraft Java/Bedrock */}
+            {((game.platform === 'steam' && settings.steamApiKey) ||
+              game.kind === 'minecraft-java' ||
+              game.kind === 'minecraft-bedrock') && (
               <>
                 <div className="flex gap-2">
                   {[
                     { id: 'overview', label: 'Przegląd', icon: null },
-                    { id: 'achievements', label: 'Osiągnięcia', icon: Trophy },
-                    { id: 'friends', label: 'Znajomi', icon: Users },
+                    {
+                      id: 'achievements',
+                      label:
+                        game.kind === 'minecraft-java'
+                          ? t('advancements')
+                          : 'Osiągnięcia',
+                      icon: Trophy,
+                    },
+                    ...(game.platform === 'steam'
+                      ? [{ id: 'friends' as const, label: 'Znajomi', icon: Users }]
+                      : []),
                   ].map(tab => (
                     <Button
                       key={tab.id}
@@ -555,7 +670,13 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-zinc-500 text-sm">Brak osiągnięć dla tej gry lub nie można ich pobrać.</p>
+                      <p className="text-zinc-500 text-sm">
+                        {game.kind === 'minecraft-bedrock'
+                          ? t('bedrockAchievementsSoon')
+                          : game.kind === 'minecraft-java'
+                            ? t('advancementsEmpty')
+                            : 'Brak osiągnięć dla tej gry lub nie można ich pobrać.'}
+                      </p>
                     )}
                   </div>
                 )}
@@ -946,6 +1067,28 @@ export function GameDetails({ game, onClose }: GameDetailsProps) {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={removeConfirmOpen} onOpenChange={setRemoveConfirmOpen}>
+        <AlertDialogContent className="bg-zinc-900 border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">{t('removeConfirmTitle')}</AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-400">
+              {t('removeConfirmDesc', { name: game.name })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/10">{t('cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-500 text-white"
+              onClick={() => {
+                void removeCustomGame(game.id).then(() => onClose());
+              }}
+            >
+              {t('removeConfirmAction')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

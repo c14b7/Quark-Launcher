@@ -126,8 +126,19 @@ function getPublicDisplayFields(preferences: unknown) {
   }
 }
 
+function shareListeningAllowed(preferences: unknown): boolean {
+  try {
+    const raw = typeof preferences === 'string' ? preferences : '';
+    const p = raw ? JSON.parse(raw) : {};
+    return p.shareListening !== 'private';
+  } catch {
+    return true;
+  }
+}
+
 function toPublicProfile(doc: Record<string, unknown>) {
   const display = getPublicDisplayFields(doc.preferences);
+  const allowListening = shareListeningAllowed(doc.preferences);
   return {
     userId: doc.userId,
     displayName: doc.displayName || doc.name,
@@ -145,6 +156,14 @@ function toPublicProfile(doc: Record<string, unknown>) {
     currentGameId: doc.currentGameId ?? undefined,
     currentGameName: doc.currentGameName ?? undefined,
     currentActivity: doc.currentActivity ?? undefined,
+    ...(allowListening && doc.listeningTitle
+      ? {
+          listeningTitle: doc.listeningTitle,
+          listeningArtist: doc.listeningArtist || undefined,
+          listeningArtUrl: doc.listeningArtUrl || undefined,
+          listeningSource: doc.listeningSource || undefined,
+        }
+      : {}),
   };
 }
 

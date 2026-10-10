@@ -8,6 +8,7 @@ import { handleFriendsApiRequest } from './friends-api';
 import { handleTelemetryApiRequest } from './telemetry-api';
 import { handleChatApiRequest } from './chat-api';
 import { handleStatsApiRequest } from './stats-api';
+import { handleSpotifyApiRequest } from './spotify-api';
 import { parseBody, resolveRoutePathFromRequest } from './lib/middleware';
 import { APPWRITE_API_KEY } from './lib/config';
 import { getTelemetrySchemaStatus } from './lib/telemetry-schema';
@@ -15,7 +16,18 @@ import { createLogger, formatError, type FunctionContext } from './lib/runtime';
 
 export default async function ({ req, res, log, error }: FunctionContext) {
   const logger = createLogger(log, error);
-  const path = resolveRoutePathFromRequest(req);
+  // Prefer Appwrite path/xpath; fall back to body._route (client always sends it on POST).
+  const body = parseBody(req);
+  const fromReq = resolveRoutePathFromRequest(req);
+  const fromBody = typeof body._route === 'string' ? String(body._route).split('?')[0] : '';
+  const path =
+    fromReq && fromReq !== '/'
+      ? fromReq
+      : fromBody
+        ? fromBody.startsWith('/')
+          ? fromBody
+          : `/${fromBody}`
+        : '/';
   const method = (req.method || 'POST').toUpperCase();
 
   logger.log(`${method} ${path} (raw path: ${req.path || 'empty'})`);
@@ -34,10 +46,11 @@ export default async function ({ req, res, log, error }: FunctionContext) {
       const telemetrySchema = await getTelemetrySchemaStatus();
       return res.json({
         success: true,
-        version: '2.1.0',
+        version: '2.2.0',
         apiKeyConfigured: true,
         path,
         telemetrySchema,
+        endpoints: ['/auth', '/friends', '/chat', '/steam', '/telemetry', '/stats', '/spotify', '/health'],
       });
     }
 
@@ -65,13 +78,17 @@ export default async function ({ req, res, log, error }: FunctionContext) {
       return handleStatsApiRequest(req, res, logger);
     }
 
+    if (path.startsWith('/spotify')) {
+      return handleSpotifyApiRequest(req, res, logger);
+    }
+
     logger.log(`Unknown route: ${path}`);
     return res.json({
       success: false,
       code: 'NOT_FOUND',
       error: `Unknown route: ${path || '/'}`,
-      version: '2.0.1',
-      endpoints: ['/auth', '/friends', '/chat', '/steam', '/telemetry', '/stats', '/health'],
+      version: '2.2.0',
+      endpoints: ['/auth', '/friends', '/chat', '/steam', '/telemetry', '/stats', '/spotify', '/health'],
     }, 404);
   } catch (err) {
     logger.error(`Fatal router error: ${formatError(err)}`);

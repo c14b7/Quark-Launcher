@@ -22,6 +22,7 @@ export const COLLECTIONS = {
   messages: 'messages',
   messageReactions: 'message_reactions',
   userPlayStats: 'user_play_stats',
+  spotifyIntegrations: 'spotify_integrations',
 } as const;
 
 export const BUCKETS = {

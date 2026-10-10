@@ -14,13 +14,13 @@ const client = new Client()
 export const account = new Account(client);
 const functions = new Functions(client);
 
-export interface ApiResponse<T = unknown> {
+/** Base envelope; payload fields from T are merged at top level by Function responses. */
+export type ApiResponse<T extends object = Record<string, never>> = {
   success: boolean;
   code?: string;
   error?: string;
   data?: T;
-  [key: string]: unknown;
-}
+} & Partial<T>;
 
 function methodToEnum(method: string): ExecutionMethod {
   const map: Record<string, ExecutionMethod> = {
@@ -33,7 +33,11 @@ function methodToEnum(method: string): ExecutionMethod {
   return map[method.toUpperCase()] || ExecutionMethod.POST;
 }
 
-export async function apiRequest<T = unknown>(
+function fail<T extends object>(code: string, error: string): ApiResponse<T> {
+  return { success: false, code, error } as ApiResponse<T>;
+}
+
+export async function apiRequest<T extends object = Record<string, never>>(
   path: string,
   method: string = 'POST',
   body?: Record<string, unknown>,
@@ -41,26 +45,27 @@ export async function apiRequest<T = unknown>(
 ): Promise<ApiResponse<T>> {
   if (!APPWRITE_CONFIG.functionId) {
     console.warn('[API] NEXT_PUBLIC_APPWRITE_FUNCTION_ID not set');
-    return { success: false, code: 'CONFIG_ERROR', error: 'Function ID not configured' };
+    return fail<T>('CONFIG_ERROR', 'Function ID not configured');
   }
 
   const httpMethod = method.toUpperCase();
-  const isGet = httpMethod === 'GET';
   const startedAt = Date.now();
 
   if (requireAuth) {
     try {
       await account.get();
     } catch {
-      return { success: false, code: 'UNAUTHORIZED', error: 'Not authenticated' };
+      return fail<T>('UNAUTHORIZED', 'Not authenticated');
     }
   }
 
   try {
+    // Always include _route in body so Function routing works even when xpath is empty.
+    // Appwrite accepts a body on GET executions for this purpose.
     const routePayload = { ...(body || {}), _route: path };
     const execution = await functions.createExecution({
       functionId: APPWRITE_CONFIG.functionId,
-      body: isGet ? undefined : JSON.stringify(routePayload),
+      body: JSON.stringify(routePayload),
       async: false,
       xpath: path,
       method: methodToEnum(httpMethod),
@@ -78,11 +83,7 @@ export async function apiRequest<T = unknown>(
         track('error.api', { path, code: 'FUNCTION_ERROR', latencyMs: Date.now() - startedAt }, 'error');
         logTelemetry('error', `API ${path} failed`, { path, status: execution.status });
       }
-      return {
-        success: false,
-        code: (parsed.code as string) || 'FUNCTION_ERROR',
-        error: errMsg,
-      };
+      return fail<T>((parsed.code as string) || 'FUNCTION_ERROR', errMsg);
     }
 
     if (execution.responseStatusCode && execution.responseStatusCode >= 400) {
@@ -95,11 +96,10 @@ export async function apiRequest<T = unknown>(
           'error'
         );
       }
-      return {
-        success: false,
-        code: (parsed.code as string) || 'API_ERROR',
-        error: (parsed.error as string) || 'Request failed',
-      };
+      return fail<T>(
+        (parsed.code as string) || 'API_ERROR',
+        (parsed.error as string) || 'Request failed'
+      );
     }
 
     return parseResponseBody(execution.responseBody) as ApiResponse<T>;
@@ -110,13 +110,13 @@ export async function apiRequest<T = unknown>(
       track('error.api', { path, code: 'NETWORK_ERROR', latencyMs: Date.now() - startedAt }, 'error');
       logTelemetry('warn', `API network error: ${path}`, { message: err.message });
     }
-    return { success: false, code: 'NETWORK_ERROR', error: err.message || 'Network error' };
+    return fail<T>('NETWORK_ERROR', err.message || 'Network error');
   }
 }
 
-function parseResponseBody(responseBody: string): ApiResponse {
+function parseResponseBody(responseBody: string): Record<string, unknown> {
   try {
-    return JSON.parse(responseBody || '{}');
+    return JSON.parse(responseBody || '{}') as Record<string, unknown>;
   } catch {
     return { success: false, error: 'Invalid response' };
   }

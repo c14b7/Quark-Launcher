@@ -93,7 +93,11 @@ export function StatsView() {
     setSyncing(false);
   };
 
-  const openRecap = () => window.dispatchEvent(new CustomEvent('quark-open-recap'));
+  const recapUnlocked = Boolean(settings.earlyAccess?.recap);
+  const openRecap = () => {
+    if (!recapUnlocked) return;
+    window.dispatchEvent(new CustomEvent('quark-open-recap'));
+  };
 
   const maxHour = Math.max(1, ...(snap?.hourHistogram.map((h) => h.count) || [1]));
   const maxWeek = Math.max(1, ...(snap?.weekdayBars.map((d) => d.sessionSec || d.count) || [1]));
@@ -146,8 +150,15 @@ export function StatsView() {
             </Button>
             <Button
               size="sm"
-              className="gap-1.5 bg-[#d4ff00] text-black hover:bg-[#e2ff4d]"
+              className={cn(
+                'gap-1.5',
+                recapUnlocked
+                  ? 'bg-[#d4ff00] text-black hover:bg-[#e2ff4d]'
+                  : 'bg-zinc-800/80 text-zinc-500 cursor-not-allowed opacity-60'
+              )}
               onClick={openRecap}
+              disabled={!recapUnlocked}
+              title={recapUnlocked ? undefined : t('recapComingSoon')}
             >
               <Sparkles className="h-3.5 w-3.5" />
               {t('openRecap')}

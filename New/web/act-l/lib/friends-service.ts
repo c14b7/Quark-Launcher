@@ -65,17 +65,22 @@ export const friendsService = {
   },
 
   async updatePresence(
-    presence: string,
+    presence?: string | null,
     customStatus?: string,
     activity?: {
       currentGameId?: string;
       currentGameName?: string;
       currentActivity?: string;
+      listeningTitle?: string;
+      listeningArtist?: string;
+      listeningArtUrl?: string;
+      listeningSource?: string;
+      clearListening?: boolean;
     }
   ) {
     return apiRequest('/friends/presence', 'POST', {
-      presence,
-      customStatus,
+      ...(presence != null && presence !== '' ? { presence } : {}),
+      ...(customStatus !== undefined ? { customStatus } : {}),
       ...activity,
     });
   },

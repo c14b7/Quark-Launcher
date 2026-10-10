@@ -47,9 +47,12 @@ import { startDevEventCapture } from '@/lib/dev-debug-bus';
 import { SystemMessagesProvider } from '@/lib/system-messages-context';
 import { SystemMessageModal } from '@/components/system-message-modal';
 import { RecapView } from '@/components/recap/recap-view';
+import { WhatsNewModal } from '@/components/whats-new-modal';
+import { syncListeningPresence } from '@/lib/spotify-service';
 import { mountQuarkConsole, runSeedSessions } from '@/lib/quark-console';
 import { setStatsSyncContext, scheduleStatsSync } from '@/lib/stats-sync-service';
 import { useSystemMessages } from '@/lib/system-messages-context';
+import { DEFAULT_OVERLAY_SETTINGS } from '@/lib/overlay-settings';
 
 const STEAM_PROMPT_DISMISSED_KEY = 'quark_steam_prompt_dismissed';
 
@@ -76,7 +79,8 @@ function LauncherContent() {
   });
 
   const { selectedGame, setSelectedGame, games } = useGames();
-  const { settings, updateSettings, rebuildAutoCategoriesFromGames } = useSettings();
+  const { settings, updateSettings, updateOverlaySettings, rebuildAutoCategoriesFromGames } =
+    useSettings();
   const { isAuthenticated, profile, steamIntegration, isLoading, meLoaded, apiUnavailable, updateProfile, user } = useAuth();
   const { refresh: refreshSysMsg, openMessage } = useSystemMessages();
 
@@ -102,6 +106,31 @@ function LauncherContent() {
     });
     if (isAuthenticated) scheduleStatsSync(8000);
   }, [games, settings, profile?.preferences, isAuthenticated]);
+
+  useEffect(() => {
+    const onResync = () => {
+      if (isAuthenticated) scheduleStatsSync(500);
+    };
+    window.addEventListener('quark-stats-resync', onResync);
+    return () => window.removeEventListener('quark-stats-resync', onResync);
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    const onOverlayReset = () => {
+      updateOverlaySettings({ ...DEFAULT_OVERLAY_SETTINGS });
+    };
+    window.addEventListener('quark-overlay-reset', onOverlayReset);
+    return () => window.removeEventListener('quark-overlay-reset', onOverlayReset);
+  }, [updateOverlaySettings]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    void syncListeningPresence(profile?.preferences);
+    const id = setInterval(() => {
+      void syncListeningPresence(profile?.preferences);
+    }, 25000);
+    return () => clearInterval(id);
+  }, [isAuthenticated, profile?.preferences]);
 
   useEffect(() => {
     const onSeed = (e: Event) => {
@@ -295,6 +324,7 @@ function LauncherContent() {
       <DevTestBannerHost />
       <SystemMessageModal />
       <RecapView open={recapOpen} onClose={() => setRecapOpen(false)} />
+      <WhatsNewModal />
       {devInspectorOpen && (
         <DevInspector mode="panel" onClose={() => setDevInspectorOpen(false)} />
       )}

@@ -5,19 +5,48 @@ const { OverlayPerformanceMonitor } = require('./overlay-performance');
 const SHORTCUT = 'Control+Alt+F10';
 const SESSION_MAX_MS = 8 * 60 * 60 * 1000;
 
-const DEFAULT_OVERLAY_CONFIG = {
-  showLogo: true,
-  showCpu: true,
-  showGpu: true,
-  showFps: true,
-  showCpuChart: true,
-  showRam: true,
-  showSessionTimer: true,
-  showDateTime: false,
-  showPing: false,
-  showChatNotifications: true,
-  chatNotificationsWhenHidden: true,
-};
+let DEFAULT_OVERLAY_CONFIG;
+try {
+  DEFAULT_OVERLAY_CONFIG = require('./overlay-defaults.json');
+} catch {
+  DEFAULT_OVERLAY_CONFIG = {
+    version: 2,
+    showLogo: true,
+    showCpu: true,
+    showGpu: true,
+    showFps: true,
+    showCpuChart: true,
+    showRam: true,
+    showSessionTimer: true,
+    showDateTime: false,
+    showPing: false,
+    showChatNotifications: true,
+    chatNotificationsWhenHidden: true,
+    showNowPlaying: true,
+    scale: 1,
+    themeId: 'lime',
+    presetId: 'classic',
+    editorAspect: '16:9',
+    editMode: false,
+    layout: {
+      logo: { x: 1.2, y: 1.5, anchor: 'top-left' },
+      media: { x: 50, y: 1.5, anchor: 'top-left' },
+      perf: { x: 1.2, y: 1.5, anchor: 'top-right' },
+      toasts: { x: 50, y: 12, anchor: 'top-left' },
+    },
+  };
+}
+
+function mergeConfig(raw) {
+  const base = JSON.parse(JSON.stringify(DEFAULT_OVERLAY_CONFIG));
+  if (!raw || typeof raw !== 'object') return base;
+  return {
+    ...base,
+    ...raw,
+    layout: { ...base.layout, ...(raw.layout || {}) },
+    editMode: Boolean(raw.editMode),
+  };
+}
 
 class OverlayManager {
   constructor(mainWindow) {
@@ -25,10 +54,11 @@ class OverlayManager {
     this.window = null;
     this.visible = false;
     this.gameSessionActive = false;
+    this.previewMode = false;
     this.sessionTimeout = null;
     this.shortcutRegistered = false;
     this.sessionStartedAt = null;
-    this.config = { ...DEFAULT_OVERLAY_CONFIG };
+    this.config = mergeConfig(null);
     this.perfMonitor = new OverlayPerformanceMonitor((sample) => {
       if (this.window && !this.window.isDestroyed()) {
         this.window.webContents.send('overlay-metrics', sample);
@@ -42,6 +72,32 @@ class OverlayManager {
       this.updateConfig(config);
       return { success: true };
     });
+    ipcMain.handle('overlay-enter-edit-mode', () => {
+      this.enterEditMode();
+      return { success: true };
+    });
+    ipcMain.handle('overlay-exit-edit-mode', () => {
+      this.exitEditMode();
+      return { success: true };
+    });
+    ipcMain.handle('overlay-preview-show', () => {
+      this.showPreview();
+      return { success: true };
+    });
+    ipcMain.handle('overlay-preview-hide', () => {
+      this.hidePreview();
+      return { success: true };
+    });
+    ipcMain.handle('overlay-layout-patch', (_e, patch) => {
+      this.applyLayoutPatch(patch);
+      return { success: true, layout: this.config.layout };
+    });
+    ipcMain.on('overlay-layout-patch', (_e, patch) => {
+      this.applyLayoutPatch(patch);
+    });
+    ipcMain.on('overlay-exit-edit-mode', () => {
+      this.exitEditMode();
+    });
   }
 
   setMainWindow(win) {
@@ -49,9 +105,21 @@ class OverlayManager {
   }
 
   updateConfig(config) {
-    if (!config || typeof config !== 'object') return;
-    this.config = { ...DEFAULT_OVERLAY_CONFIG, ...config };
+    const keepEdit = this.config.editMode;
+    this.config = mergeConfig({ ...config, editMode: config?.editMode ?? keepEdit });
+    this.applyWindowInteraction();
     this.sendConfigToOverlay();
+  }
+
+  applyLayoutPatch(patch) {
+    if (!patch || typeof patch !== 'object') return;
+    this.config.layout = { ...this.config.layout, ...patch };
+    this.sendConfigToOverlay();
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.webContents.send('overlay-layout-changed', {
+        layout: this.config.layout,
+      });
+    }
   }
 
   sendConfigToOverlay() {
@@ -70,6 +138,7 @@ class OverlayManager {
 
   onGameLaunched() {
     this.gameSessionActive = true;
+    this.previewMode = false;
     this.sessionStartedAt = Date.now();
     if (this.sessionTimeout) clearTimeout(this.sessionTimeout);
     this.sessionTimeout = setTimeout(() => {
@@ -89,7 +158,7 @@ class OverlayManager {
         globalShortcut.unregister(SHORTCUT);
       }
       const ok = globalShortcut.register(SHORTCUT, () => {
-        if (!this.gameSessionActive) {
+        if (!this.gameSessionActive && !this.previewMode) {
           console.log('[Overlay] Shortcut ignored — no active game session');
           return;
         }
@@ -107,12 +176,15 @@ class OverlayManager {
   }
 
   createWindow() {
-    if (this.window && !this.window.isDestroyed()) return;
+    if (this.window && !this.window.isDestroyed()) {
+      this.fitToWorkArea();
+      return;
+    }
 
-    const { width, x, y } = screen.getPrimaryDisplay().workArea;
+    const { width, height, x, y } = screen.getPrimaryDisplay().workArea;
     this.window = new BrowserWindow({
       width,
-      height: 100,
+      height,
       x,
       y,
       frame: false,
@@ -135,7 +207,7 @@ class OverlayManager {
 
     this.window.setAlwaysOnTop(true, 'screen-saver');
     this.window.loadFile(path.join(__dirname, 'overlay.html'));
-    this.window.setIgnoreMouseEvents(true, { forward: true });
+    this.applyWindowInteraction();
 
     this.window.webContents.on('did-finish-load', () => {
       this.sendConfigToOverlay();
@@ -149,6 +221,65 @@ class OverlayManager {
     });
   }
 
+  fitToWorkArea() {
+    if (!this.window || this.window.isDestroyed()) return;
+    const { width, height, x, y } = screen.getPrimaryDisplay().workArea;
+    this.window.setBounds({ x, y, width, height });
+  }
+
+  applyWindowInteraction() {
+    if (!this.window || this.window.isDestroyed()) return;
+    const edit = Boolean(this.config.editMode);
+    this.window.setFocusable(edit);
+    if (edit) {
+      this.window.setIgnoreMouseEvents(false);
+    } else {
+      this.window.setIgnoreMouseEvents(true, { forward: true });
+    }
+  }
+
+  enterEditMode() {
+    this.config.editMode = true;
+    this.createWindow();
+    this.previewMode = true;
+    this.show();
+    this.applyWindowInteraction();
+    this.sendConfigToOverlay();
+    if (this.window && !this.window.isDestroyed()) {
+      this.window.focus();
+    }
+  }
+
+  exitEditMode() {
+    this.config.editMode = false;
+    this.applyWindowInteraction();
+    this.sendConfigToOverlay();
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.webContents.send('overlay-edit-exited', {
+        layout: this.config.layout,
+        config: this.config,
+      });
+    }
+    if (!this.gameSessionActive) {
+      this.hidePreview();
+    }
+  }
+
+  showPreview() {
+    this.previewMode = true;
+    this.sessionStartedAt = this.sessionStartedAt || Date.now();
+    this.ensureShortcut();
+    this.show();
+  }
+
+  hidePreview() {
+    this.previewMode = false;
+    if (!this.gameSessionActive) {
+      this.config.editMode = false;
+      this.hide();
+    }
+  }
+
   toggle() {
     const nextVisible = !this.visible;
     if (nextVisible) this.show();
@@ -160,10 +291,12 @@ class OverlayManager {
   show() {
     this.createWindow();
     if (this.window && !this.window.isDestroyed()) {
+      this.fitToWorkArea();
       this.window.setAlwaysOnTop(true, 'screen-saver');
       this.window.showInactive();
       this.visible = true;
       this.perfMonitor.start(500);
+      this.applyWindowInteraction();
       this.sendConfigToOverlay();
       this.sendSessionStart();
     }
@@ -184,10 +317,10 @@ class OverlayManager {
   }
 
   showNotification(payload) {
-    if (!this.gameSessionActive) return;
+    if (!this.gameSessionActive && !this.previewMode) return;
     const title = payload?.title || 'Quark';
     const body = payload?.body || '';
-    const cfg = { ...DEFAULT_OVERLAY_CONFIG, ...this.config };
+    const cfg = this.config;
 
     if (this.visible && this.window && !this.window.isDestroyed()) {
       this.window.webContents.send('overlay-notification', payload);
